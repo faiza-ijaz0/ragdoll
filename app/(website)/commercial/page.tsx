@@ -1875,7 +1875,7 @@ function CommercialPropertiesPageContent() {
       )}
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 overflow-hidden 'bg-gradient-to-br' from-blue-900 via-blue-800 to-blue-900">
+      <section className="relative pt-32 pb-20 overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="absolute inset-0 opacity-10">
           <img 
             src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1600&q=80" 
@@ -1883,7 +1883,7 @@ function CommercialPropertiesPageContent() {
             className="w-full h-full object-cover"
           />
         </div>
-        <div className="absolute inset-0 'bg-gradient-to-b' from-slate-900/90 via-slate-900/80 to-slate-900" />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/90 via-slate-900/80 to-slate-900" />
         
         <div className="container-custom relative z-10">
           <div className="max-w-5xl mx-auto text-center space-y-6">
@@ -2104,7 +2104,7 @@ function CommercialPropertiesPageContent() {
       </div>
 
       {/* Simple CTA Section */}
-      <section className="'bg-gradient-to-r' from-slate-900 to-slate-800 py-20">
+      <section className="bg-gradient-to-r from-slate-900 to-slate-800 py-20">
         <div className="container-custom">
           <div className="max-w-4xl mx-auto text-center text-white">
             <h2 className="text-3xl md:text-5xl font-black mb-6">
