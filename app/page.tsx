@@ -3885,9 +3885,7 @@ export default function HomePage() {
                     <span className="text-primary text-xs font-bold">
                       {post.readTime}
                     </span>
-                    <span className="text-slate-400 text-xs group-hover:text-primary transition-colors">
-                      Read More →
-                    </span>
+                   
                   </div>
                 </Link>
               ))
