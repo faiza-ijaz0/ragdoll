@@ -86,7 +86,7 @@ export default function CustomerLogin() {
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <BuildingOfficeIcon className="h-5 w-5 text-primary-foreground" />
               </div>
-              <span className="text-xl font-bold text-gradient">RAGDOL</span>
+              <span className="text-xl font-bold text-gradient">RAGDOLL PROPERTIES</span>
             </Link>
             <Link
               href="/"
@@ -150,7 +150,7 @@ export default function CustomerLogin() {
                     href="/customer/property-valuation"
                     className="btn-outline"
                   >
-                    Free Valuation
+                    Need Valuation
                   </Link>
                 </div>
               </div>
@@ -251,34 +251,7 @@ export default function CustomerLogin() {
                   </form>
 
                   {/* Demo Credentials */}
-                  {isLogin && (
-                    <div className="mt-6 p-4 bg-muted/50 rounded-xl border border-border/50">
-                      <h3 className="text-foreground font-medium mb-3 text-sm">Demo Accounts</h3>
-                      <div className="space-y-2">
-                        <button
-                          onClick={() => fillDemoCredentials('customer1')}
-                          className="w-full text-left p-2 bg-background hover:bg-muted text-sm rounded-lg transition-colors border border-border"
-                        >
-                          <div className="font-medium">Demo Customer</div>
-                          <div className="text-xs text-muted-foreground">customer@ragdol.com / Customer123!</div>
-                        </button>
-                        <button
-                          onClick={() => fillDemoCredentials('customer2')}
-                          className="w-full text-left p-2 bg-background hover:bg-muted text-sm rounded-lg transition-colors border border-border"
-                        >
-                          <div className="font-medium">John Doe</div>
-                          <div className="text-xs text-muted-foreground">john_doe@example.com / password123</div>
-                        </button>
-                        <button
-                          onClick={() => fillDemoCredentials('customer3')}
-                          className="w-full text-left p-2 bg-background hover:bg-muted text-sm rounded-lg transition-colors border border-border"
-                        >
-                          <div className="font-medium">Sarah Smith</div>
-                          <div className="text-xs text-muted-foreground">sarah_smith@example.com / password456</div>
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                 
 
                   {/* Toggle between Login/Signup */}
                   <div className="text-center mt-6">
@@ -320,7 +293,7 @@ export default function CustomerLogin() {
         <div className="container-custom">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Why Choose <span className="text-gradient">RAGDOL</span>
+              Why Choose <span className="text-gradient">RAGDOLL PROPERTIES</span>
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Experience the difference with Dubai's premier real estate platform

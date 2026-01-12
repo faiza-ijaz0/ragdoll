@@ -61,7 +61,7 @@ export default function PropertyCard({ property, isSaved = false, onSaveToggle }
   const imageSrc = getValidImageSrc(property.image)
 
   return (
-    <Link href={`/properties/${property.id}`} className="group block h-full">
+    <Link href={`/`} className="group block h-full">
       <div className="card-custom overflow-hidden hover:shadow-xl transition-all duration-500 h-full flex flex-col">
         {/* Image with Background */}
         <div className="relative h-48 md:h-56 overflow-hidden bg-muted">
@@ -196,3 +196,4 @@ export default function PropertyCard({ property, isSaved = false, onSaveToggle }
     </Link>
   )
 }
+

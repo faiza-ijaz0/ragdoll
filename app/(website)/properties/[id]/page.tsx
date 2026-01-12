@@ -447,7 +447,7 @@ export default function PropertyPage({ params }: PropertyPageProps) {
                     <span className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
                       <DocumentTextIcon className="w-5 h-5" />
                     </span>
-                    Description
+                    Description 
                   </h2>
                   <div className="prose prose-slate max-w-none">
                     <p className="text-slate-600 leading-relaxed text-lg whitespace-pre-line font-medium">
