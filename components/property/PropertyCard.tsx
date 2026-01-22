@@ -10,7 +10,7 @@ export interface PropertyCardProperty {
   title: string
   price: number
   priceLabel?: string
-  image: string
+  image?: string
   location?: string
   beds?: number
   baths?: number

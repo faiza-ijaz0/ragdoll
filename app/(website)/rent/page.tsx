@@ -3252,7 +3252,7 @@ function PropertiesPageContent() {
                             title: property.title || 'New Property',
                             price: property.price ?? 0,
                             priceLabel: 'yearly',
-                            image: property.image,
+                            image: property.image || '',
                             location: property.location || `${property.area || ''}${property.city ? ', ' + property.city : ''}`,
                             beds: property.beds ?? 0,
                             baths: property.baths ?? 0,
@@ -3265,7 +3265,6 @@ function PropertiesPageContent() {
                             city: property.city || undefined,
                             video_url: property.video_url || undefined,
                             agent_name: property.agent_name || undefined,
-                            images: property.images || undefined,
                           }}
                         />
                         

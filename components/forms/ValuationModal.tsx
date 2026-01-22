@@ -16,12 +16,14 @@ interface ValuationModalProps {
   isOpen: boolean
   onClose: () => void
   onSubmit: (data: ValuationData) => Promise<void>
+  isSubmitting?: boolean
 }
 
 export default function ValuationModal({
   isOpen,
   onClose,
-  onSubmit
+  onSubmit,
+  isSubmitting: externalIsSubmitting
 }: ValuationModalProps) {
   const [formData, setFormData] = useState<ValuationData>({
     full_name: '',
@@ -32,6 +34,8 @@ export default function ValuationModal({
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Partial<ValuationData>>({})
+
+  const effectiveIsSubmitting = externalIsSubmitting !== undefined ? externalIsSubmitting : isSubmitting
 
   const validateForm = (): boolean => {
     const newErrors: Partial<ValuationData> = {}
@@ -50,7 +54,9 @@ export default function ValuationModal({
 
     if (!validateForm()) return
 
-    setIsSubmitting(true)
+    if (externalIsSubmitting === undefined) {
+      setIsSubmitting(true)
+    }
     try {
       await onSubmit(formData)
       onClose()
@@ -65,7 +71,9 @@ export default function ValuationModal({
     } catch (error) {
       console.error('Error submitting valuation request:', error)
     } finally {
-      setIsSubmitting(false)
+      if (externalIsSubmitting === undefined) {
+        setIsSubmitting(false)
+      }
     }
   }
 
@@ -194,10 +202,10 @@ export default function ValuationModal({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={effectiveIsSubmitting}
               className="px-8 py-3 bg-primary text-white font-bold rounded-2xl hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Submitting...' : 'Request Valuation'}
+              {effectiveIsSubmitting ? 'Submitting...' : 'Request Valuation'}
             </button>
           </div>
         </form>
