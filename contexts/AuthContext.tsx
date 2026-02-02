@@ -89,43 +89,83 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /* ------------------------------------------------------------------------ */
   /*                    🔥 FIREBASE SESSION LISTENER 🔥                        */
+  /* --------- PERSISTENT LOGIN: SAVED TO LOCALSTORAGE --------- */
   /* ------------------------------------------------------------------------ */
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (!firebaseUser) {
-        setUser(null)
-        setProfile(null)
+      try {
+        if (!firebaseUser) {
+          setUser(null)
+          setProfile(null)
+          // Clear localStorage when user logs out
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('userSession')
+          }
+          setLoading(false)
+          return
+        }
+
+        // First try to find user in Firestore by email (for manually added users)
+        const usersRef = collection(db, 'users')
+        const q = query(usersRef, where('email', '==', firebaseUser.email))
+        const querySnapshot = await getDocs(q)
+
+        if (!querySnapshot.empty) {
+          const userDoc = querySnapshot.docs[0]
+          const userData = userDoc.data()
+          
+          const userData_obj = {
+            id: firebaseUser.uid,
+            uid: firebaseUser.uid,
+            email: firebaseUser.email!,
+            displayName: firebaseUser.displayName,
+          }
+
+          const profileData_obj = {
+            id: firebaseUser.uid,
+            ...userData,
+          } as ProfileType
+
+          setUser(userData_obj)
+          setProfile(profileData_obj)
+
+          // Save to localStorage for persistence
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('userSession', JSON.stringify({
+              user: userData_obj,
+              profile: profileData_obj,
+              timestamp: new Date().toISOString()
+            }))
+          }
+        }
+
         setLoading(false)
-        return
+      } catch (error) {
+        console.error('Error in onAuthStateChanged:', error)
+        setLoading(false)
       }
-
-      // First try to find user in Firestore by email (for manually added users)
-      const usersRef = collection(db, 'users')
-      const q = query(usersRef, where('email', '==', firebaseUser.email))
-      const querySnapshot = await getDocs(q)
-
-      if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0]
-        const userData = userDoc.data()
-        
-        setUser({
-          id: firebaseUser.uid,
-          uid: firebaseUser.uid,
-          email: firebaseUser.email!,
-          displayName: firebaseUser.displayName,
-        })
-
-        setProfile({
-          id: firebaseUser.uid,
-          ...userData,
-        } as ProfileType)
-      }
-
-      setLoading(false)
     })
 
     return () => unsubscribe()
+  }, [])
+
+  // Restore session from localStorage on initial load
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedSession = localStorage.getItem('userSession')
+      if (savedSession) {
+        try {
+          const { user: savedUser, profile: savedProfile } = JSON.parse(savedSession)
+          setUser(savedUser)
+          setProfile(savedProfile)
+        } catch (error) {
+          console.error('Error restoring session:', error)
+          localStorage.removeItem('userSession')
+        }
+      }
+      setLoading(false)
+    }
   }, [])
 
   /* ------------------------------------------------------------------------ */
@@ -364,12 +404,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /* ------------------------------------------------------------------------ */
   /*                                  LOGOUT                                  */
+  /* --------- CLEARS AUTH SESSION AND LOCALSTORAGE --------- */
   /* ------------------------------------------------------------------------ */
 
   const logout = async () => {
     await signOut(auth)
     setUser(null)
     setProfile(null)
+    // Clear localStorage when user explicitly logs out
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('userSession')
+    }
   }
 
   /* ------------------------------------------------------------------------ */

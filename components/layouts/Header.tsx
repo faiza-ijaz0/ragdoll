@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,6 +18,7 @@ import {
   StarIcon,
   ChevronDownIcon,
   CalculatorIcon,
+  ArrowRightOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 
 const dubaiAreas = [
@@ -118,10 +119,12 @@ interface NavSection {
 }
 
 export default function Header() {
-  const { user, profile } = useAuth();
+  const { user, profile, logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const { t } = useTranslation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isBuyOpen, setIsBuyOpen] = useState(false);
   const [isRentOpen, setIsRentOpen] = useState(false);
   const [isLuxeOpen, setIsLuxeOpen] = useState(false);
@@ -129,6 +132,28 @@ export default function Header() {
   const [isServicesOpen, setIsServicesOpen] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isValuationModalOpen, setIsValuationModalOpen] = useState(false);
+
+  // Handle logout
+  const handleLogout = async () => {
+    await logout();
+    setIsProfileDropdownOpen(false);
+    router.push("/");
+  };
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('[data-profile-dropdown]')) {
+        setIsProfileDropdownOpen(false);
+      }
+    };
+
+    if (isProfileDropdownOpen) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [isProfileDropdownOpen]);
 
   // Hide header on login pages
   const isAuthPage =
@@ -708,12 +733,67 @@ export default function Header() {
             Valuation
           </button>
 
-          <Link
-            href="/customer/login"
-            className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-secondary text-white hover:bg-primary hover:text-secondary"
-          >
-            Sign In
-          </Link>
+          {/* User Profile or Sign In */}
+          {user && profile ? (
+            // Profile Dropdown
+            <div className="relative" data-profile-dropdown>
+              <button
+                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all bg-secondary text-white hover:bg-primary hover:text-secondary group"
+                title={profile.full_name || profile.email}
+              >
+                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30">
+                  <UserIcon className="h-4 w-4" />
+                </div>
+                <span className="hidden sm:inline">{profile.full_name?.split(' ')[0] || 'Profile'}</span>
+                <ChevronDownIcon className={cn(
+                  "h-4 w-4 transition-transform",
+                  isProfileDropdownOpen && "rotate-180"
+                )} />
+              </button>
+
+              {/* Dropdown Menu */}
+              {isProfileDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl z-50 border border-slate-100 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-slate-100">
+                    <p className="text-sm font-semibold text-secondary">{profile.full_name || 'User'}</p>
+                    <p className="text-xs text-slate-500">{profile.email}</p>
+                  </div>
+                  <nav className="py-2">
+                    <Link
+                      href={
+                        profile.role === 'admin'
+                          ? '/admin/dashboard'
+                          : profile.role === 'agent'
+                          ? '/agent/dashboard'
+                          : '/customer/dashboard'
+                      }
+                      onClick={() => setIsProfileDropdownOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-secondary hover:bg-primary/10 hover:text-primary transition-all"
+                    >
+                      <UserIcon className="h-4 w-4" />
+                      View Dashboard
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-all text-left"
+                    >
+                      <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                      Logout
+                    </button>
+                  </nav>
+                </div>
+              )}
+            </div>
+          ) : (
+            // Sign In Button
+            <Link
+              href="/customer/login"
+              className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-secondary text-white hover:bg-primary hover:text-secondary"
+            >
+              Sign In
+            </Link>
+          )}
 
           {/* Mobile Menu Toggle */}
           <button
@@ -1144,24 +1224,33 @@ export default function Header() {
                 {t("header.navigation.valuation")}
               </button>
 
-              {user ? (
-                <Link
-                  href={
-                    profile?.role === "admin"
-                      ? "/admin"
-                      : profile?.role === "agent"
-                      ? "/agent/dashboard"
-                      : "/customer/dashboard"
-                  }
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-full py-4 bg-secondary text-white text-center font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-primary hover:text-secondary transition-all shadow-lg block"
-                >
-                  <UserIcon className="h-5 w-5" />
-                  Portal
-                </Link>
+              {user && profile ? (
+                <>
+                  <Link
+                    href={
+                      profile.role === 'admin'
+                        ? '/admin/dashboard'
+                        : profile.role === 'agent'
+                        ? '/agent/dashboard'
+                        : '/customer/dashboard'
+                    }
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="w-full py-4 bg-secondary text-white text-center font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-primary hover:text-secondary transition-all shadow-lg block"
+                  >
+                    <UserIcon className="h-5 w-5" />
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full py-4 bg-red-600 text-white text-center font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-red-700 transition-all shadow-lg"
+                  >
+                    <ArrowRightOnRectangleIcon className="h-5 w-5" />
+                    Logout
+                  </button>
+                </>
               ) : (
                 <Link
-                  href="/admin/login"
+                  href="/customer/login"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="w-full py-4 bg-secondary text-white text-center font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-primary hover:text-secondary transition-all shadow-lg block"
                 >

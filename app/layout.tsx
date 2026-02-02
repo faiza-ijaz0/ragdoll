@@ -3,10 +3,7 @@ import { Geist, Geist_Mono, Noto_Sans_Arabic, Cairo, Amiri } from "next/font/goo
 import "./globals.css";
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from '@/contexts/AuthContext'
-import Header from '@/components/layouts/Header'
-import Footer from '@/components/layouts/Footer'
-import FloatingActionButtons from '@/components/shared/FloatingActionButtons'
-import FloatingTools from '@/components/shared/FloatingTools'
+
 import I18nProvider from '@/components/shared/I18nProvider'
 import DynamicHtml from '@/components/layouts/DynamicHtml'
 import ConditionalLayout from '@/components/layouts/ConditionalLayout'

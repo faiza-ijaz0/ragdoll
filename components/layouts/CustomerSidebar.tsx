@@ -47,6 +47,14 @@ export default function CustomerSidebar() {
     },
   ]
 
+  const footerItems: NavItem[] = [
+    {
+      name: 'Return to Homepage',
+      href: '/',
+      icon: <HomeIcon className="h-5 w-5" />,
+    },
+  ]
+
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/')
 
   return (
@@ -120,7 +128,18 @@ export default function CustomerSidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10 space-y-2">
+          {footerItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setIsOpen(false)}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-blue-500/20 hover:text-blue-400 transition-colors"
+            >
+              {item.icon}
+              <span className="font-medium">{item.name}</span>
+            </Link>
+          ))}
           <button 
             onClick={logout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-red-500/20 hover:text-red-400 transition-colors"

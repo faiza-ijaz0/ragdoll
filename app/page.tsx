@@ -21,6 +21,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolidIcon, PlayIcon, PauseIcon } from "@heroicons/react/24/solid";
 import { ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline";
+import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
 
 // Firebase imports
 import { db } from "@/lib/firebase";
@@ -1385,7 +1386,6 @@ export default function HomePage() {
   const [topAgents, setTopAgents] = useState<AgentWithProfile[]>([]);
   const [testimonials, setTestimonials] = useState<any[]>([]);
   const [blogPosts, setBlogPosts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [firebaseConnected, setFirebaseConnected] = useState(false);
 
   // Video controls state
@@ -1396,69 +1396,72 @@ export default function HomePage() {
   // Video refs
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
 
-  // Fetch all data on component mount
+  // Fetch all data on component mount - PROGRESSIVE LOADING
   useEffect(() => {
     const fetchAllData = async () => {
-      setLoading(true);
-      console.log("Starting data fetch from Firebase...");
+      console.log("Starting progressive data fetch from Firebase...");
 
       try {
         const isConnected = await checkFirebaseConnection();
         setFirebaseConnected(isConnected);
 
         if (isConnected) {
-          console.log("Firebase connected, fetching all data...");
+          console.log("Firebase connected, fetching data progressively...");
 
-          const [
-            featuredData,
-            rentalData,
-            projectVideosData,
-            projectsData,
-            partnersData,
-            agentsData,
-            testimonialsData,
-            blogsData,
-          ] = await Promise.all([
-            fetchFeaturedProperties(), // INCLUDES AGENT PROPERTIES FOR BUY/SALE
-            fetchRentalProperties(), // INCLUDES AGENT PROPERTIES FOR RENT
-            fetchProjectVideos(),
+          // Fetch critical data first (featured properties for hero section)
+          fetchFeaturedProperties()
+            .then(setFeaturedProperties)
+            .catch(console.error);
+
+          // Fetch rental properties in parallel
+          fetchRentalProperties()
+            .then(setRentalProperties)
+            .catch(console.error);
+
+          // Fetch project videos
+          fetchProjectVideos()
+            .then((data) => {
+              setProjectVideos(data);
+              // Initialize video states
+              const initialVideoStates: {
+                [key: string]: { isPlaying: boolean; isMuted: boolean };
+              } = {};
+              data.forEach((project) => {
+                initialVideoStates[project.id] = {
+                  isPlaying: false,
+                  isMuted: true,
+                };
+              });
+              setVideoStates(initialVideoStates);
+            })
+            .catch(console.error);
+
+          // Fetch non-critical data (can be delayed)
+          Promise.all([
             fetchNewProjects(),
             fetchTrustedPartners(),
             fetchTopAgents(),
             fetchTestimonials(),
             fetchBlogPosts(),
-          ]);
+          ])
+            .then(
+              ([
+                projectsData,
+                partnersData,
+                agentsData,
+                testimonialsData,
+                blogsData,
+              ]) => {
+                setNewProjects(projectsData);
+                setTrustedPartners(partnersData);
+                setTopAgents(agentsData);
+                setTestimonials(testimonialsData);
+                setBlogPosts(blogsData);
 
-          console.log("Data fetched successfully:", {
-            featured: featuredData.length,
-            rental: rentalData.length,
-            projectVideos: projectVideosData.length,
-            projects: projectsData.length,
-            partners: partnersData.length,
-            agents: agentsData.length,
-            testimonials: testimonialsData.length,
-            blogs: blogsData.length,
-          });
-
-          setFeaturedProperties(featuredData);
-          setRentalProperties(rentalData);
-          setProjectVideos(projectVideosData);
-          setNewProjects(projectsData);
-          setTrustedPartners(partnersData);
-          setTopAgents(agentsData);
-          setTestimonials(testimonialsData);
-          setBlogPosts(blogsData);
-
-          const initialVideoStates: {
-            [key: string]: { isPlaying: boolean; isMuted: boolean };
-          } = {};
-          projectVideosData.forEach((project) => {
-            initialVideoStates[project.id] = {
-              isPlaying: false,
-              isMuted: true,
-            };
-          });
-          setVideoStates(initialVideoStates);
+                console.log("All data fetched successfully");
+              }
+            )
+            .catch(console.error);
         } else {
           console.log("Firebase not connected, using empty data");
           setProjectVideos([]);
@@ -1466,9 +1469,6 @@ export default function HomePage() {
       } catch (error) {
         console.error("Error fetching data:", error);
         setProjectVideos([]);
-      } finally {
-        setLoading(false);
-        console.log("Data fetch completed");
       }
     };
 
@@ -1507,20 +1507,6 @@ export default function HomePage() {
       }
     });
   }, [videoStates]);
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600"></p>
-          {!firebaseConnected && (
-            <p className="text-amber-600 text-sm mt-2"></p>
-          )}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -1945,14 +1931,16 @@ export default function HomePage() {
               showCount={4} 
             />
           ) : (
-            <div className="text-center py-12">
-              <p className="text-slate-500 mb-4">
-                No properties for sale found
-              </p>
-              <p className="text-sm text-slate-400">
-                Add properties with status "buy" or "sale" and "published: true"
-                in Firebase collections
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="space-y-3">
+                  <div className="bg-slate-200 rounded-xl h-48 animate-pulse" />
+                  <div className="space-y-2">
+                    <div className="bg-slate-200 h-4 rounded animate-pulse w-3/4" />
+                    <div className="bg-slate-200 h-3 rounded animate-pulse w-1/2" />
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -1984,14 +1972,16 @@ export default function HomePage() {
               showCount={4}
             />
           ) : (
-            <div className="text-center py-12">
-              <p className="text-slate-500 mb-4">
-                No properties for rent found
-              </p>
-              <p className="text-sm text-slate-400">
-                Add properties with status "rent" and "published: true" in
-                Firebase collections
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="space-y-3">
+                  <div className="bg-slate-200 rounded-xl h-48 animate-pulse" />
+                  <div className="space-y-2">
+                    <div className="bg-slate-200 h-4 rounded animate-pulse w-3/4" />
+                    <div className="bg-slate-200 h-3 rounded animate-pulse w-1/2" />
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
