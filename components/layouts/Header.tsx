@@ -455,44 +455,66 @@ export default function Header() {
     },
   ];
 
-  // UPDATED: handleValuationSubmit function
+  // Enhanced: handleValuationSubmit with real-time database integration
   const handleValuationSubmit = async (data: ValuationData) => {
-  try {
-    console.log("Valuation request:", data);
-    
-    // Ensure all required fields have values
-    const formData = {
-      type: 'valuation_request',
-      name: data.name || '',
-      email: data.email || '',
-      phone: data.phone || '',
+    try {
+      console.log("Processing valuation request:", data);
       
-      status: 'new',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    
-    console.log("Processed data for Firebase:", formData);
-    
-    // Firebase mein "request_information" collection mein save karna
-    const requestInfoRef = collection(db, 'request_information');
-    
-    await addDoc(requestInfoRef, formData);
-    
-    alert("Thank you for your valuation request! Our team will contact you soon.");
-    setIsValuationModalOpen(false);
-    
-  } catch (error) {
-    console.error('Error saving valuation request:', error);
-    alert("Something went wrong. Please try again.");
-  }
-};
+      // Prepare data for submission
+      const formData = {
+        type: 'valuation_request',
+        full_name: data.full_name?.trim() || '',
+        email: data.email?.trim() || '',
+        phone: data.phone?.trim() || '',
+        message: data.message?.trim() || '',
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        user_id: user?.uid || null
+      };
+      
+      // Try API endpoint first for better real-time handling
+      try {
+        const response = await fetch('/api/customer/valuations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Valuation saved via API:', result);
+          alert("✓ Thank you for your valuation request! Our team will contact you soon.");
+          setIsValuationModalOpen(false);
+          return;
+        }
+      } catch (apiError) {
+        console.warn('API endpoint not available, falling back to Firebase:', apiError);
+      }
+      
+      // Fallback to Firebase if API endpoint is not available
+      console.log("Saving to Firebase as fallback:", formData);
+      const requestInfoRef = collection(db, 'request_information');
+      const docRef = await addDoc(requestInfoRef, formData);
+      console.log('Valuation saved to Firebase with ID:', docRef.id);
+      
+      alert("✓ Thank you for your valuation request! Our team will contact you soon.");
+      setIsValuationModalOpen(false);
+      
+    } catch (error) {
+      console.error('Error saving valuation request:', error);
+      alert("✗ Something went wrong. Please try again.");
+      throw error;
+    }
+  };
 
   return (
     <header
       className={cn(
         "fixed top-0 left-0 right-0 z-[100] transition-all duration-500",
-        "bg-white/95 backdrop-blur-lg py-3"
+        "bg-white/95 backdrop-blur-lg py-4"
       )}
     >
       {/* Backdrop Overlay for Mega Menu */}
@@ -504,19 +526,17 @@ export default function Header() {
         isMoreOpen) && (
         <div className="fixed inset-0 bg-secondary/20 backdrop-blur-sm z-[-1]" />
       )}
-      <div className="container-custom flex items-center justify-between">
+      <div className="container-custom flex items-center justify-between px-4 sm:px-6 lg:px-8">
         
-
-<Link href="/" className="flex flex-col items-center group">
+<Link href="/" className="flex items-center group flex-shrink-0">
       <img 
         src="/ragdol.png" 
         alt="Ragdol Logo" 
-        className="h-10 rounded-xl group-hover:opacity-90 transition-opacity"
+        className="h-10 w-auto rounded-xl group-hover:opacity-90 transition-opacity"
       />
-     
     </Link>
         {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center gap-6">
+        <nav className="hidden lg:flex items-center gap-2 flex-1 justify-center px-">
           {navigation.map((item) => (
             <div key={item.label} className="relative">
               {item.hasDropdown ? (
@@ -543,7 +563,7 @@ export default function Header() {
                   }}
                 >
                   <button
-                    className="flex items-center gap-1 text-[13px] font-semibold uppercase tracking-wider transition-all hover:text-primary cursor-pointer text-secondary"
+                    className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide transition-all hover:text-primary hover:bg-slate-50 cursor-pointer text-secondary"
                     onClick={() => {
                       if (item.label === "Buy") setIsBuyOpen(!isBuyOpen);
                       else if (item.label === "Rent")
@@ -705,18 +725,16 @@ export default function Header() {
               ) : item.isValuation ? (
                 <button
                   onClick={() => setIsValuationModalOpen(true)}
-                  className="text-[13px] font-semibold uppercase tracking-wider transition-all hover:text-primary relative group text-secondary"
+                  className="px-2 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide transition-all hover:text-primary hover:bg-slate-50 relative group text-secondary"
                 >
                   {item.label}
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
                 </button>
               ) : (
                 <Link
                   href={item.href!}
-                  className="text-[13px] font-semibold uppercase tracking-wider transition-all hover:text-primary relative group text-secondary"
+                  className="px-2 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide transition-all hover:text-primary hover:bg-slate-50 relative group text-secondary"
                 >
                   {item.label}
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
                 </Link>
               )}
             </div>
@@ -724,13 +742,14 @@ export default function Header() {
         </nav>
 
         {/* Actions */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 ml-6">
           <button
-            onClick={() => setIsValuationModalOpen(true)} // Changed from Link to button
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all bg-primary text-white hover:bg-primary/90 hover:scale-105 shadow-lg hover:shadow-xl"
+            onClick={() => setIsValuationModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg font-bold text-xs transition-all bg-primary text-white hover:bg-primary/90 hover:shadow-lg shadow-md active:scale-95"
+            title="Get property valuation"
           >
             <CalculatorIcon className="h-4 w-4" />
-            Valuation
+            <span className="hidden sm:inline">Valuation</span>
           </button>
 
           {/* User Profile or Sign In */}
@@ -739,13 +758,13 @@ export default function Header() {
             <div className="relative" data-profile-dropdown>
               <button
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all bg-secondary text-white hover:bg-primary hover:text-secondary group"
+                className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg font-bold text-xs transition-all bg-secondary text-white hover:bg-primary group"
                 title={profile.full_name || profile.email}
               >
-                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30">
+                <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center group-hover:bg-white/30">
                   <UserIcon className="h-4 w-4" />
                 </div>
-                <span className="hidden sm:inline">{profile.full_name?.split(' ')[0] || 'Profile'}</span>
+                <span className="hidden sm:inline text-[11px]">{profile.full_name?.split(' ')[0] || 'Profile'}</span>
                 <ChevronDownIcon className={cn(
                   "h-4 w-4 transition-transform",
                   isProfileDropdownOpen && "rotate-180"
@@ -789,16 +808,17 @@ export default function Header() {
             // Sign In Button
             <Link
               href="/customer/login"
-              className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-secondary text-white hover:bg-primary hover:text-secondary"
+              className="px-3 py-2 rounded-lg font-bold text-xs transition-all bg-secondary text-white hover:bg-primary"
             >
-              Sign In
+              <span className="hidden sm:inline"></span>
+              <UserIcon className="h-5 w-5 inline sm:hidden" />
             </Link>
           )}
 
           {/* Mobile Menu Toggle */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden p-2 rounded-xl transition-colors text-secondary"
+            className="lg:hidden p-2 rounded-lg transition-colors text-secondary hover:bg-slate-50"
           >
             {isMobileMenuOpen ? (
               <XMarkIcon className="h-7 w-7" />
