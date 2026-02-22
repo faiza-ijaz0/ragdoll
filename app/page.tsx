@@ -1803,9 +1803,7 @@ export default function HomePage() {
                   <h3 className="text-sm sm:text-lg font-bold text-secondary group-hover:text-primary transition-colors text-center">
                     {partner.name}
                   </h3>
-                  <p className="text-xs sm:text-sm text-slate-500 mt-1 text-center">
-                    {partner.category}
-                  </p>
+                 
                 </div>
               ))
             ) : (

@@ -1,109 +1,125 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { EnvelopeIcon, PhoneIcon, MapPinIcon, ClockIcon, PaperAirplaneIcon, ChatBubbleLeftRightIcon, SparklesIcon, BuildingOfficeIcon } from '@heroicons/react/24/outline'
-import { GlobeAltIcon } from '@heroicons/react/24/outline'
-import Image from 'next/image'
-import { getTopAgents } from '@/lib/mock-data'
-import AgentListClient from '@/components/agent/AgentListClient'
-import { db } from '@/lib/firebase'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { useState } from "react";
+import {
+  EnvelopeIcon,
+  PhoneIcon,
+  MapPinIcon,
+  ClockIcon,
+  PaperAirplaneIcon,
+  ChatBubbleLeftRightIcon,
+  SparklesIcon,
+  BuildingOfficeIcon,
+} from "@heroicons/react/24/outline";
+import { GlobeAltIcon } from "@heroicons/react/24/outline";
+import Image from "next/image";
+import { getTopAgents } from "@/lib/mock-data";
+import AgentListClient from "@/components/agent/AgentListClient";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    subject: '',
-    message: ''
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
-  const [submitError, setSubmitError] = useState('')
+    name: "",
+    email: "",
+    phone: "",
+    subject: "",
+    message: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData(prev => ({
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
+    setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value
-    }))
-  }
+      [e.target.name]: e.target.value,
+    }));
+  };
 
   // ✅ Firebase form submission function
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setSubmitError('')
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitError("");
 
     // Validate required fields
     if (!formData.name || !formData.email || !formData.message) {
-      setSubmitError('Please fill in all required fields')
-      setIsSubmitting(false)
-      return
+      setSubmitError("Please fill in all required fields");
+      setIsSubmitting(false);
+      return;
     }
 
     try {
       // ✅ Save to Firebase Firestore - request_information collection
-      const docRef = await addDoc(collection(db, 'request_information'), {
+      const docRef = await addDoc(collection(db, "request_information"), {
         // Basic contact info
         name: formData.name.trim(),
         email: formData.email.trim(),
-        phone: formData.phone.trim() || 'Not provided',
-        subject: formData.subject || 'General Inquiry',
-        
+        phone: formData.phone.trim() || "Not provided",
+        subject: formData.subject || "General Inquiry",
+
         // Message content
         message: formData.message.trim(),
-        
+
         // Metadata
-        type: 'private_inquiry',
-        status: 'pending',
-        source: 'contact_page',
-        
+        type: "private_inquiry",
+        status: "pending",
+        source: "contact_page",
+
         // Timestamps
         createdAt: serverTimestamp(),
         submittedAt: new Date().toISOString(),
-        updatedAt: serverTimestamp()
-      })
+        updatedAt: serverTimestamp(),
+      });
 
-      console.log('✅ Inquiry saved with ID:', docRef.id)
-      
+      console.log("✅ Inquiry saved with ID:", docRef.id);
+
       // Reset form and show success
       setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: ''
-      })
-      setSubmitted(true)
-      
+        name: "",
+        email: "",
+        phone: "",
+        subject: "",
+        message: "",
+      });
+      setSubmitted(true);
     } catch (error) {
-      console.error('❌ Error submitting inquiry:', error)
-      setSubmitError('Failed to submit inquiry. Please try again.')
+      console.error("❌ Error submitting inquiry:", error);
+      setSubmitError("Failed to submit inquiry. Please try again.");
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const contactInfo = [
     {
       icon: PhoneIcon,
-      title: 'Direct Line',
-      details: ['+971 50 123 4567', '+971 55 765 4321'],
-      description: 'Available 24/7 for VIP clients'
+      title: "Direct Line",
+      details: [
+        "Land line +971(0) 43427561",
+        "Mobile / WhatsApp  +971(0)589638978",
+        "Mobile/WhatsApp    +971(0)582498002",
+      ],
+      description: "Available 24/7 for VIP clients",
     },
     {
       icon: EnvelopeIcon,
-      title: 'Email Inquiry',
-      details: ['concierge@RAGDOLL.com', 'invest@RAGDOLL.com'],
-      description: 'Priority response within 2 hours'
+      title: "Email Inquiry",
+      details: ["concierge@RAGDOLL.com", "invest@RAGDOLL.com"],
+      description: "Priority response within 2 hours",
     },
     {
       icon: MapPinIcon,
-      title: 'Global Headquarters',
-      details: ['Level 45, Burj Daman', 'DIFC, Dubai, UAE'],
-      description: 'Private consultations by appointment'
+      title: "Global Headquarters",
+      details: ["Address Wadi Al Safa5, Blue wave tower, office 206"],
+      description: "Private consultations by appointment",
     },
-  ]
+  ];
 
   if (submitted) {
     return (
@@ -113,9 +129,12 @@ export default function ContactPage() {
             <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-8">
               <PaperAirplaneIcon className="h-10 w-10 text-primary" />
             </div>
-            <h2 className="text-3xl font-serif text-secondary mb-4">Inquiry Received</h2>
+            <h2 className="text-3xl font-serif text-secondary mb-4">
+              Inquiry Received
+            </h2>
             <p className="text-slate-500 mb-8 leading-relaxed">
-              Thank you for reaching out to RAGDOLLL. One of our senior property advisors will contact you shortly to discuss your requirements.
+              Thank you for reaching out to RAGDOLLL. One of our senior property
+              advisors will contact you shortly to discuss your requirements.
             </p>
             <button
               onClick={() => setSubmitted(false)}
@@ -126,7 +145,7 @@ export default function ContactPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -134,7 +153,7 @@ export default function ContactPage() {
       {/* Hero Section */}
       <section className="relative h-[50vh] flex items-center justify-center overflow-hidden bg-secondary">
         <div className="absolute inset-0">
-          <Image 
+          <Image
             src="https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=1600"
             alt="Dubai Contact"
             fill
@@ -142,7 +161,7 @@ export default function ContactPage() {
           />
           <div className="absolute inset-0 bg-linear-to-b from-secondary/60 via-secondary/40 to-white"></div>
         </div>
-        
+
         <div className="container-custom relative z-10 text-center">
           <span className="inline-block px-4 py-1 bg-primary/20 text-primary text-sm font-bold tracking-widest uppercase rounded-full mb-6">
             Get In Touch
@@ -151,33 +170,42 @@ export default function ContactPage() {
             Connect with <span className="text-primary italic">Excellence</span>
           </h1>
           <p className="text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Whether you're looking to invest, sell, or find your dream home, our elite team is here to provide bespoke guidance.
+            Whether you're looking to invest, sell, or find your dream home, our
+            elite team is here to provide bespoke guidance.
           </p>
         </div>
       </section>
-   
+
       <section className="py-24 -mt-24 relative z-20">
         <div className="container-custom">
           <div className="grid lg:grid-cols-3 gap-12">
             {/* Contact Info Cards */}
             <div className="lg:col-span-1 space-y-8">
               {contactInfo.map((info, index) => (
-                <div key={index} className="bg-white p-8 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 group hover:border-primary/30 transition-all duration-500">
+                <div
+                  key={index}
+                  className="bg-white p-8 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 group hover:border-primary/30 transition-all duration-500"
+                >
                   <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-primary/10 transition-colors">
                     <info.icon className="h-7 w-7 text-primary" />
                   </div>
-                  <h3 className="text-xl font-serif text-secondary mb-4">{info.title}</h3>
+                  <h3 className="text-xl font-serif text-secondary mb-4">
+                    {info.title}
+                  </h3>
                   <div className="space-y-2 mb-4">
                     {info.details.map((detail, idx) => (
-                      <p key={idx} className="text-slate-600 font-medium">{detail}</p>
+                      <p key={idx} className="text-slate-600 font-medium">
+                        {detail}
+                      </p>
                     ))}
                   </div>
-                  <p className="text-sm text-slate-400 italic">{info.description}</p>
+                  <p className="text-sm text-slate-400 italic">
+                    {info.description}
+                  </p>
                 </div>
               ))}
 
               {/* Social/Live Chat Card */}
-              
             </div>
 
             {/* Contact Form */}
@@ -185,13 +213,17 @@ export default function ContactPage() {
               <div className="bg-white p-10 md:p-16 rounded-[3rem] shadow-2xl shadow-slate-200 border border-slate-100">
                 <div className="flex items-center gap-3 mb-10">
                   <SparklesIcon className="h-6 w-6 text-primary" />
-                  <h2 className="text-3xl font-serif text-secondary">Send a Private Inquiry</h2>
+                  <h2 className="text-3xl font-serif text-secondary">
+                    Send a Private Inquiry
+                  </h2>
                 </div>
 
                 {/* Error Message */}
                 {submitError && (
                   <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl">
-                    <p className="text-red-600 text-sm font-medium">{submitError}</p>
+                    <p className="text-red-600 text-sm font-medium">
+                      {submitError}
+                    </p>
                   </div>
                 )}
 
@@ -292,9 +324,10 @@ export default function ContactPage() {
                       </>
                     )}
                   </button>
-                  
+
                   <p className="text-sm text-slate-500 text-center">
-                    By submitting this form, you agree to our privacy policy. One of our agents will contact you within 24 hours.
+                    By submitting this form, you agree to our privacy policy.
+                    One of our agents will contact you within 24 hours.
                   </p>
                 </form>
               </div>
@@ -311,8 +344,9 @@ export default function ContactPage() {
               Visit Our <span className="text-primary">Premium Office</span>
             </h2>
             <p className="text-slate-600 max-w-2xl mx-auto">
-              Our office is located in the heart of Dubai International Financial Centre (DIFC), 
-              providing easy access to all major business districts and residential areas.
+              Our office is located in the heart of Dubai International
+              Financial Centre (DIFC), providing easy access to all major
+              business districts and residential areas.
             </p>
           </div>
 
@@ -326,49 +360,76 @@ export default function ContactPage() {
                     <MapPinIcon className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-secondary mb-1">Our Office Location</h3>
+                    <h3 className="text-xl font-bold text-secondary mb-1">
+                      Our Office Location
+                    </h3>
                     <p className="text-slate-500">Premium DIFC Location</p>
                   </div>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
                     <BuildingOfficeIcon className="w-5 h-5 text-slate-400 mt-1" />
                     <div>
-                      <p className="font-semibold text-secondary">Burj Daman, Level 45</p>
-                      <p className="text-slate-600">DIFC, Dubai, United Arab Emirates</p>
+                      <p className="font-semibold text-secondary">Address</p>
+                      <p className="text-slate-600">
+                        Wadi Al Safa5, Blue wave tower, office 206 s
+                      </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
                     <PhoneIcon className="w-5 h-5 text-slate-400" />
                     <div>
-                      <p className="font-semibold text-secondary">Contact Number</p>
-                      <p className="text-slate-600">+971 4 123 4567</p>
+                      <p className="font-semibold text-secondary">
+                        Contact Number
+                      </p>
+                      <p className="text-slate-600">
+                        Land line +971(0) 43427561 
+                      </p>
+
+                       <p className="text-slate-600">
+                         Mobile / WhatsApp
+                        +971(0)589638978 
+                      </p>
+
+                       <p className="text-slate-600">
+                        Mobile/WhatsApp +971(0)582498002
+                      </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start gap-3">
                     <ClockIcon className="w-5 h-5 text-slate-400 mt-1" />
                     <div>
-                      <p className="font-semibold text-secondary">Business Hours</p>
-                      <p className="text-slate-600">Mon - Fri: 9:00 AM - 6:00 PM</p>
-                      <p className="text-slate-600">Saturday: 10:00 AM - 4:00 PM</p>
+                      <p className="font-semibold text-secondary">
+                        Business Hours
+                      </p>
+                      <p className="text-slate-600">
+                        Mon - Fri: 9:00 AM - 6:00 PM
+                      </p>
+                      <p className="text-slate-600">
+                        Saturday: 10:00 AM - 4:00 PM
+                      </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
                     <EnvelopeIcon className="w-5 h-5 text-slate-400" />
                     <div>
-                      <p className="font-semibold text-secondary">Email Address</p>
-                      <p className="text-slate-600">info@realestate-dubai.com</p>
+                      <p className="font-semibold text-secondary">
+                        Email Address
+                      </p>
+                      <p className="text-slate-600">
+                        info@realestate-dubai.com
+                      </p>
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Get Directions Button */}
                 <div className="mt-8 pt-6 border-t border-slate-200">
-                  <a 
+                  <a
                     href="https://maps.google.com/?q=Burj+Daman+Level+45+DIFC+Dubai"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -428,10 +489,11 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-black text-slate-900 mb-2">
-                    Exact Location
+                  
                   </h3>
                   <p className="text-slate-700 text-lg">
-                    Burj Daman, Level 45, DIFC, Dubai, United Arab Emirates
+                  Address Wadi Al Safa5, Blue wave tower, office 206
+
                   </p>
                   <p className="text-slate-500 text-sm mt-2">
                     Coordinates: 25.2080, 55.2708
@@ -441,19 +503,29 @@ export default function ContactPage() {
 
               <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white p-4 rounded-2xl border border-slate-200 text-center hover:shadow-lg transition-shadow">
-                  <div className="text-2xl font-bold text-primary mb-1">1 min</div>
+                  <div className="text-2xl font-bold text-primary mb-1">
+                    1 min
+                  </div>
                   <div className="text-sm text-slate-600">to DIFC Metro</div>
                 </div>
                 <div className="bg-white p-4 rounded-2xl border border-slate-200 text-center hover:shadow-lg transition-shadow">
-                  <div className="text-2xl font-bold text-primary mb-1">5 min</div>
-                  <div className="text-sm text-slate-600">to Downtown Dubai</div>
+                  <div className="text-2xl font-bold text-primary mb-1">
+                    5 min
+                  </div>
+                  <div className="text-sm text-slate-600">
+                    to Downtown Dubai
+                  </div>
                 </div>
                 <div className="bg-white p-4 rounded-2xl border border-slate-200 text-center hover:shadow-lg transition-shadow">
-                  <div className="text-2xl font-bold text-primary mb-1">10 min</div>
+                  <div className="text-2xl font-bold text-primary mb-1">
+                    10 min
+                  </div>
                   <div className="text-sm text-slate-600">to Dubai Mall</div>
                 </div>
                 <div className="bg-white p-4 rounded-2xl border border-slate-200 text-center hover:shadow-lg transition-shadow">
-                  <div className="text-2xl font-bold text-primary mb-1">15 min</div>
+                  <div className="text-2xl font-bold text-primary mb-1">
+                    15 min
+                  </div>
                   <div className="text-sm text-slate-600">to Dubai Marina</div>
                 </div>
               </div>
@@ -462,5 +534,5 @@ export default function ContactPage() {
         </div>
       </section>
     </div>
-  )
+  );
 }

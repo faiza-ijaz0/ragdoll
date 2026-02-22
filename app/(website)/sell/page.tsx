@@ -804,7 +804,7 @@ useEffect(() => {
                   <div>
                     <label className="block font-semibold text-foreground mb-3 flex items-center gap-2">
                       <PhotoIcon className="w-5 h-5 text-primary" />
-                      Upload Photos (Max 1MB per image)
+                      Upload Photos 
                     </label>
                     <div 
                       onClick={() => photoInputRef.current?.click()}
@@ -822,11 +822,9 @@ useEffect(() => {
                         <PhotoIcon className="w-8 h-8 text-primary" />
                       </div>
                       <p className="text-foreground font-medium mb-1">
-                        Click to upload multiple photos
+                        Click to upload  photos
                       </p>
-                      <p className="text-sm text-muted-foreground">
-                        PNG, JPG or WEBP (Max. 1MB each)
-                      </p>
+                      
                     </div>
 
                     {/* Photo Previews */}
@@ -861,7 +859,7 @@ useEffect(() => {
                   <div>
                     <label className="block font-semibold text-foreground mb-3 flex items-center gap-2">
                       <HomeIcon className="w-5 h-5 text-primary" />
-                      Upload Title Deed (Max 1MB) - Base64 format
+                      Upload Title Deed 
                     </label>
                     {!formData.titleDeed ? (
                       <div 
@@ -877,7 +875,7 @@ useEffect(() => {
                         />
                         <HomeIcon className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                         <p className="text-sm font-medium text-foreground">Upload Title Deed</p>
-                        <p className="text-xs text-muted-foreground mt-1">Will be saved as Base64</p>
+                      
                       </div>
                     ) : (
                       <div className="flex items-center justify-between p-4 bg-primary/5 border border-primary/20 rounded-xl">
@@ -897,25 +895,8 @@ useEffect(() => {
 
                   {/* Password Copy Option */}
                   <div>
-                    <label className="block font-semibold text-foreground mb-3 flex items-center gap-2">
-                      <KeyIcon className="w-5 h-5 text-primary" />
-                      Generated Password (Copy for access)
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1 p-4 bg-gray-100 border border-border rounded-xl font-mono text-lg">
-                        {generatedPassword}
-                      </div>
-                      <button
-                        onClick={copyPasswordToClipboard}
-                        className="p-4 bg-primary text-white rounded-xl hover:bg-primary/90 transition-all flex items-center gap-2"
-                      >
-                        <ClipboardDocumentIcon className="w-5 h-5" />
-                        {passwordCopied ? 'Copied!' : 'Copy'}
-                      </button>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      This password will be saved with your property. Copy it now for future reference.
-                    </p>
+                   
+                    
                   </div>
 
                   {/* Additional Options */}

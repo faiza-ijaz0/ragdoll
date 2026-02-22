@@ -292,22 +292,7 @@ export default function CustomerLogin() {
                     </button>
                   </form>
 
-                  {/* Demo Credentials */}
-                  <div className="mt-6 space-y-2">
-                    <p className="text-sm text-muted-foreground text-center">Try demo accounts:</p>
-                    <div className="flex flex-wrap gap-2 justify-center">
-                      {Object.keys(DEMO_CREDENTIALS).map((key) => (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => fillDemoCredentials(key as keyof typeof DEMO_CREDENTIALS)}
-                          className="text-xs px-3 py-1.5 bg-secondary/20 hover:bg-secondary/30 rounded-lg transition-colors"
-                        >
-                          Demo {key.replace('customer', '')}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                 
 
                   {/* Toggle between Login/Signup */}
                   <div className="text-center mt-6">
