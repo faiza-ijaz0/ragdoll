@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Dubai Real Estate Market Insights & Trends 2025 | RAGDOL',
+  title: 'Dubai Real Estate Market Insights & Trends 2025 | RAGDOLL',
   description: 'Comprehensive Dubai real estate market analysis and trends for 2025. Property prices, market insights, investment opportunities, and future predictions.',
   keywords: 'dubai real estate market, property market dubai, real estate trends dubai, market analysis dubai, property prices dubai, investment dubai',
   openGraph: {

@@ -411,7 +411,7 @@ export default function AgentListClient() {
           <div className="container-custom">
             <div className="text-center py-20">
               <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-slate-600">Loading real agents from Firebase...</p>
+              <p className="text-slate-600">Loading agents..</p>
             </div>
           </div>
         </section>
@@ -521,37 +521,38 @@ export default function AgentListClient() {
                       key={agent.id}
                       className="group bg-white rounded-2xl overflow-hidden border border-slate-200 hover:border-primary/30 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2"
                     >
-                      {/* Agent Image */}
+                      {/* ✅ FIXED: Agent Image - Full Face */}
                       <div className="relative h-80 overflow-hidden">
                         {hasImage ? (
                           <img
                             src={profileImage}
                             alt={agent.title}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-110"
                             onError={(e) => {
                               const img = e.target as HTMLImageElement
                               img.style.display = 'none'
                               const parent = img.parentElement
                               if (parent) {
                                 parent.innerHTML = `
-                                  <div class="w-full h-full flex items-center justify-center 'bg-linear-to-br' from-primary/10 to-primary/5">
+                                  <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
                                     <div class="text-4xl font-bold text-primary opacity-50">
                                       ${initials}
                                     </div>
                                   </div>
                                 `
                               }
-                            } } />
+                            }}
+                          />
                         ) : (
-                          <div
-                            className="w-full h-full flex items-center justify-center 'bg-linear-to-br' from-primary/10 to-primary/5"
-                          >
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
                             <div className="text-4xl font-bold text-primary opacity-50">
                               {initials}
                             </div>
                           </div>
                         )}
-                        <div className="absolute inset-0 'bg-linear-to-t' from-secondary/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
+                        
+                        {/* Gradient Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-secondary/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
 
                         {/* Experience Badge */}
                         <div className="absolute top-4 right-4 bg-primary text-secondary text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
@@ -687,9 +688,6 @@ export default function AgentListClient() {
                               <p className="text-xs text-slate-500">
                                 No properties listed yet
                               </p>
-                              <p className="text-xs text-slate-400 mt-1">
-                                Agent hasn't added any properties
-                              </p>
                             </div>
                           )}
                         </div>
@@ -823,9 +821,9 @@ export default function AgentListClient() {
         </section>
       </div>
 
-      {/* Agent Details Modal */}
+      {/* ✅ FIXED: Agent Details Modal - Full Face Image */}
       {showModal && selectedAgent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm mt-20">
           <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl">
             {/* Close Button */}
             <button
@@ -837,21 +835,24 @@ export default function AgentListClient() {
 
             {/* Modal Content */}
             <div className="p-0">
-              {/* Header with Image */}
-              <div className="relative h-64 md:h-80 'bg-linear-to-r' from-primary/20 to-secondary/20">
+              {/* ✅ FIXED: Header with Full Face Image */}
+              <div className="relative bg-gradient-to-r from-primary/20 to-secondary/20">
                 {getProfileImage(selectedAgent) ? (
                   <img
                     src={getProfileImage(selectedAgent)}
                     alt={selectedAgent.title}
-                    className="w-full h-full object-cover" />
+                    className="w-full h-full object-cover object-center "
+                  />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center 'bg-linear-to-br' from-primary/10 to-primary/5">
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
                     <div className="text-6xl font-bold text-primary opacity-50">
                       {getInitials(selectedAgent.title)}
                     </div>
                   </div>
                 )}
-                <div className="absolute inset-0 'bg-linear-to-t' from-black/60 via-transparent to-transparent" />
+                
+                {/* Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
                 {/* Agent Title */}
                 <div className="absolute bottom-0 left-0 right-0 p-6">
@@ -1022,26 +1023,16 @@ export default function AgentListClient() {
                   {/* Right Column - Detailed Information */}
                   <div className="lg:col-span-2 space-y-8">
                     {/* Rating & Reviews */}
-                    <div className="'bg-linear-to-r' from-primary/5 to-secondary/5 rounded-xl p-6">
+                    <div className="bg-gradient-to-r from-primary/5 to-secondary/5 rounded-xl p-6">
                       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
                         <div>
-                          <h3 className="text-xl font-bold text-secondary mb-2">Agent Rating</h3>
-                          <div className="flex items-center gap-2">
-                            <div className="flex gap-0.5">
-                              {[...Array(5)].map((_, i) => (
-                                <StarSolid
-                                  key={i}
-                                  className={`w-5 h-5 ${i < Math.floor(selectedAgent.rating) ? 'text-yellow-500' : 'text-slate-300'}`} />
-                              ))}
-                            </div>
-                            <span className="text-2xl font-bold text-secondary">{selectedAgent.rating.toFixed(1)}</span>
-                            <span className="text-slate-500">({selectedAgent.review_count} reviews)</span>
-                          </div>
+                         
+                         
                         </div>
                         <div className="mt-4 md:mt-0">
                           <span className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm">
                             <ShieldCheckIcon className="w-5 h-5 text-green-500" />
-                            <span className="font-semibold">Approved by RAGDOL</span>
+                            <span className="font-semibold">Approved by RAGDOLL PROPERTIES</span>
                           </span>
                         </div>
                       </div>

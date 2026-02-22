@@ -79,7 +79,7 @@ export default function CookiePolicyPage() {
             <section>
               <h2 className="text-2xl font-bold mb-4">2. How We Use Cookies</h2>
               <p className="text-[#a3a3a3] leading-relaxed mb-6">
-                We use cookies for several purposes to improve your experience on RAGDOL:
+                We use cookies for several purposes to improve your experience on RAGDOLL:
               </p>
 
               <div className="space-y-6">
@@ -190,7 +190,7 @@ export default function CookiePolicyPage() {
                 If you have any questions about our use of cookies or this Cookie Policy, please contact us:
               </p>
               <div className="bg-[#262626] rounded-lg p-4 border border-[#333333]">
-                <p className="text-[#a3a3a3]">Email: privacy@ragdol.com</p>
+                <p className="text-[#a3a3a3]">Email: privacy@RAGDOLL.com</p>
                 <p className="text-[#a3a3a3]">Phone: +92 300 1234567</p>
                 <p className="text-[#a3a3a3]">Address: 123 Business Bay Tower, Business Bay, Dubai, UAE</p>
               </div>

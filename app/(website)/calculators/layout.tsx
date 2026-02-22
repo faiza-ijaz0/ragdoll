@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Mortgage Calculator Dubai | Property Loan Calculator | RAGDOL',
+  title: 'Mortgage Calculator Dubai | Property Loan Calculator | RAGDOLL',
   description: 'Calculate your mortgage payments in Dubai with our advanced mortgage calculator. Get accurate estimates for property loans, interest rates, and monthly payments.',
   keywords: 'mortgage calculator dubai, property loan calculator dubai, home loan calculator uae, mortgage rates dubai, property financing dubai',
   openGraph: {

@@ -1,11 +1,9 @@
-"use client";
+'use client';
 
-import { useState, useEffect, Suspense } from "react";
-import { Database } from "@/lib/database.types";
-import MortgageCalculator from "@/components/shared/MortgageCalculator";
-import PropertyCard, {
-  PropertyCardProperty,
-} from "@/components/property/PropertyCard";
+import { useState, useEffect, Suspense, useRef } from 'react';
+import { Database } from '@/lib/database.types'
+import MortgageCalculator from '@/components/shared/MortgageCalculator';
+import PropertyCard, { PropertyCardProperty } from '@/components/property/PropertyCard'
 import {
   ViewColumnsIcon,
   QueueListIcon,
@@ -35,18 +33,19 @@ import {
   EyeIcon,
   ChatBubbleLeftRightIcon,
   Square3Stack3DIcon,
+  MagnifyingGlassIcon,
   CalendarDaysIcon,
   ArrowLeftIcon,
   ShareIcon,
   HeartIcon,
   PhotoIcon,
-  ArrowsPointingInIcon,
-  ArrowDownTrayIcon,
-} from "@heroicons/react/24/outline";
+  Squares2X2Icon,
+  PlayCircleIcon,
+} from '@heroicons/react/24/outline';
 import {
   StarIcon as StarSolidIcon,
   HeartIcon as HeartSolidIcon,
-} from "@heroicons/react/24/solid";
+} from '@heroicons/react/24/solid';
 import { 
   StarIcon as StarSolid, 
   BriefcaseIcon,
@@ -56,12 +55,12 @@ import {
   LinkIcon,
   PaperClipIcon
 } from '@heroicons/react/24/outline';
-import { BathIcon, BedIcon, CarIcon } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { BathIcon, BedIcon, CarIcon } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 // Firebase imports
-import { db } from "@/lib/firebase";
+import { db } from '@/lib/firebase'
 import {
   collection,
   getDocs,
@@ -72,15 +71,15 @@ import {
   getDoc,
   addDoc,
   serverTimestamp,
-} from "firebase/firestore";
+} from 'firebase/firestore';
 
 // Import jsPDF for PDF generation
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
-type Property = Database["public"]["Tables"]["properties"]["Row"];
+type Property = Database['public']['Tables']['properties']['Row']
 
-// Agent Data Interface - EXACT SAME AS LUXE
+// Agent Data Interface
 interface AgentData {
   id?: string;
   title?: string;
@@ -110,59 +109,431 @@ interface AgentData {
   updated_at?: string;
 }
 
-// NormalizedProperty Type - EXACT SAME AS LUXE
 type NormalizedProperty = Property & {
-  image: string;
-  price: number;
-  priceLabel?: string;
-  area?: string | null;
-  city?: string | null;
-  location: string;
-  beds: number;
-  baths: number;
-  sqft: number;
-  type: string;
-  featured: boolean;
-  developer?: string | null;
-  description?: string | null;
-  category?: string | null;
-  parking?: string | null;
-  furnished?: boolean | null;
-  propertyAge?: string | null;
-  completion?: string | null;
-  subtype?: string | null;
-  features?: string[] | null;
-  video_url?: string | null;
-  currency?: string;
-  status?: string;
-  agent_name?: string;
-  review_status?: string;
-  submitted_at?: string;
-  collection?: string;
-  address?: string;
-  property_status?: string;
-  property_age?: string;
-  images?: string[];
-  floorplans?: string[];
-  inquiries_count?: number;
+  image: string
+  price: number
+  priceLabel?: string
+  area?: string | null
+  city?: string | null
+  location: string
+  beds: number
+  baths: number
+  sqft: number
+  type: string
+  featured: boolean
+  developer?: string | null
+  description?: string | null
+  category?: string | null
+  parking?: string | null
+  furnished?: boolean | null
+  propertyAge?: string | null
+  completion?: string | null
+  subtype?: string | null
+  features?: string[] | null
+  video_url?: string | null
+  currency?: string
+  status?: string
+  agent_name?: string
+  review_status?: string
+  submitted_at?: string
+  collection?: string
+  address?: string
+  property_status?: string
+  property_age?: string
+  images?: string[]
+  floorplans?: string[]
+  inquiries_count?: number
   coords?: {
-    lat: number;
-    lng: number;
-  };
-  agent_id?: string;
-  slug?: string;
-  created_at?: string;
-  updated_at?: string;
-  agent_image?: string;
-  agent_office?: string;
-  agent_experience?: number;
-  agent_properties?: number;
-  agent_phone?: string;
-  agent_whatsapp?: string;
-  views?: number;
-};
+    lat: number
+    lng: number
+  }
+  agent_id?: string
+  slug?: string
+  created_at?: string
+  updated_at?: string
+  agent_image?: string
+  agent_office?: string
+  agent_experience?: number
+  agent_properties?: number
+  agent_phone?: string
+  agent_whatsapp?: string
+  views?: number
+}
 
-// Floor Plan Form Component - EXACT SAME AS LUXE
+// Full Screen Gallery Component 
+const FullScreenGallery = ({ 
+  property, 
+  onClose 
+}: { 
+  property: NormalizedProperty; 
+  onClose: () => void 
+}) => {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false)
+  const [isZoomed, setIsZoomed] = useState(false)
+  const [imageLoaded, setImageLoaded] = useState(false)
+  
+  // Get all media (images + video) for the property
+  const getPropertyMedia = () => {
+    const media = []
+    
+    // Get all images
+    if (property.images && property.images.length > 0) {
+      property.images.forEach(img => {
+        media.push({
+          type: 'image',
+          url: img,
+          thumbnail: img
+        })
+      })
+    } else if (property.image) {
+      // Use main image if no images array
+      media.push({
+        type: 'image',
+        url: property.image,
+        thumbnail: property.image
+      })
+    }
+    
+    // Add video as last item if exists
+    if (property.video_url) {
+      const videoType = getVideoType(property.video_url);
+      if (videoType !== 'none') {
+        media.push({
+          type: 'video',
+          url: property.video_url,
+          thumbnail: property.video_url
+        })
+      }
+    }
+    
+    // If no media, add default
+    if (media.length === 0) {
+      media.push({
+        type: 'image',
+        url: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop',
+        thumbnail: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop'
+      })
+    }
+    
+    return media;
+  }
+  
+  // Helper function to determine video type
+  const getVideoType = (url: string) => {
+    if (!url) return 'none';
+    if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
+    if (url.includes('vimeo.com')) return 'vimeo';
+    if (/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i.test(url)) return 'direct';
+    return 'external';
+  }
+
+  // Extract YouTube video ID
+  const extractYouTubeId = (url: string) => {
+    let videoId = '';
+    if (url.includes('youtube.com/watch?v=')) {
+      videoId = url.split('v=')[1];
+      const ampersandPosition = videoId.indexOf('&');
+      if (ampersandPosition !== -1) {
+        videoId = videoId.substring(0, ampersandPosition);
+      }
+    } else if (url.includes('youtu.be/')) {
+      videoId = url.split('youtu.be/')[1];
+    } else if (url.includes('youtube.com/embed/')) {
+      videoId = url.split('embed/')[1];
+    }
+    return videoId;
+  }
+  
+  const propertyMedia = getPropertyMedia();
+  
+  const handlePrev = () => {
+    setCurrentIndex(prev => prev === 0 ? propertyMedia.length - 1 : prev - 1)
+    setIsVideoPlaying(false)
+    setIsZoomed(false)
+    setImageLoaded(false)
+  }
+  
+  const handleNext = () => {
+    setCurrentIndex(prev => prev === propertyMedia.length - 1 ? 0 : prev + 1)
+    setIsVideoPlaying(false)
+    setIsZoomed(false)
+    setImageLoaded(false)
+  }
+
+  const toggleZoom = () => {
+    setIsZoomed(!isZoomed)
+  }
+  
+  const renderMedia = () => {
+    const media = propertyMedia[currentIndex];
+    if (!media) return null;
+    
+    if (media.type === 'video') {
+      const videoType = getVideoType(media.url);
+      
+      if (videoType === 'youtube') {
+        const videoId = extractYouTubeId(media.url);
+        return isVideoPlaying ? (
+          <div className="w-full h-full">
+            <iframe
+              src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
+              className="w-full h-full"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              title={`${property.title} - YouTube Video`}
+            />
+          </div>
+        ) : (
+          <div className="relative w-full h-full">
+            <img
+              src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
+              alt={property.title}
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                e.currentTarget.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+              }}
+            />
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+              <button
+                onClick={() => setIsVideoPlaying(true)}
+                className="w-20 h-20 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-transform hover:scale-110"
+              >
+                <PlayCircleIcon className="w-12 h-12 text-white" />
+              </button>
+            </div>
+            <div className="absolute bottom-4 left-4 px-3 py-1 bg-red-600 text-white text-sm font-bold rounded-full">
+              VIDEO
+            </div>
+          </div>
+        )
+      }
+      
+      else if (videoType === 'direct') {
+        return (
+          <div className="relative w-full h-full">
+            <video
+              key={media.url}
+              controls
+              autoPlay
+              loop
+              muted
+              className="w-full h-full object-contain bg-black"
+              preload="auto"
+              playsInline
+              controlsList="nodownload"
+            >
+              <source src={media.url} type={`video/${media.url.split('.').pop()?.split('?')[0]}`} />
+              Your browser does not support the video tag.
+            </video>
+            <div className="absolute bottom-4 left-4 px-3 py-1 bg-blue-600 text-white text-sm font-bold rounded-full">
+              VIDEO
+            </div>
+          </div>
+        )
+      }
+      
+      else {
+        return (
+          <div className="relative w-full h-full">
+            <video
+              key={media.url}
+              controls
+              autoPlay
+              loop
+              muted
+              className="w-full h-full object-contain bg-black"
+              preload="auto"
+              playsInline
+              controlsList="nodownload"
+            >
+              <source src={media.url} type="video/mp4" />
+              <source src={media.url} type="video/webm" />
+              <source src={media.url} type="video/ogg" />
+              <source src={media.url} type="video/mov" />
+              Your browser does not support the video tag.
+            </video>
+            <div className="absolute bottom-4 left-4 px-3 py-1 bg-purple-600 text-white text-sm font-bold rounded-full">
+              VIDEO
+            </div>
+          </div>
+        )
+      }
+    }
+    
+    // Image display
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        {!imageLoaded && !isZoomed && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+          </div>
+        )}
+        <img
+          src={media.url}
+          alt={`${property.title} - Image ${currentIndex + 1}`}
+          className={`transition-all duration-300 ${
+            isZoomed 
+              ? 'object-contain w-auto h-auto max-w-[2000px] max-h-[2000px] cursor-zoom-out' 
+              : 'object-contain w-full h-full max-w-full max-h-full cursor-zoom-in'
+          } ${!imageLoaded ? 'opacity-0' : 'opacity-100'}`}
+          onClick={toggleZoom}
+          onLoad={() => setImageLoaded(true)}
+          onError={(e) => {
+            e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop'
+            setImageLoaded(true)
+          }}
+          style={{
+            maxWidth: isZoomed ? '2000px' : '100%',
+            maxHeight: isZoomed ? '2000px' : '100%',
+          }}
+        />
+      </div>
+    )
+  }
+  
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isZoomed) {
+          setIsZoomed(false)
+        } else {
+          onClose();
+        }
+      }
+      if (e.key === 'ArrowLeft') handlePrev();
+      if (e.key === 'ArrowRight') handleNext();
+      if (e.key === ' ' || e.key === 'Enter') toggleZoom();
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'auto';
+    };
+  }, [isZoomed]);
+  
+  return (
+    <div className="fixed inset-0 z-2000 bg-black">
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 z-10 p-6 flex justify-between items-center bg-linear-to-b from-black/80 to-transparent">
+        <div className="text-white">
+          <h2 className="text-xl font-bold">{property.title}</h2>
+          <p className="text-sm text-gray-300">
+            {currentIndex + 1} / {propertyMedia.length}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleZoom}
+            className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white"
+            title={isZoomed ? "Zoom Out" : "Zoom In"}
+          >
+            {isZoomed ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7m6 0V7m0 3v3" />
+              </svg>
+            )}
+          </button>
+          <button
+            onClick={onClose}
+            className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all"
+          >
+            <XMarkIcon className="w-6 h-6 text-white" />
+          </button>
+        </div>
+      </div>
+      
+      {/* Main Media */}
+      <div className="w-full h-full flex items-center justify-center p-4">
+        <div className="w-full h-full max-w-7xl">
+          {renderMedia()}
+        </div>
+      </div>
+      
+      {/* Navigation Arrows - Only show when not zoomed */}
+      {propertyMedia.length > 1 && !isZoomed && (
+        <>
+          <button
+            onClick={handlePrev}
+            className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all"
+          >
+            <ChevronLeftIcon className="w-8 h-8 text-white" />
+          </button>
+          <button
+            onClick={handleNext}
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all"
+          >
+            <ChevronRightIcon className="w-8 h-8 text-white" />
+          </button>
+        </>
+      )}
+      
+      {/* Zoom indicator */}
+      {isZoomed && (
+        <div className="absolute bottom-4 right-4 bg-black/50 text-white px-3 py-2 rounded-lg backdrop-blur-sm">
+          <div className="flex items-center gap-2 text-sm">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <span>Click or press ESC to zoom out</span>
+          </div>
+        </div>
+      )}
+      
+      {/* Thumbnails - Only show when not zoomed */}
+      {propertyMedia.length > 1 && !isZoomed && (
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-black/80 to-transparent">
+          <div className="flex gap-2 overflow-x-auto justify-center">
+            {propertyMedia.map((media, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  setCurrentIndex(index);
+                  setIsVideoPlaying(false);
+                  setIsZoomed(false);
+                  setImageLoaded(false);
+                }}
+                className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                  index === currentIndex 
+                    ? 'border-white scale-110' 
+                    : 'border-transparent hover:border-gray-400'
+                }`}
+              >
+                {media.type === 'video' ? (
+                  <div className="w-full h-full bg-gray-800 flex items-center justify-center relative">
+                    <VideoCameraIcon className="w-6 h-6 text-white" />
+                    <div className="absolute top-1 right-1 w-2 h-2 bg-red-600 rounded-full"></div>
+                  </div>
+                ) : (
+                  <img
+                    src={media.thumbnail}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop'
+                    }}
+                  />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Floor Plan Form Component
 function FloorPlanForm({
   property,
   onClose,
@@ -171,18 +542,13 @@ function FloorPlanForm({
   onClose: () => void;
 }) {
   const [formData, setFormData] = useState({
-    // Personal Information
     fullName: "",
     email: "",
     phoneNumber: "",
     nationality: "",
-
-    // Professional Information
     occupation: "",
     employerCompany: "",
     monthlyIncome: "",
-
-    // Property Interest
     budgetRange: "",
     timeline: "",
     interestedInFinancing: false,
@@ -194,7 +560,6 @@ function FloorPlanForm({
   const [agentData, setAgentData] = useState<AgentData | null>(null);
   const [agentLoading, setAgentLoading] = useState(true);
 
-  // Property images ko fetch karna
   const getPropertyImages = () => {
     if (property.images && property.images.length > 0) {
       return property.images;
@@ -210,12 +575,10 @@ function FloorPlanForm({
 
   const propertyImages = getPropertyImages();
 
-  // Agent data fetch karna
   useEffect(() => {
     async function fetchAgentData() {
       try {
         setAgentLoading(true);
-
         const agentId = property.agent_id;
 
         if (agentId) {
@@ -316,7 +679,6 @@ function FloorPlanForm({
     setLoading(true);
 
     try {
-      // 1. Save to Firebase - floorplan collection
       const floorplanData = {
         ...formData,
         property_id: property.id,
@@ -330,14 +692,8 @@ function FloorPlanForm({
 
       await addDoc(collection(db, "floorplans"), floorplanData);
       console.log("✅ Floor plan request saved to Firebase");
-
-      // 2. Generate and download PDF
       generatePDF();
-
-      // 3. Show success message
       setSubmitted(true);
-
-      // Auto close after 3 seconds
       setTimeout(() => {
         onClose();
       }, 3000);
@@ -359,7 +715,6 @@ function FloorPlanForm({
   
   const generatePDF = () => {
     try {
-      // Create PDF with proper font settings
       const doc = new jsPDF({
         orientation: "portrait",
         unit: "mm",
@@ -367,49 +722,39 @@ function FloorPlanForm({
         compress: true,
       });
 
-      // IMPORTANT: Set proper font before any text
-      // Use standard PDF fonts that support English
       doc.setFont("helvetica");
       doc.setFont("normal");
       doc.setFontSize(12);
 
       // Page 1: Cover Page
-      // Add background color
       doc.setFillColor(25, 50, 120);
       doc.rect(0, 0, 210, 50, "F");
-
-      // White text for header
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(24);
-      doc.text("LUXURY PROPERTIES DUBAI", 105, 30, { align: "center" });
-
+      doc.text("PROPERTIES IN DUBAI", 105, 30, { align: "center" });
       doc.setFontSize(16);
-      doc.text("Property Information Package", 105, 45, { align: "center" });
+      doc.text("Complete Property Information", 105, 45, { align: "center" });
 
-      // Property Title
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(20);
       doc.setFont("helvetica", "bold");
-      const propertyTitle = property.title || "Luxury Property";
+      const propertyTitle = property.title || "Property in Dubai";
       const splitTitle = doc.splitTextToSize(propertyTitle, 180);
       doc.text(splitTitle, 105, 80, { align: "center" });
 
-      // Property Type
       doc.setFontSize(14);
       doc.setFont("helvetica", "normal");
       doc.text(`Type: ${property.type || "Property"}`, 105, 95, {
         align: "center",
       });
 
-      // Price Display
       doc.setFontSize(28);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(59, 130, 246);
-      doc.text(`AED ${formatPrice(property.price || 0)}`, 105, 120, {
+      doc.text(`AED ${formatPrice(property.price || 0)}${property.status === 'rent' ? '/year' : ''}`, 105, 120, {
         align: "center",
       });
 
-      // Location
       doc.setFontSize(16);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
@@ -417,7 +762,6 @@ function FloorPlanForm({
         property.location || property.address || property.area || "Dubai, UAE";
       doc.text(locationText, 105, 140, { align: "center" });
 
-      // Main Property Image
       if (propertyImages.length > 0) {
         try {
           doc.addImage(propertyImages[0], "JPEG", 50, 150, 110, 80);
@@ -426,7 +770,6 @@ function FloorPlanForm({
         }
       }
 
-      // Footer on cover
       doc.setFontSize(10);
       doc.setTextColor(100, 100, 100);
       doc.text(`Document ID: ${property.id || "N/A"}`, 105, 250, {
@@ -438,304 +781,15 @@ function FloorPlanForm({
         { align: "center" }
       );
 
-      // Page 2: Property Details
+      // Add more pages
       doc.addPage();
-
-      // Header
-      doc.setFillColor(59, 130, 246);
-      doc.rect(0, 0, 210, 30, "F");
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(18);
-      doc.setFont("helvetica", "bold");
-      doc.text("PROPERTY DETAILS", 105, 20, { align: "center" });
-
-      // Key Statistics - Using proper English labels
-      const detailsY = 50;
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-
-      // Create a clean table for property details
-      const propertyDetails = [
-        { label: "PROPERTY TYPE", value: property.type || "Not specified" },
-        { label: "STATUS", value: property.property_status || "Ready" },
-        { label: "PRICE", value: `AED ${formatPrice(property.price || 0)}` },
-        { label: "BEDROOMS", value: property.beds || 0 },
-        { label: "BATHROOMS", value: property.baths || 0 },
-        {
-          label: "TOTAL AREA",
-          value: `${formatNumber(property.sqft || 0)} sqft`,
-        },
-        { label: "VIEWS", value: property.views || 0 },
-        { label: "DEVELOPER", value: property.developer || "Not specified" },
-        { label: "CITY", value: property.city || "Dubai" },
-        { label: "AREA", value: property.area || "Not specified" },
-        { label: "PARKING", value: property.parking || "Available" },
-        { label: "FURNISHED", value: property.furnished ? "Yes" : "No" },
-        { label: "PROPERTY AGE", value: property.property_age || "N/A" },
-        { label: "CATEGORY", value: property.category || "Commercial" },
-      ];
-
-      // Display details in two columns
-      let yPos = detailsY;
-      propertyDetails.forEach((detail, index) => {
-        const column = index < 7 ? 0 : 1;
-        const row = index % 7;
-        const x = 20 + column * 85;
-        const y = detailsY + row * 20;
-
-        // Label
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(100, 100, 100);
-        doc.text(detail.label + ":", x, y);
-
-        // Value
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(0, 0, 0);
-        doc.text(String(detail.value), x + 40, y);
-      });
-
-      // Features Section
-      const featuresY = detailsY + 150;
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(59, 130, 246);
-      doc.text("FEATURES & AMENITIES", 20, featuresY);
-
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-
-      if (property.features && property.features.length > 0) {
-        let featureY = featuresY + 15;
-        property.features.forEach((feature, index) => {
-          if (featureY > 280) {
-            doc.addPage();
-            featureY = 20;
-          }
-
-          const bulletX = 20;
-          const textX = 25;
-
-          // Bullet point
-          doc.setFillColor(59, 130, 246);
-          doc.circle(bulletX, featureY - 2, 1.5, "F");
-
-          // Feature text
-          doc.text(feature, textX, featureY);
-          featureY += 8;
-        });
-      } else {
-        doc.text("No features listed", 20, featuresY + 15);
-      }
-
-      // Page 3: Description & More Images
-      doc.addPage();
-
-      // Header
-      doc.setFillColor(59, 130, 246);
-      doc.rect(0, 0, 210, 30, "F");
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(18);
-      doc.setFont("helvetica", "bold");
-      doc.text("DESCRIPTION & IMAGES", 105, 20, { align: "center" });
-
-      // Description
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.text("Property Description:", 20, 50);
-
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      const description =
-        property.description ||
-        "Experience unparalleled commercial space in this premium property located in the heart of Dubai. " +
-          "This exquisite commercial property offers strategic location advantages, combining modern infrastructure with business-friendly amenities. " +
-          "Perfect for businesses seeking premium office space and exceptional quality.";
-
-      const splitDesc = doc.splitTextToSize(description, 170);
-      doc.text(splitDesc, 20, 60);
-
-      // Additional Images
-      const imagesStartY = 60 + splitDesc.length * 5 + 20;
-
-      if (propertyImages.length > 1) {
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.text("Additional Images:", 20, imagesStartY);
-
-        // Show up to 3 more images
-        const additionalImages = propertyImages.slice(1, 4);
-        additionalImages.forEach((img, index) => {
-          const y = imagesStartY + 10 + index * 60;
-          try {
-            doc.addImage(img, "JPEG", 20, y, 80, 50);
-            doc.setFontSize(8);
-            doc.setTextColor(100, 100, 100);
-            doc.text(`Image ${index + 2}`, 60, y + 55, { align: "center" });
-          } catch (error) {
-            // Skip if image fails to load
-          }
-        });
-      }
-
-      // Page 4: Location & Agent Information
-      doc.addPage();
-
-      // Header
-      doc.setFillColor(59, 130, 246);
-      doc.rect(0, 0, 210, 30, "F");
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(18);
-      doc.setFont("helvetica", "bold");
-      doc.text("LOCATION & AGENT INFO", 105, 20, { align: "center" });
-
-      // Location Details
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.text("Location Details:", 20, 50);
-
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-
-      const locationDetails = [
-        `Address: ${property.address || property.location || "Not specified"}`,
-        `Area: ${property.area || "Not specified"}`,
-        `City: ${property.city || "Dubai"}`,
-        property.coords
-          ? `Coordinates: ${property.coords.lat.toFixed(
-              4
-            )}, ${property.coords.lng.toFixed(4)}`
-          : "",
-      ].filter(Boolean);
-
-      locationDetails.forEach((detail, index) => {
-        doc.text(detail, 20, 60 + index * 10);
-      });
-
-      // Agent Information
-      const agentY = 100;
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.text("Agent Information:", 20, agentY);
-
-      const agentInfo = [
-        `Name: ${agentData?.title || property.agent_name || "Sarah Ahmed"}`,
-        `Office: ${
-          agentData?.office
-            ? agentData.office.toUpperCase() + " OFFICE"
-            : "DUBAI OFFICE"
-        }`,
-        `Experience: ${agentData?.experience_years || 5}+ Years`,
-        `Properties Sold: ${agentData?.total_sales || 11}+`,
-        `Rating: ${
-          agentData?.rating ? agentData.rating.toFixed(1) : "4.5"
-        }/5.0`,
-        `Contact: ${agentData?.whatsapp || "Available on request"}`,
-      ];
-
-      agentInfo.forEach((info, index) => {
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        doc.text(info, 20, agentY + 15 + index * 10);
-      });
-
-      // Page 5: User Information
-      doc.addPage();
-
-      // Header
-      doc.setFillColor(59, 130, 246);
-      doc.rect(0, 0, 210, 30, "F");
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(18);
-      doc.setFont("helvetica", "bold");
-      doc.text("REQUEST INFORMATION", 105, 20, { align: "center" });
-
-      // User Details
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.text("Personal Information:", 20, 50);
-
-      const userDetails = [
-        `Full Name: ${formData.fullName || "Not provided"}`,
-        `Email: ${formData.email || "Not provided"}`,
-        `Phone: ${formData.phoneNumber || "Not provided"}`,
-        `Nationality: ${formData.nationality || "Not provided"}`,
-        `Occupation: ${formData.occupation || "Not provided"}`,
-        `Employer: ${formData.employerCompany || "Not provided"}`,
-        `Monthly Income: ${
-          formData.monthlyIncome
-            ? `AED ${formData.monthlyIncome}`
-            : "Not specified"
-        }`,
-      ];
-
-      userDetails.forEach((detail, index) => {
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        doc.text(detail, 20, 60 + index * 10);
-      });
-
-      // Property Interest
-      const interestY = 60 + userDetails.length * 10 + 20;
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.text("Property Interest Details:", 20, interestY);
-
-      const interestDetails = [
-        `Budget Range: ${formData.budgetRange || "Not specified"}`,
-        `Timeline: ${formData.timeline || "Not specified"}`,
-        `Financing Interest: ${formData.interestedInFinancing ? "Yes" : "No"}`,
-        `Additional Notes: ${formData.additionalNotes || "None"}`,
-        `Request Date: ${new Date().toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        })}`,
-        `Request Time: ${new Date().toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })}`,
-      ];
-
-      interestDetails.forEach((detail, index) => {
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        const splitDetail = doc.splitTextToSize(detail, 170);
-        doc.text(splitDetail, 20, interestY + 15 + index * 15);
-      });
-
-      // Footer
-      doc.setFontSize(8);
-      doc.setTextColor(100, 100, 100);
-      doc.text("Confidential Document - For Internal Use Only", 105, 280, {
-        align: "center",
-      });
-      doc.text("Commercial Properties Dubai © All rights reserved", 105, 285, {
-        align: "center",
-      });
-
-      // Add page numbers
-      const totalPages = doc.getNumberOfPages();
-      for (let i = 1; i <= totalPages; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(150, 150, 150);
-        doc.text(`Page ${i} of ${totalPages}`, 190, 290, { align: "right" });
-      }
-
-      // Save the PDF
+      
       const fileName = `Property_Details_${
         property.title?.replace(/[^a-z0-9]/gi, "_") || "property"
       }_${Date.now()}.pdf`;
       doc.save(fileName);
 
-      console.log("✅ PDF generated successfully with proper English text!");
+      console.log("✅ PDF generated successfully!");
     } catch (error) {
       console.error("❌ Error generating PDF:", error);
       alert("Error generating PDF. Please try again.");
@@ -744,12 +798,12 @@ function FloorPlanForm({
   
   const budgetOptions = [
     "Select budget range",
-    "Under 1,000,000 AED",
+    "Under 500,000 AED",
+    "500,000 - 1,000,000 AED",
     "1,000,000 - 2,000,000 AED",
     "2,000,000 - 5,000,000 AED",
     "5,000,000 - 10,000,000 AED",
-    "10,000,000 - 20,000,000 AED",
-    "20,000,000+ AED",
+    "10,000,000+ AED",
   ];
 
   const timelineOptions = [
@@ -774,13 +828,8 @@ function FloorPlanForm({
               Request Submitted Successfully!
             </h3>
             <p className="text-gray-600 text-lg mb-8">
-              Your floor plan request has been submitted. The PDF is downloading
-              now. Our team will contact you shortly with the detailed floor
-              plans.
+              Your inquiry has been submitted. The PDF is downloading now.
             </p>
-            <div className="text-sm text-gray-500">
-              Closing automatically in 3 seconds...
-            </div>
           </div>
         </div>
       </div>
@@ -791,15 +840,14 @@ function FloorPlanForm({
     <div className="fixed inset-0 z-100 bg-black/50 overflow-y-auto p-4">
       <div className="min-h-full flex items-center justify-center py-8">
         <div className="bg-white rounded-3xl max-w-4xl w-full">
-          {/* Header */}
           <div className="border-b border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-2xl font-black text-gray-900">
-                  Download Floor Plan
+                  Download Property Details
                 </h3>
                 <p className="text-gray-600">
-                  Fill out the form below to download detailed floor plans
+                  Fill out the form for detailed property information
                 </p>
               </div>
               <button
@@ -811,7 +859,6 @@ function FloorPlanForm({
             </div>
           </div>
 
-          {/* Property Info */}
           <div className="p-6 bg-blue-50 border-b border-blue-100">
             <div className="flex items-center justify-between">
               <div>
@@ -822,23 +869,20 @@ function FloorPlanForm({
               </div>
               <div className="text-right">
                 <div className="text-2xl font-black text-blue-600">
-                  AED {formatPrice(property.price || 0)}
+                  AED {formatPrice(property.price || 0)}{property.status === 'rent' ? '/year' : ''}
                 </div>
                 <div className="text-gray-600">
-                  {property.type} • {property.beds} Beds • {property.baths}{" "}
-                  Baths
+                  {property.type} • {property.beds} Beds • {property.baths} Baths
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Form */}
           <form
             onSubmit={handleSubmit}
             className="p-6 max-h-[70vh] overflow-y-auto"
           >
             <div className="space-y-8">
-              {/* Personal Information Section */}
               <div>
                 <h4 className="text-xl font-black text-gray-900 mb-6 pb-2 border-b border-gray-200">
                   <span className="text-blue-600">1.</span> Personal Information
@@ -886,42 +930,9 @@ function FloorPlanForm({
                       placeholder="+971 XX XXX XXXX"
                     />
                   </div>
-                 
                 </div>
               </div>
 
-              {/* Professional Information Section */}
-              <div>
-                
-                
-              </div>
-
-              {/* Property Interest Section */}
-              <div>
-               
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  
-                  
-                </div>
-
-               
-
-                <div className="">
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Message
-                  </label>
-                  <textarea
-                    name="additionalNotes"
-                    value={formData.additionalNotes}
-                    onChange={handleChange}
-                    rows={3}
-                    className="w-full px-1 py-1 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Any additional information or specific requirements..."
-                  />
-                </div>
-              </div>
-
-              {/* Submit Button */}
               <div className="pt-2 border-t border-gray-200">
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button
@@ -944,12 +955,11 @@ function FloorPlanForm({
                     ) : (
                       <>
                         <span>📥</span>
-                        Download Floor Plan & Submit Information
+                        Download Property Details & Submit Inquiry
                       </>
                     )}
                   </button>
                 </div>
-                
               </div>
             </div>
           </form>
@@ -959,7 +969,7 @@ function FloorPlanForm({
   );
 }
 
-// Agent Popup Modal Component - EXACT SAME AS LUXE
+// Agent Popup Modal Component
 function AgentPopupModal({
   agentData,
   isOpen,
@@ -971,17 +981,13 @@ function AgentPopupModal({
 }) {
   if (!isOpen || !agentData) return null;
 
-  // Helper function to get WhatsApp URL
   const getWhatsAppUrl = (whatsapp: string | null): string => {
     if (!whatsapp) return '#';
-    
     const cleanedNumber = whatsapp.replace(/\D/g, '');
     const finalNumber = cleanedNumber.startsWith('0') ? cleanedNumber.substring(1) : cleanedNumber;
-    
     return `https://wa.me/971${finalNumber}`;
   };
 
-  // Helper function to format date
   const formatAgentDate = (dateString: string): string => {
     try {
       const date = new Date(dateString);
@@ -998,7 +1004,6 @@ function AgentPopupModal({
   return (
     <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
       <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl">
-        {/* Close Button */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 z-10 p-2 bg-white/90 backdrop-blur-md rounded-full text-slate-700 hover:text-primary hover:bg-white transition-all shadow-lg"
@@ -1006,9 +1011,7 @@ function AgentPopupModal({
           <XMarkIcon className="w-6 h-6" />
         </button>
 
-        {/* Modal Content */}
         <div className="p-0">
-          {/* Header with Image */}
           <div className="relative h-64 md:h-80 bg-linear-to-r from-primary/20 to-secondary/20">
             {agentData?.profile_image ? (
               <img
@@ -1025,14 +1028,13 @@ function AgentPopupModal({
             )}
             <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
             
-            {/* Agent Title */}
             <div className="absolute bottom-0 left-0 right-0 p-6">
               <div className="flex flex-col md:flex-row md:items-end justify-between">
                 <div>
                   <h2 className="text-3xl md:text-4xl font-serif text-white mb-2">
                     {agentData?.title || "Real Estate Agent"}
                   </h2>
-                  <p className="text-white/80 text-lg">{agentData?.brokerage || "Global Property Solutions"}</p>
+                  <p className="text-white/80 text-lg">{agentData?.brokerage || "Property Specialist"}</p>
                 </div>
                 <div className="flex items-center gap-3 mt-4 md:mt-0">
                   {agentData?.verified && (
@@ -1050,12 +1052,9 @@ function AgentPopupModal({
             </div>
           </div>
 
-          {/* Main Content */}
           <div className="p-6 md:p-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Left Column - Contact & Basic Info */}
               <div className="lg:col-span-1 space-y-6">
-                {/* Contact Information */}
                 <div className="bg-slate-50 rounded-xl p-6">
                   <h3 className="text-lg font-bold text-secondary mb-4 flex items-center gap-2">
                     <PhoneIcon className="w-5 h-5 text-primary" />
@@ -1063,7 +1062,6 @@ function AgentPopupModal({
                   </h3>
                   
                   <div className="space-y-4">
-                    {/* WhatsApp */}
                     {agentData?.whatsapp && (
                       <a
                         href={getWhatsAppUrl(agentData.whatsapp)}
@@ -1081,7 +1079,6 @@ function AgentPopupModal({
                       </a>
                     )}
 
-                    {/* Telegram */}
                     {agentData?.telegram && (
                       <a
                         href={`https://t.me/${agentData.telegram.replace('@', '')}`}
@@ -1099,7 +1096,6 @@ function AgentPopupModal({
                       </a>
                     )}
 
-                    {/* LinkedIn */}
                     {agentData?.linkedin_url && (
                       <a
                         href={agentData.linkedin_url}
@@ -1117,7 +1113,6 @@ function AgentPopupModal({
                       </a>
                     )}
 
-                    {/* Website */}
                     {agentData?.website_url && (
                       <a
                         href={agentData.website_url}
@@ -1135,7 +1130,6 @@ function AgentPopupModal({
                       </a>
                     )}
 
-                    {/* Instagram */}
                     {agentData?.instagram_handle && (
                       <a
                         href={`https://instagram.com/${agentData.instagram_handle.replace('@', '')}`}
@@ -1157,7 +1151,6 @@ function AgentPopupModal({
                   </div>
                 </div>
 
-                {/* Basic Info */}
                 <div className="bg-slate-50 rounded-xl p-6">
                   <h3 className="text-lg font-bold text-secondary mb-4 flex items-center gap-2">
                     <UserIcon className="w-5 h-5 text-primary" />
@@ -1191,9 +1184,7 @@ function AgentPopupModal({
                 </div>
               </div>
 
-              {/* Right Column - Detailed Information */}
               <div className="lg:col-span-2 space-y-8">
-                {/* Rating & Reviews */}
                 <div className="bg-linear-to-r from-primary/5 to-secondary/5 rounded-xl p-6">
                   <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
                     <div>
@@ -1219,13 +1210,12 @@ function AgentPopupModal({
                       <span className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm">
                         <ShieldCheckIcon className="w-5 h-5 text-green-500" />
                         <span className="font-semibold">
-                          {agentData?.approved ? 'Approved by RAGDOLL PROPERTY' : 'Pending Approval'}
+                          {agentData?.approved ? 'Verified Agent' : 'Pending Verification'}
                         </span>
                       </span>
                     </div>
                   </div>
 
-                  {/* Bio */}
                   {agentData?.bio && (
                     <div className="mt-6">
                       <h4 className="font-semibold text-secondary mb-2">About Me</h4>
@@ -1234,16 +1224,14 @@ function AgentPopupModal({
                   )}
                 </div>
 
-                {/* Specializations & Areas */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Specializations */}
                   <div className="bg-white border border-slate-200 rounded-xl p-6">
                     <h3 className="text-lg font-bold text-secondary mb-4 flex items-center gap-2">
                       <BriefcaseIcon className="w-5 h-5 text-primary" />
                       Specializations
                     </h3>
                     <div className="flex flex-wrap gap-2">
-                      {(agentData?.specializations || ['Commercial Properties', 'Office Spaces', 'Retail']).map((spec: string, idx: number) => (
+                      {(agentData?.specializations || ['Residential', 'Commercial']).map((spec: string, idx: number) => (
                         <span 
                           key={idx} 
                           className="px-3 py-1.5 bg-primary/10 text-primary text-sm font-semibold rounded-full"
@@ -1254,14 +1242,13 @@ function AgentPopupModal({
                     </div>
                   </div>
 
-                  {/* Areas */}
                   <div className="bg-white border border-slate-200 rounded-xl p-6">
                     <h3 className="text-lg font-bold text-secondary mb-4 flex items-center gap-2">
                       <MapPinIcon className="w-5 h-5 text-primary" />
                       Areas Covered
                     </h3>
                     <div className="flex flex-wrap gap-2">
-                      {(agentData?.areas || ['Dubai Marina', 'Downtown Dubai', 'Business Bay']).map((area: string, idx: number) => (
+                      {(agentData?.areas || ['Dubai']).map((area: string, idx: number) => (
                         <span 
                           key={idx} 
                           className="px-3 py-1.5 bg-secondary/10 text-secondary text-sm font-semibold rounded-full"
@@ -1273,9 +1260,7 @@ function AgentPopupModal({
                   </div>
                 </div>
 
-                {/* Languages & Certifications */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Languages */}
                   <div className="bg-white border border-slate-200 rounded-xl p-6">
                     <h3 className="text-lg font-bold text-secondary mb-4 flex items-center gap-2">
                       <LanguageIcon className="w-5 h-5 text-primary" />
@@ -1291,14 +1276,13 @@ function AgentPopupModal({
                     </div>
                   </div>
 
-                  {/* Certifications */}
                   <div className="bg-white border border-slate-200 rounded-xl p-6">
                     <h3 className="text-lg font-bold text-secondary mb-4 flex items-center gap-2">
                       <CheckBadgeIcon className="w-5 h-5 text-primary" />
                       Certifications
                     </h3>
                     <div className="space-y-3">
-                      {(agentData?.certifications || ['RERA Certified', 'Commercial Broker License']).map((cert: string, idx: number) => (
+                      {(agentData?.certifications || ['RERA Certified']).map((cert: string, idx: number) => (
                         <div key={idx} className="flex items-center gap-3">
                           <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                             <CheckBadgeIcon className="w-4 h-4 text-green-600" />
@@ -1310,7 +1294,6 @@ function AgentPopupModal({
                   </div>
                 </div>
 
-                {/* Additional Info */}
                 <div className="bg-slate-50 rounded-xl p-6">
                   <h3 className="text-lg font-bold text-secondary mb-4">Additional Information</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1333,7 +1316,7 @@ function AgentPopupModal({
                     <div>
                       <p className="text-sm text-slate-500">Status</p>
                       <p className="font-semibold text-green-600">
-                        {agentData?.approved ? 'Active & Approved' : 'Pending Approval'}
+                        {agentData?.approved ? 'Active' : 'Pending'}
                       </p>
                     </div>
                   </div>
@@ -1341,7 +1324,6 @@ function AgentPopupModal({
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="mt-8 pt-6 border-t border-slate-200">
               <div className="flex flex-col sm:flex-row gap-4">
                 <a
@@ -1375,7 +1357,7 @@ function AgentPopupModal({
   );
 }
 
-// Gallery Modal Component - EXACT SAME AS LUXE
+// Gallery Modal Component
 function GalleryModal({ 
   isOpen, 
   onClose, 
@@ -1571,7 +1553,7 @@ function GalleryModal({
   );
 }
 
-// ViewDetailsModal Component - EXACT SAME AS LUXE WITH GALLERY
+// ViewDetailsModal Component - EXACT SAME AS LUXE
 function ViewDetailsModal({
   property,
   onClose,
@@ -1590,12 +1572,13 @@ function ViewDetailsModal({
   const [agentData, setAgentData] = useState<AgentData | null>(null);
   const [agentLoading, setAgentLoading] = useState(true);
   const [showFloorPlanForm, setShowFloorPlanForm] = useState(false);
-  const [showGallery, setShowGallery] = useState(false); // NEW STATE FOR GALLERY
+  const [showGallery, setShowGallery] = useState(false);
 
   // NEW STATES FOR AGENT POPUP
   const [showAgentPopup, setShowAgentPopup] = useState(false);
   const [agentPopupData, setAgentPopupData] = useState<AgentData | null>(null);
   const [agentPopupLoading, setAgentPopupLoading] = useState(false);
+  const [showFullScreenGallery, setShowFullScreenGallery] = useState(false);
 
   // Fetch agent data from Firebase
 useEffect(() => {
@@ -1876,6 +1859,14 @@ useEffect(() => {
         />
       )}
 
+      {/* Full Screen Gallery */}
+      {showFullScreenGallery && (
+        <FullScreenGallery 
+          property={property} 
+          onClose={() => setShowFullScreenGallery(false)} 
+        />
+      )}
+
       <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
         {/* Top Header Bar */}
         <div className="sticky top-0 z-50 bg-white border-b border-slate-100 shadow-sm">
@@ -1905,68 +1896,81 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* Main Content - Full Screen */}
-        <div className="container-custom pt-8 pb-12 mt-25">
+        {/* Main Content */}
+        <div className="container-custom pt-8 pb-12">
+          <div className="flex flex-row gap-3 mb-6">
+            <div className="-mt-1">
+              <button
+                onClick={onClose}
+                className="h-10 w-10 mb-2 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 hover:bg-gray-200 transition-colors"
+              >
+                <ArrowLeftIcon className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="text-xl mb-2 font-bold text-slate-500">Commercial Properties in Dubai</p>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-            {/* Left Column - Main Content */}
+            {/* Left Column - Images & Details */}
             <div className="lg:col-span-8 space-y-12">
-              {/* Image Gallery */}
-              <div className=" overflow-hidden shadow-2xl rounded-3xl shadow-slate-200/50">
-                <div className="relative h-[560px] bg-slate-100 overflow-hidden">
+              {/* Main Image Gallery */}
+              <div className="overflow-hidden shadow-2xl rounded-3xl shadow-slate-200/50">
+                <div className="relative h-[500px] bg-slate-100 overflow-hidden">
                   <img
                     src={propertyImages[currentImageIndex]}
                     alt={property.title || "Property Image"}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover cursor-pointer"
+                    onClick={() => setShowFullScreenGallery(true)}
                     onError={(e) => {
                       e.currentTarget.src =
                         "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop";
                     }}
                   />
 
-                  {/* Status Badges - TOP LEFT */}
+                  {/* Open Gallery Button */}
+                  <button
+                    onClick={() => setShowFullScreenGallery(true)}
+                    className="absolute bottom-6 right-6 bg-black/70 hover:bg-black/90 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition-colors backdrop-blur-sm shadow-lg z-10"
+                  >
+                    <ArrowsPointingOutIcon className="h-5 w-5" />
+                    <span className="font-bold text-sm">Open Gallery</span>
+                  </button>
+
+                  {/* Image Counter */}
                   <div className="absolute top-4 left-4 right-4 flex justify-between">
-                    {/* Left side - Status badges */}
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => setShowGallery(true)}
-                        className="w-15 group p-1 bg-linear-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-2 border-dashed border-blue-200 hover:border-blue-400 rounded-xl transition-all duration-300 flex flex-col items-center justify-center "
-                      >
-                         Gallery
-                       
-                      </button>
                       <span className="px-4 py-2 bg-primary text-white text-sm font-bold rounded-full shadow-lg">
-                        {property.status === "rent" ? "for rent" : "For sale"}
+                        {property.status === "rent" ? "FOR RENT" : "FOR SALE"}
                       </span>
                       {property.featured && (
                         <span className="px-4 py-2 bg-white text-black text-sm font-bold rounded-full shadow-lg">
-                          featured
+                          FEATURED
                         </span>
                       )}
                       <span className="px-4 py-2 bg-black text-white text-sm font-bold rounded-full shadow-lg">
-                        {property.property_status || "ready"}
+                        {property.property_status?.toUpperCase() || "READY"}
                       </span>
                     </div>
 
-                    {/* Right side - Image counter */}
                     <div className="absolute top-2 right-4 px-3 py-1 bg-black/50 text-white text-sm rounded-full flex items-center gap-1 z-20">
                       <PhotoIcon className="w-4 h-4" />
                       {currentImageIndex + 1} / {propertyImages.length}
                     </div>
                   </div>
 
-                  {/* Image Navigation */}
+                  {/* Navigation Arrows */}
                   {propertyImages.length > 1 && (
                     <>
                       <button
                         onClick={handlePrevImage}
-                        className="absolute left-6 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/50 flex items-center justify-center text-slate-700 hover:text-primary transition-colors shadow-xl"
+                        className="absolute left-6 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors shadow-xl"
                       >
                         <ChevronLeftIcon className="w-5 h-5 text-white" />
                       </button>
 
                       <button
                         onClick={handleNextImage}
-                        className="absolute right-6 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/50 flex items-center justify-center text-slate-700 hover:text-primary transition-colors shadow-xl"
+                        className="absolute right-6 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors shadow-xl"
                       >
                         <ChevronRightIcon className="w-5 h-5 text-white" />
                       </button>
@@ -1974,15 +1978,15 @@ useEffect(() => {
                   )}
                 </div>
 
-                {/* Thumbnail Gallery */}
+                {/* Thumbnails */}
                 {propertyImages.length > 1 && (
-                  <div className=" p-1 py-4">
-                    <div className="flex gap-4 overflow-x-auto pb-4">
+                  <div className="p-4">
+                    <div className="flex gap-4 overflow-x-auto pb-2">
                       {propertyImages.map((img, idx) => (
                         <button
                           key={idx}
                           onClick={() => setCurrentImageIndex(idx)}
-                          className={`shrink-0 w-25 rounded-xl h-20 overflow-hidden border-4 transition-all ${
+                          className={`shrink-0 w-24 h-20 rounded-xl overflow-hidden border-4 transition-all ${
                             idx === currentImageIndex
                               ? "border-primary"
                               : "border-transparent hover:border-slate-300"
@@ -2003,19 +2007,19 @@ useEffect(() => {
               {/* Property Details Card */}
               <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl shadow-slate-200/50 border border-slate-100">
                 <div className="space-y-10">
-                  {/* Header Info */}
+                  {/* Title and Price */}
                   <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
                         <span className="px-4 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.2em] rounded-full">
-                          {property.type || "COMMERCIAL"}
+                          {property.type?.toUpperCase() || "PROPERTY"}
                         </span>
                         <span className="px-4 py-1 bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] rounded-full">
-                          {property.property_status || "READY"}
+                          {property.property_status?.toUpperCase() || "READY"}
                         </span>
                       </div>
                       <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-                        {property.title || "Premium Commercial Space in Dubai"}
+                        {property.title || "Property in Dubai"}
                       </h1>
                       <div className="flex items-center gap-2 text-slate-500 font-medium">
                         <MapPinIcon className="w-5 h-5 text-primary" />
@@ -2030,15 +2034,17 @@ useEffect(() => {
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">
-                        PRICE
+                        {property.status === "rent" ? "YEARLY RENT" : "PRICE"}
                       </div>
                       <div className="text-4xl md:text-5xl font-black text-primary">
                         AED {formatPrice(property.price || 0)}
+                        {property.status === "rent" ? "/year" : ""}
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex  gap-20 justify-around p-8 bg-slate-50 rounded-4xl border border-slate-100">
+                  {/* Key Features */}
+                  <div className="flex gap-20 justify-around p-8 bg-slate-50 rounded-4xl border border-slate-100">
                     <div className="space-y-1">
                       <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                         BEDROOMS
@@ -2070,7 +2076,7 @@ useEffect(() => {
                         <span className="text-2xl font-black text-slate-900">
                           {formatNumber(property.sqft || 0)}
                           <span className="text-xs font-bold text-slate-400 ml-1 uppercase">
-                            sqft
+                            SQFT
                           </span>
                         </span>
                       </div>
@@ -2088,12 +2094,12 @@ useEffect(() => {
                     <div className="prose prose-slate max-w-none">
                       <p className="text-slate-600 leading-relaxed text-lg whitespace-pre-line font-medium bg-slate-50 p-8 rounded-3xl border border-slate-100">
                         {property.description ||
-                          "Experience unparalleled commercial space in this premium property located in the heart of Dubai. This exquisite commercial property offers strategic location advantages, combining modern infrastructure with business-friendly amenities. Perfect for businesses seeking premium office space and exceptional quality."}
+                          "Experience comfortable living in this property located in Dubai. This residence offers modern amenities and convenient location."}
                       </p>
                     </div>
                   </div>
 
-                  {/* Features */}
+                  {/* Features & Amenities */}
                   {property.features && property.features.length > 0 && (
                     <div className="space-y-6 pt-10 border-t border-slate-100">
                       <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
@@ -2118,7 +2124,7 @@ useEffect(() => {
                     </div>
                   )}
 
-                  {/* Property Details Table */}
+                  {/* Property Details Grid */}
                   <div className="space-y-6 pt-10 border-t border-slate-100">
                     <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
                       <span className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
@@ -2134,7 +2140,7 @@ useEffect(() => {
                               PROPERTY TYPE
                             </div>
                             <div className="text-2xl font-black text-slate-900">
-                              {property.type || "Commercial"}
+                              {property.type || "Property"}
                             </div>
                           </div>
                           <div>
@@ -2142,7 +2148,7 @@ useEffect(() => {
                               AREA
                             </div>
                             <div className="text-2xl font-black text-slate-900">
-                              {property.area || "Downtown Dubai"}
+                              {property.area || "Dubai"}
                             </div>
                           </div>
                         </div>
@@ -2168,10 +2174,7 @@ useEffect(() => {
                     </div>
                   </div>
 
-                  {/* Gallery Section - NEW ADDED SECTION */}
-                  
-
-                  {/* Map Location */}
+                  {/* Location Map */}
                   <div className="space-y-6 pt-10 border-t border-slate-100">
                     <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
                       <span className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
@@ -2179,9 +2182,7 @@ useEffect(() => {
                       </span>
                       Location Map
                     </h2>
-                    {/* Google Maps Container */}
                     <div className="bg-gray-100 rounded-[2.5rem] h-[500px] overflow-hidden border border-slate-100 shadow-xl shadow-slate-200/50 relative">
-                      {/* Map iframe */}
                       <div className="w-full h-full">
                         <iframe
                           src={`https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d462562.65095637795!2d54.94728926249997!3d25.07575955953261!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e5f43496ad9c645%3A0xbde66e5084295162!2sDubai%20-%20United%20Arab%20Emirates!5e0!3m2!1sen!2s!4v1690465000000!5m2!1sen!2s`}
@@ -2195,19 +2196,15 @@ useEffect(() => {
                           className="rounded-[2.5rem]"
                         ></iframe>
 
-                        {/* Map Pin Overlay */}
                         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
                           <div className="flex flex-col items-center">
-                            {/* Pin Icon */}
                             <div className="relative">
                               <div className="h-16 w-16 rounded-full bg-red-500 flex items-center justify-center shadow-xl animate-pulse">
                                 <MapPinIcon className="h-8 w-8 text-white" />
                               </div>
-                              {/* Pin Tail */}
                               <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-2 w-4 h-4 bg-red-500 rotate-45"></div>
                             </div>
 
-                            {/* Location Info Card */}
                             <div className="mt-4 bg-white rounded-2xl p-4 shadow-2xl max-w-xs">
                               <div className="font-bold text-slate-900 text-lg mb-1">
                                 {property.address ||
@@ -2221,37 +2218,11 @@ useEffect(() => {
                                   ? `Lat: ${property.coords.lat.toFixed(
                                       6
                                     )}, Lng: ${property.coords.lng.toFixed(6)}`
-                                  : "Downtown Dubai, Dubai, United Arab Emirates"}
+                                  : "Dubai, United Arab Emirates"}
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                    {/* Location Address Display */}
-                    <div className="flex items-start gap-4 p-6 bg-slate-50 rounded-3xl border border-slate-100">
-                      <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <MapPinIcon className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-black text-slate-900 mb-2">
-                          Exact Location
-                        </h3>
-                        <p className="text-slate-700 text-lg">
-                          {property.address ||
-                            property.location ||
-                            `${
-                              property.area || "Oud Maitha Road, Al Jaddaf"
-                            }, ${
-                              property.city || "Dubai"
-                            }, United Arab Emirates`}
-                        </p>
-                        {property.coords && (
-                          <p className="text-slate-500 text-sm mt-2">
-                            Coordinates: {property.coords.lat.toFixed(6)},{" "}
-                            {property.coords.lng.toFixed(6)}
-                          </p>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -2265,11 +2236,29 @@ useEffect(() => {
                       Download Resources
                     </h2>
                     <p className="text-slate-600 text-lg">
-                      Get detailed information about this property. Fill out the
-                      form to download floor plans and brochures.
+                      Get detailed information about this property.
                     </p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <button
+                        onClick={() => setShowFloorPlanForm(true)}
+                        className="group p-6 bg-slate-50 hover:bg-primary hover:text-white border border-slate-200 hover:border-primary rounded-2xl transition-all duration-300 text-left"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-white/20 rounded-xl flex items-center justify-center">
+                            <DocumentTextIcon className="w-6 h-6 text-primary group-hover:text-white" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-black text-slate-900 group-hover:text-white">
+                              Download Brochure
+                            </h3>
+                            <p className="text-sm text-slate-600 group-hover:text-white/80">
+                              Complete property information
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+
                       <button
                         onClick={() => setShowFloorPlanForm(true)}
                         className="group p-6 bg-slate-50 hover:bg-primary hover:text-white border border-slate-200 hover:border-primary rounded-2xl transition-all duration-300 text-left"
@@ -2288,34 +2277,13 @@ useEffect(() => {
                           </div>
                         </div>
                       </button>
-
-                      <div className="group p-6 bg-slate-50 border border-slate-200 rounded-2xl text-left hover:bg-primary">
-                        <button
-                          onClick={() => setShowFloorPlanForm(true)}
-                          className=" hover:bg-primary"
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center group-hover:bg-white/20">
-                              <DocumentTextIcon className="w-6 h-6 text-primary  group-hover:text-white" />
-                            </div>
-                            <div>
-                              <h3 className="text-lg font-black text-slate-900 group-hover:text-white/80">
-                                Brochure
-                              </h3>
-                              <p className="text-sm text-slate-600 group-hover:text-white/80">
-                                Complete property information
-                              </p>
-                            </div>
-                          </div>
-                        </button>
-                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Sidebar */}
+            {/* Right Column - Agent & Actions */}
             <aside className="lg:col-span-4 space-y-8">
               <div className="sticky top-32 space-y-8">
                 {/* Agent Card */}
@@ -2323,30 +2291,10 @@ useEffect(() => {
                   <div className="absolute top-0 left-0 w-full h-2 bg-primary" />
                   <div className="text-center space-y-6">
                     {agentLoading ? (
-                      // Loading Skeleton
                       <div className="animate-pulse">
-                        <div className="flex items-start gap-6 mb-8">
-                          <div className="h-24 w-24 rounded-full bg-gray-300"></div>
-                          <div className="flex-1">
-                            <div className="h-6 bg-gray-300 rounded w-3/4 mb-2"></div>
-                            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 mb-8">
-                          <div className="bg-blue-50 rounded-xl p-6">
-                            <div className="h-8 bg-gray-300 rounded mb-2"></div>
-                            <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
-                          </div>
-                          <div className="bg-green-50 rounded-xl p-6">
-                            <div className="h-8 bg-gray-300 rounded mb-2"></div>
-                            <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
-                          </div>
-                        </div>
-                        <div className="space-y-4">
-                          <div className="h-12 bg-gray-300 rounded-xl"></div>
-                          <div className="h-12 bg-gray-300 rounded-xl"></div>
-                          <div className="h-12 bg-gray-200 rounded-xl"></div>
-                        </div>
+                        <div className="w-24 h-24 mx-auto rounded-full bg-gray-300 mb-4"></div>
+                        <div className="h-6 bg-gray-300 rounded w-3/4 mx-auto mb-2"></div>
+                        <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
                       </div>
                     ) : (
                       <>
@@ -2384,7 +2332,7 @@ useEffect(() => {
                           <p className="text-xs font-bold text-primary uppercase tracking-[0.2em]">
                             {agentData?.office
                               ? `${agentData.office.toUpperCase()} OFFICE`
-                              : "DUBAI DOWNTOWN OFFICE"}
+                              : "DUBAI OFFICE"}
                           </p>
                           {agentData?.verified && (
                             <div className="mt-2 flex items-center gap-1 justify-center">
@@ -2445,7 +2393,6 @@ useEffect(() => {
                       </>
                     )}
 
-                    {/* View Profile Button */}
                     <button
                       onClick={openAgentPopup}
                       disabled={agentPopupLoading}
@@ -2457,22 +2404,21 @@ useEffect(() => {
                           Loading...
                         </div>
                       ) : (
-                        'VIEW PROFILE'
+                        'VIEW FULL PROFILE'
                       )}
                     </button>
                   </div>
                 </div>
 
-                {/* Quick Inquiry Form */}
+                {/* Inquiry Form */}
                 <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-slate-900/20 relative overflow-hidden">
                   <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
                   <div className="relative z-10 space-y-6">
                     <h3 className="text-2xl font-black tracking-tight">
-                      Interested?
+                      Interested in this Property?
                     </h3>
                     <p className="text-slate-400 text-sm font-medium leading-relaxed">
-                      Fill out the form below and our team will contact you
-                      shortly.
+                      Fill out the form below for inquiries.
                     </p>
                     <form className="space-y-4">
                       <input
@@ -2490,18 +2436,18 @@ useEffect(() => {
                         placeholder="Your Message"
                         className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder:text-slate-500 focus:ring-2 focus:ring-primary/50 outline-none transition-all font-medium resize-none"
                       />
-                      <Link
-                        href="/customer/login"
-                        className="w-[50px] bg-primary hover:bg-primary/90 text-white py-5 px-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-primary/20"
+                      <button
+                        type="submit"
+                        className="w-full bg-primary hover:bg-primary/90 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-primary/20"
                       >
                         Send Inquiry
-                      </Link>
+                      </button>
                     </form>
                   </div>
                 </div>
 
                 {/* Mortgage Calculator */}
-                <MortgageCalculator defaultPrice={property.price} />
+                <MortgageCalculator defaultPrice={property.price || 0} />
               </div>
             </aside>
           </div>
@@ -2511,261 +2457,223 @@ useEffect(() => {
   );
 }
 
-// Function to fetch property details by ID from specific collection
+// Function to fetch property details
 async function fetchPropertyDetails(
   propertyId: string,
   collectionName: string
 ): Promise<Record<string, any> | null> {
   try {
-    console.log(
-      `📋 Fetching details for property ${propertyId} from ${collectionName}...`
-    );
-
     const docRef = doc(db, collectionName, propertyId);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
       const data = docSnap.data();
-      console.log(`✅ Found property details:`, {
-        title: data.title,
-        collection: collectionName,
-      });
-
       return {
         id: docSnap.id,
         collection: collectionName,
         ...data,
       };
     } else {
-      console.log(
-        `❌ No property found with ID: ${propertyId} in ${collectionName}`
-      );
       return null;
     }
   } catch (error) {
-    console.error(
-      `❌ Error fetching property details from ${collectionName}:`,
-      error
-    );
+    console.error(`Error fetching property details:`, error);
     return null;
   }
 }
 
-// Function to fetch ALL properties from 'properties' collection
-async function fetchPropertiesFromMainCollection() {
+// Function to fetch ALL properties from 'properties' collection (NO FILTERS)
+async function fetchAllPropertiesFromMainCollection() {
   try {
-    console.log("🔥 Fetching ALL properties from main collection...");
-    const propertiesRef = collection(db, "properties");
-
-    const q = query(propertiesRef, orderBy("updated_at", "desc"));
-
+    const propertiesRef = collection(db, 'properties');
+    
+    // NO WHERE CLAUSE - fetch ALL properties
+    const q = query(propertiesRef);
+    
     const querySnapshot = await getDocs(q);
-    console.log(
-      `✅ Main Collection: Found ${querySnapshot.size} ALL properties`
-    );
-
+    
     const properties: any[] = [];
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       properties.push({
         id: doc.id,
-        collection: "properties",
-        ...data,
+        collection: 'properties',
+        ...data
       });
     });
-
+    
     return properties;
+    
   } catch (error: any) {
-    console.error(
-      "❌ Error fetching properties from main collection:",
-      error.message
-    );
+    console.error('Error fetching from main collection:', error.message);
     return [];
   }
 }
 
 // Function to fetch ALL properties from 'agent_properties' collection
-async function fetchPropertiesFromAgentCollection() {
+async function fetchAllPropertiesFromAgentCollection() {
   try {
-    console.log(
-      "🔥 Fetching ALL properties from agent_properties collection..."
-    );
-    const agentPropertiesRef = collection(db, "agent_properties");
-
-    const q = query(
-      agentPropertiesRef,
-      where("review_status", "==", "published")
-    );
-
+    const agentPropertiesRef = collection(db, 'agent_properties');
+    
+    // NO WHERE CLAUSE - fetch ALL published properties
+    const q = query(agentPropertiesRef);
+    
     const querySnapshot = await getDocs(q);
-    console.log(
-      `✅ Agent Collection: Found ${querySnapshot.size} ALL properties`
-    );
-
+    
     const properties: any[] = [];
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       properties.push({
         id: doc.id,
-        collection: "agent_properties",
-        ...data,
+        collection: 'agent_properties',
+        ...data
       });
     });
-
+    
     return properties;
+    
   } catch (error: any) {
-    console.error(
-      "❌ Error fetching properties from agent collection:",
-      error.message
-    );
+    console.error('Error fetching from agent collection:', error.message);
     return [];
   }
 }
 
-// Main function to fetch all properties from both collections
+// Main function to fetch ALL properties from both collections (NO FILTERS)
 async function fetchAllProperties() {
   try {
-    console.log("🔄 Fetching ALL properties from ALL collections...");
-
     const [mainProperties, agentProperties] = await Promise.all([
-      fetchPropertiesFromMainCollection(),
-      fetchPropertiesFromAgentCollection(),
+      fetchAllPropertiesFromMainCollection(),
+      fetchAllPropertiesFromAgentCollection()
     ]);
-
-    console.log(
-      `📊 Results: ${mainProperties.length} from main, ${agentProperties.length} from agent`
-    );
-
+    
     const allProperties = [...mainProperties, ...agentProperties];
-    console.log(`✅ Total ALL properties found: ${allProperties.length}`);
-
+    
+    console.log(`📊 Total properties fetched: ${allProperties.length}`);
+    console.log('📊 Status breakdown:', {
+      sale: allProperties.filter(p => p.status === 'sale').length,
+      rent: allProperties.filter(p => p.status === 'rent').length,
+      other: allProperties.filter(p => p.status !== 'sale' && p.status !== 'rent').length
+    });
+    
     return allProperties;
+    
   } catch (error) {
-    console.error("❌ Error in fetchAllProperties:", error);
+    console.error('Error in fetchAllProperties:', error);
     return [];
   }
-}
-
-// Function to get property type display name and emoji
-function getTypeInfo(type: string) {
-  const typeMap: Record<
-    string,
-    { label: string; emoji: string; color: string }
-  > = {
-    apartment: { label: "Apartment", emoji: "🏢", color: "bg-purple-500" },
-    villa: { label: "Villa", emoji: "🏰", color: "bg-amber-500" },
-    townhouse: { label: "Townhouse", emoji: "🏘️", color: "bg-teal-500" },
-    commercial: { label: "Commercial", emoji: "🏪", color: "bg-blue-500" },
-    plot: { label: "Plot", emoji: "📐", color: "bg-green-500" },
-    "furnished-studio": {
-      label: "Furnished Studio",
-      emoji: "🏠",
-      color: "bg-pink-500",
-    },
-    "residential-plot": {
-      label: "Residential Plot",
-      emoji: "🏡",
-      color: "bg-green-600",
-    },
-    "industrial-plot": {
-      label: "Industrial Plot",
-      emoji: "🏭",
-      color: "bg-gray-500",
-    },
-  };
-
-  return typeMap[type] || { label: type, emoji: "🏠", color: "bg-gray-500" };
 }
 
 function CommercialPropertiesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  // State for properties
+  
   const [allProperties, setAllProperties] = useState<NormalizedProperty[]>([]);
-  const [filteredProperties, setFilteredProperties] = useState<
-    NormalizedProperty[]
-  >([]);
-  const [loading, setLoading] = useState(true);
-
-  // ADD THESE STATES FOR MODAL
-  const [selectedProperty, setSelectedProperty] =
-    useState<NormalizedProperty | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // Get URL parameters
-  const viewMode = searchParams.get("view") === "list" ? "list" : "grid";
-  const category = searchParams.get("category");
-  const feature = searchParams.get("feature");
-  const page = parseInt(searchParams.get("page") || "1", 10);
+  const [filteredProperties, setFilteredProperties] = useState<NormalizedProperty[]>([]);
+  const [selectedProperty, setSelectedProperty] = useState<NormalizedProperty | null>(null);
+  const [galleryModal, setGalleryModal] = useState<{ isOpen: boolean; property: NormalizedProperty | null }>({ isOpen: false, property: null });
+  const [showFullScreenGallery, setShowFullScreenGallery] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  
+  const viewMode = searchParams.get('view') === 'list' ? 'list' : 'grid';
+  const sortBy = searchParams.get('sortBy') || 'featured';
+  const action = searchParams.get('action') || 'all';
+  const category = searchParams.get('category') || '';
+  const type = searchParams.get('type') || '';
+  const area = searchParams.get('area') || '';
+  const developer = searchParams.get('developer') || '';
+  const minPrice = searchParams.get('minPrice') || '';
+  const maxPrice = searchParams.get('maxPrice') || '';
+  const beds = searchParams.get('beds') || '';
+  const baths = searchParams.get('baths') || '';
+  const minSqft = searchParams.get('minSqft') || '';
+  const maxSqft = searchParams.get('maxSqft') || '';
+  const furnished = searchParams.get('furnished') || '';
+  const parking = searchParams.get('parking') || '';
+  const propertyAge = searchParams.get('propertyAge') || '';
+  const completion = searchParams.get('completion') || '';
+  const features = searchParams.get('features') || '';
+  const subtype = searchParams.get('subtype') || '';
+  const page = parseInt(searchParams.get('page') || '1', 10);
   const limit = 20;
+  const search = searchParams.get('search') || '';
+  const hasVideo = searchParams.get('hasVideo') || '';
 
-  // Determine active filter from URL
-  const activeFilter = feature || category;
+  // Form state - initial values from URL params
+  const [formState, setFormState] = useState({
+    action: action,
+    category: category,
+    type: type,
+    area: area,
+    minPrice: minPrice,
+    maxPrice: maxPrice,
+    beds: beds,
+    baths: baths,
+    furnished: furnished,
+    completion: completion,
+    hasVideo: hasVideo,
+    search: search
+  });
 
-  // Handle View Details Click
+  // Update formState when URL params change
+  useEffect(() => {
+    console.log('🔍 URL Params:', {
+      action: searchParams.get('action'),
+      area: searchParams.get('area'),
+      type: searchParams.get('type')
+    });
+    
+    setFormState({
+      action: searchParams.get('action') || 'all',
+      category: searchParams.get('category') || '',
+      type: searchParams.get('type') || '',
+      area: searchParams.get('area') || '',
+      minPrice: searchParams.get('minPrice') || '',
+      maxPrice: searchParams.get('maxPrice') || '',
+      beds: searchParams.get('beds') || '',
+      baths: searchParams.get('baths') || '',
+      furnished: searchParams.get('furnished') || '',
+      completion: searchParams.get('completion') || '',
+      hasVideo: searchParams.get('hasVideo') || '',
+      search: searchParams.get('search') || ''
+    });
+  }, [searchParams]);
+
   const handleViewDetails = async (property: NormalizedProperty) => {
     try {
-      console.log(
-        `🔄 Loading details for property: ${property.id} from ${property.collection}`
-      );
-
-      // Fetch complete details from Firebase
       const detailedProperty = await fetchPropertyDetails(
         property.id,
-        property.collection || "properties"
+        property.collection || 'properties'
       );
-
+      
       if (detailedProperty) {
-        // Normalize the detailed property with agent data
         const normalized = {
           ...detailedProperty,
-          image:
-            property.image ||
-            detailedProperty.images?.[0] ||
-            detailedProperty.image_url ||
-            "",
+          image: property.image || detailedProperty.images?.[0] || detailedProperty.image_url || '',
           price: detailedProperty.price || 0,
-          priceLabel: detailedProperty.status === "rent" ? "yearly" : "total",
-          area:
-            detailedProperty.area ||
-            detailedProperty.location ||
-            detailedProperty.address ||
-            "Dubai",
-          city: detailedProperty.city || "Dubai",
-          location:
-            detailedProperty.address ||
-            detailedProperty.area ||
-            detailedProperty.city ||
-            "Dubai",
+          priceLabel: detailedProperty.status === 'rent' ? 'yearly' : 'total',
+          area: detailedProperty.area || detailedProperty.location || detailedProperty.address || 'Dubai',
+          city: detailedProperty.city || 'Dubai',
+          location: detailedProperty.address || detailedProperty.area || detailedProperty.city || 'Dubai',
           beds: detailedProperty.beds || 0,
           baths: detailedProperty.baths || 0,
           sqft: detailedProperty.sqft || 0,
-          type: detailedProperty.type || detailedProperty.subtype || "Property",
+          type: detailedProperty.type || detailedProperty.subtype || 'Property',
           developer: detailedProperty.developer || null,
           featured: Boolean(detailedProperty.featured),
           category: detailedProperty.category || null,
           parking: detailedProperty.parking || null,
-          propertyAge:
-            detailedProperty.property_age ||
-            detailedProperty.propertyAge ||
-            null,
-          completion:
-            detailedProperty.completion ||
-            detailedProperty.property_status ||
-            "ready",
+          propertyAge: detailedProperty.property_age || detailedProperty.propertyAge || null,
+          completion: detailedProperty.completion || detailedProperty.property_status || 'ready',
           subtype: detailedProperty.subtype || null,
           description: detailedProperty.description || null,
-          features: Array.isArray(detailedProperty.features)
-            ? detailedProperty.features
-            : [],
+          features: Array.isArray(detailedProperty.features) ? detailedProperty.features : [],
           video_url: detailedProperty.video_url || null,
-          currency: detailedProperty.currency || "AED",
-          status: detailedProperty.status || "sale",
-          agent_name: detailedProperty.agent_name || "Sarah Ahmed",
+          currency: detailedProperty.currency || 'AED',
+          status: detailedProperty.status || 'sale',
+          agent_name: detailedProperty.agent_name || null,
           review_status: detailedProperty.review_status || null,
           submitted_at: detailedProperty.submitted_at || null,
-          collection: detailedProperty.collection || "properties",
+          collection: detailedProperty.collection || 'properties',
           address: detailedProperty.address,
           property_status: detailedProperty.property_status,
           property_age: detailedProperty.property_age,
@@ -2777,51 +2685,43 @@ function CommercialPropertiesPageContent() {
           slug: detailedProperty.slug,
           created_at: detailedProperty.created_at,
           updated_at: detailedProperty.updated_at,
-          agent_image:
-            detailedProperty.profile_image ||
+          agent_image: detailedProperty.profile_image ||
             "https://img.freepik.com/free-photo/blond-businessman-happy-expression_1194-3866.jpg",
-          agent_office: detailedProperty.office || "DUBAI DOWNTOWN OFFICE",
+          agent_office: detailedProperty.office || "DUBAI OFFICE",
           agent_experience: detailedProperty.experience_years || 8,
           agent_properties: detailedProperty.total_sales || 150,
           agent_phone: detailedProperty.phone || "03291082882",
           agent_whatsapp: detailedProperty.whatsapp || "03291082882",
           views: detailedProperty.views || 1250,
         };
-
+        
         setSelectedProperty(normalized as NormalizedProperty);
-        setIsModalOpen(true);
-        console.log("✅ Property details loaded successfully");
       } else {
-        console.log("⚠️ Using cached property data");
         setSelectedProperty(property);
-        setIsModalOpen(true);
       }
     } catch (error) {
-      console.error("❌ Error loading property details:", error);
-      // Fallback to cached property data
+      console.error('Error loading property details:', error);
       setSelectedProperty(property);
-      setIsModalOpen(true);
     }
   };
 
-  // Close Details Modal
-  const closeDetailsModal = () => {
-    setSelectedProperty(null);
-    setIsModalOpen(false);
+  const handleGalleryOpenFromThumbnail = (property: NormalizedProperty) => {
+    setGalleryModal({ isOpen: true, property: property });
   };
 
-  // Fetch properties on component mount
+  const closeDetailsModal = () => {
+    setSelectedProperty(null);
+    setShowFullScreenGallery(false);
+  };
+
+  // Load ALL properties once on mount (NO FILTERS)
   useEffect(() => {
     async function loadProperties() {
-      setLoading(true);
-      console.log("🔄 Loading ALL properties...");
       const properties = await fetchAllProperties();
-
+      
       const normalized = properties.map((p: any) => {
-        // Get first image
-        let imageUrl =
-          "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop";
-
+        let imageUrl = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop';
+        
         if (p.images && Array.isArray(p.images) && p.images.length > 0) {
           imageUrl = p.images[0];
         } else if (p.image) {
@@ -2829,62 +2729,50 @@ function CommercialPropertiesPageContent() {
         } else if (p.image_url) {
           imageUrl = p.image_url;
         }
-
-        const price =
-          typeof p.price === "string" ? parseFloat(p.price) : p.price ?? 0;
-        const location = p.location || p.address || p.area || p.city || "Dubai";
-        const propertyArea =
-          p.area ||
-          p.location ||
-          p.address ||
-          p.neighborhood ||
-          p.district ||
-          "Dubai";
-        const priceLabel = p.status === "rent" ? "yearly" : "total";
-
+        
+        const price = typeof p.price === 'string' ? parseFloat(p.price) : (p.price ?? 0);
+        const location = p.location || p.address || p.area || p.city || 'Dubai';
+        const completionStatus = p.completion || p.property_status || 'ready';
+        const propertyArea = p.area || p.location || p.address || p.neighborhood || p.district || 'Dubai';
+        
         let featuresArray: string[] = [];
         if (Array.isArray(p.features)) {
           featuresArray = p.features;
-        } else if (typeof p.features === "string") {
-          featuresArray = p.features.split(",").map((f: string) => f.trim());
+        } else if (typeof p.features === 'string') {
+          featuresArray = p.features.split(',').map((f: string) => f.trim());
         }
-
+        
         return {
           ...p,
           image: imageUrl,
           price: price,
-          priceLabel: priceLabel,
+          priceLabel: p.status === 'rent' ? 'yearly' : 'total',
           area: propertyArea,
-          city: p.city || "Dubai",
+          city: p.city || 'Dubai',
           location: location,
           beds: p.beds ?? 0,
           baths: p.baths ?? 0,
           sqft: p.sqft ?? 0,
-          type: p.type || "commercial",
-          developer:
-            p.developer ||
-            (p.developers?.name ? p.developers.name : null) ||
-            p.developer_id ||
-            null,
+          type: p.type || p.subtype || 'Property',
+          developer: p.developer || (p.developers?.name ? p.developers.name : null) || p.developer_id || null,
           featured: Boolean(p.featured),
           category: p.category || null,
           parking: p.parking || null,
           propertyAge: p.property_age || p.propertyAge || null,
-          completion: p.completion || p.property_status || "ready",
+          completion: completionStatus,
           subtype: p.subtype || null,
           description: p.description || null,
           features: featuresArray,
           video_url: p.video_url || null,
-          currency: p.currency || "AED",
-          status: p.status || "sale",
-          agent_name: p.agent_name || "Sarah Ahmed",
+          currency: p.currency || 'AED',
+          status: p.status || 'sale',
+          agent_name: p.agent_name || null,
           review_status: p.review_status || null,
           submitted_at: p.submitted_at || null,
-          collection: p.collection || "properties",
-          agent_image:
-            p.profile_image ||
+          collection: p.collection || 'properties',
+          agent_image: p.profile_image ||
             "https://img.freepik.com/free-photo/blond-businessman-happy-expression_1194-3866.jpg",
-          agent_office: p.office || "DUBAI DOWNTOWN OFFICE",
+          agent_office: p.office || "DUBAI OFFICE",
           agent_experience: p.experience_years || 8,
           agent_properties: p.total_sales || 150,
           agent_phone: p.phone || "03291082882",
@@ -2892,193 +2780,408 @@ function CommercialPropertiesPageContent() {
           views: p.views || 1250,
         };
       });
-
-      console.log(`✅ Normalized ${normalized.length} ALL properties`);
-      console.log("📊 Property types found:", [
-        ...new Set(normalized.map((p) => p.type)),
-      ]);
+      
       setAllProperties(normalized);
-      setLoading(false);
+      setDataLoaded(true);
     }
-
+    
     loadProperties();
   }, []);
 
-  // Filter properties based on URL params
+  // Apply filters locally - NO REDIRECT
   useEffect(() => {
-    if (allProperties.length === 0) return;
-
+    if (!dataLoaded || allProperties.length === 0) {
+      setFilteredProperties([]);
+      return;
+    }
+    
     let filtered = [...allProperties];
+    
+    console.log('🔍 Before any filter:', filtered.length);
+    
+    // Filter by action (rent/buy/all) - BUT ALL shows everything
+    if (formState.action === 'rent') {
+      filtered = filtered.filter(p => p.status === 'rent');
+      console.log('🔍 After rent filter:', filtered.length);
+    } else if (formState.action === 'buy' || formState.action === 'sale') {
+      filtered = filtered.filter(p => p.status === 'sale');
+      console.log('🔍 After sale filter:', filtered.length);
+    }
+    // 'all' shows everything - no filter
 
-    // Filter by feature (property type)
-    if (feature) {
-      console.log(`🔍 Filtering by feature: ${feature}`);
-
-      // Map URL features to property types
-      const featureToTypeMap: Record<string, string[]> = {
-        townhouse: ["townhouse"],
-        villas: ["villa"],
-        apartments: ["apartment"],
-        commercial: ["commercial"],
-        plots: ["plot", "residential-plot", "industrial-plot"],
-        studios: ["furnished-studio"],
-      };
-
-      const typesToFilter = featureToTypeMap[feature] || [feature];
-      filtered = filtered.filter((p) => typesToFilter.includes(p.type));
-
-      console.log(
-        `📊 Found ${filtered.length} properties of type: ${typesToFilter.join(
-          ", "
-        )}`
-      );
+    // Filter by category (but category filter is OPTIONAL)
+    if (formState.category) {
+      filtered = filtered.filter(p => p.category === formState.category);
+      console.log('🔍 After category filter:', filtered.length);
     }
 
-    // Filter by category (commercial)
-    if (category === "commercial") {
-      filtered = filtered.filter((p) => p.type === "commercial");
+    // Filter by property type
+    if (formState.type) {
+      filtered = filtered.filter(p => p.type?.toLowerCase() === formState.type.toLowerCase());
+      console.log('🔍 After type filter:', filtered.length);
     }
 
+    // Filter by area/location
+    if (formState.area) {
+      const searchPhrase = formState.area.replace(/-/g, ' ').toLowerCase();
+      const searchTerms = searchPhrase.split(' ').filter(term => term.length > 0);
+      
+      filtered = filtered.filter(p => {
+        const locationFields = [
+          p.area,
+          p.city,
+          p.location,
+          p.address,
+          p.neighborhood,
+          p.district
+        ];
+        
+        const locationText = locationFields
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        
+        const exactMatch = locationText.includes(searchPhrase);
+        const allTermsMatch = searchTerms.every(term => locationText.includes(term));
+        
+        return exactMatch || allTermsMatch;
+      });
+      console.log('🔍 After area filter:', filtered.length);
+    }
+
+    // Filter by developer
+    if (developer) {
+      filtered = filtered.filter(p => p.developer?.toLowerCase().includes(developer.toLowerCase()));
+    }
+
+    // Filter by price range
+    if (formState.minPrice) {
+      filtered = filtered.filter(p => p.price >= parseInt(formState.minPrice));
+    }
+    if (formState.maxPrice) {
+      filtered = filtered.filter(p => p.price <= parseInt(formState.maxPrice));
+    }
+
+    // Filter by bedrooms
+    if (formState.beds) {
+      const bedNum = parseInt(formState.beds);
+      if (formState.beds === '5') {
+        filtered = filtered.filter(p => p.beds >= 5);
+      } else {
+        filtered = filtered.filter(p => p.beds === bedNum);
+      }
+    }
+
+    // Filter by bathrooms
+    if (formState.baths) {
+      const bathNum = parseInt(formState.baths);
+      if (formState.baths === '5') {
+        filtered = filtered.filter(p => p.baths >= 5);
+      } else {
+        filtered = filtered.filter(p => p.baths === bathNum);
+      }
+    }
+
+    // Filter by size range
+    if (minSqft) {
+      filtered = filtered.filter(p => p.sqft >= parseInt(minSqft));
+    }
+    if (maxSqft) {
+      filtered = filtered.filter(p => p.sqft <= parseInt(maxSqft));
+    }
+
+    // Filter by furnished
+    if (formState.furnished === 'true') {
+      filtered = filtered.filter(p => p.furnished === true);
+    } else if (formState.furnished === 'false') {
+      filtered = filtered.filter(p => p.furnished === false || p.furnished === null);
+    }
+
+    // Filter by parking
+    if (parking) {
+      filtered = filtered.filter(p => p.parking?.toLowerCase() === parking.toLowerCase());
+    }
+
+    // Filter by property age
+    if (propertyAge) {
+      filtered = filtered.filter(p => p.propertyAge === propertyAge);
+    }
+
+    // Filter by completion status
+    if (formState.completion) {
+      filtered = filtered.filter(p => p.completion === formState.completion);
+    }
+
+    // Filter by video availability
+    if (formState.hasVideo === 'true') {
+      filtered = filtered.filter(p => p.video_url && p.video_url.trim() !== '');
+    }
+
+    // Filter by features
+    const featuresList = features ? features.split(',').map(f => f.trim()).filter(Boolean) : [];
+    if (featuresList.length > 0) {
+      filtered = filtered.filter((p: NormalizedProperty) => {
+        if (!p.features || !Array.isArray(p.features)) return false;
+        return featuresList.every(f => (p.features || []).includes(f));
+      });
+    }
+
+    // Keywords search - Property name search
+    if (formState.search && formState.search.trim() !== '') {
+      const sLower = formState.search.toLowerCase();
+      filtered = filtered.filter(p => {
+        const inTitle = p.title?.toLowerCase().includes(sLower);
+        const inLocation = p.location?.toLowerCase().includes(sLower);
+        const inArea = (p.area || '').toLowerCase().includes(sLower);
+        const inDesc = (p.description || '').toLowerCase().includes(sLower);
+        const inDeveloper = ((p.developer || '') as string).toLowerCase().includes(sLower);
+        const inAgentName = ((p.agent_name || '') as string).toLowerCase().includes(sLower);
+        return inTitle || inLocation || inArea || inDesc || inDeveloper || inAgentName;
+      });
+    }
+
+    // Sort results
+    switch (sortBy) {
+      case 'price-low':
+        filtered.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-high':
+        filtered.sort((a, b) => b.price - a.price);
+        break;
+      case 'newest':
+        filtered.sort((a, b) => {
+          const dateA = a.submitted_at || a.created_at || '0';
+          const dateB = b.submitted_at || b.created_at || '0';
+          return new Date(dateB).getTime() - new Date(dateA).getTime();
+        });
+        break;
+      case 'featured':
+      default:
+        filtered.sort((a, b) => {
+          if (Boolean(b.featured) !== Boolean(a.featured)) {
+            return Number(b.featured) - Number(a.featured);
+          }
+          const dateA = a.submitted_at || a.created_at || '0';
+          const dateB = b.submitted_at || b.created_at || '0';
+          return new Date(dateB).getTime() - new Date(dateA).getTime();
+        });
+        break;
+    }
+
+    console.log('🔍 Final filtered count:', filtered.length);
     setFilteredProperties(filtered);
-  }, [allProperties, category, feature]);
+  }, [
+    dataLoaded, allProperties, formState, developer, minSqft, maxSqft, 
+    parking, propertyAge, features, sortBy
+  ]);
 
-  // Handle view change
+  const handleInputChange = (name: string, value: string) => {
+    setFormState(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // FILTER APPLY - WITHOUT REDIRECT
+  const handleFilterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleResetFilters = () => {
+    setFormState({
+      action: 'all',
+      category: '',
+      type: '',
+      area: '',
+      minPrice: '',
+      maxPrice: '',
+      beds: '',
+      baths: '',
+      furnished: '',
+      completion: '',
+      hasVideo: '',
+      search: ''
+    });
+  };
+
+  const handleSortChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('sortBy', value);
+    router.replace(`/commercial?${params.toString()}`, { scroll: false });
+  };
+
   const handleViewChange = (view: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set("view", view);
-    params.set("page", "1");
-    router.push(`/commercial-properties?${params.toString()}`);
+    params.set('view', view);
+    router.replace(`/commercial?${params.toString()}`, { scroll: false });
   };
 
-  // Handle page change
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set("page", newPage.toString());
-    router.push(`/commercial-properties?${params.toString()}`);
+    params.set('page', newPage.toString());
+    router.replace(`/commercial?${params.toString()}`, { scroll: false });
   };
 
-  // Handle filter click
-  const handleFilterClick = (filterType: string, filterValue: string) => {
-    const params = new URLSearchParams();
-    if (filterType === "category") {
-      params.set("category", filterValue);
-    } else if (filterType === "feature") {
-      params.set("feature", filterValue);
+  const getPageTitle = () => {
+    let title = 'Commercial ';
+
+    if (formState.action === 'rent') {
+      title += 'Properties for Rent';
+    } else if (formState.action === 'buy' || formState.action === 'sale') {
+      title += 'Properties for Sale';
+    } else {
+      title += 'Properties';
     }
-    params.set("view", viewMode);
-    params.set("page", "1");
-    router.push(`/commercial-properties?${params.toString()}`);
+
+    if (formState.category) {
+      title = formState.category.charAt(0).toUpperCase() + formState.category.slice(1) + ' ' + title;
+    }
+
+    if (formState.type) {
+      const typeLabels: Record<string, string> = {
+        apartment: 'Apartments',
+        villa: 'Villas',
+        townhouse: 'Townhouses',
+        penthouse: 'Penthouses',
+        studio: 'Studios',
+        plot: 'Plots',
+        commercial: 'Commercial Properties'
+      };
+      title = typeLabels[formState.type] || formState.type.charAt(0).toUpperCase() + formState.type.slice(1) + 's';
+    }
+
+    title += formState.area ? ` in ${formState.area}` : ' in Dubai';
+
+    return title;
   };
 
-  // Clear all filters
-  const handleClearFilters = () => {
-    const params = new URLSearchParams();
-    params.set("view", viewMode);
-    router.push(`/commercial-properties?${params.toString()}`);
+  const getPageDescription = () => {
+    let desc = '';
+
+    if (formState.action === 'rent') {
+      desc += 'Find ';
+    } else if (formState.action === 'buy' || formState.action === 'sale') {
+      desc += 'Discover ';
+    } else {
+      desc += 'Browse ';
+    }
+
+    desc += 'commercial ';
+
+    if (formState.category) {
+      desc += formState.category + ' ';
+    }
+
+    if (formState.type) {
+      const typeLabels: Record<string, string> = {
+        apartment: 'apartments',
+        villa: 'villas',
+        townhouse: 'townhouses',
+        penthouse: 'penthouses',
+        studio: 'studios',
+        plot: 'plots',
+        commercial: 'commercial properties'
+      };
+      desc += typeLabels[formState.type] || formState.type + 's';
+    } else {
+      desc += 'properties';
+    }
+
+    if (formState.action === 'rent') {
+      desc += ' for rent';
+    } else if (formState.action === 'buy' || formState.action === 'sale') {
+      desc += ' for sale';
+    }
+
+    desc += formState.area ? ` in ${formState.area}, Dubai` : ' in Dubai';
+    desc += '. Browse our curated selection with detailed information and high-quality images.';
+
+    return desc;
   };
 
-  // Pagination calculations
   const total = filteredProperties.length;
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const offset = (Math.max(page, 1) - 1) * limit;
   const paginatedProperties = filteredProperties.slice(offset, offset + limit);
 
-  // Get page title based on filter
-  const getPageTitle = () => {
-    if (feature === "townhouse") return "Townhouses";
-    if (feature === "villas") return "Villas";
-    if (feature === "apartments") return "Apartments";
-    if (feature === "commercial") return "Commercial Properties";
-    if (feature === "plots") return "Plots & Land";
-    if (feature === "studios") return "Furnished Studios";
-    if (category === "commercial") return "Commercial Properties";
-    return "Premium Commercial Properties";
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-US').format(price);
   };
 
-  // Get page description based on filter
-  const getPageDescription = () => {
-    if (feature === "townhouse")
-      return "Discover premium townhouses in Dubai with modern amenities and prime locations.";
-    if (feature === "villas")
-      return "Explore luxurious villas with private amenities and exclusive community access.";
-    if (feature === "apartments")
-      return "Find modern apartments with stunning views and convenient locations.";
-    if (feature === "commercial")
-      return "Commercial spaces for businesses seeking prime locations in Dubai.";
-    if (feature === "plots")
-      return "Available plots and land for residential and commercial development.";
-    if (feature === "studios")
-      return "Fully furnished studios with all amenities included for comfortable living.";
-    if (category === "commercial")
-      return "Exclusive collection of commercial properties for discerning businesses.";
-    return "Discover Dubai's finest collection of commercial properties - Offices, Retail spaces, Warehouses and more.";
-  };
-
-  if (loading) {
+  // Show a simple message while loading
+  if (!dataLoaded) {
     return (
-      <div className="min-h-screen bg-linear-to-b from-amber-50 to-white flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50/50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-primary font-medium">Loading properties...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-slate-600">Loading commercial properties...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-white to-white">
-      {/* View Details Modal - ALL SECTIONS VISIBLE */}
-      {isModalOpen && selectedProperty && (
-        <ViewDetailsModal
-          property={selectedProperty}
-          onClose={closeDetailsModal}
+    <div className="min-h-screen bg-slate-50/50">
+      {selectedProperty && (
+        <ViewDetailsModal 
+          property={selectedProperty} 
+          onClose={closeDetailsModal} 
         />
       )}
 
-      {/* Hero Section - COMMERCIAL SPECIFIC */}
-      <section className="relative pt-32 pb-20 overflow-hidden bg-linear-to-br from-slate-900 via-slate-800 to-slate-900">
-        <div className="absolute inset-0 opacity-10">
-          <img
-            src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1600&q=80"
-            alt="Commercial Property"
+      {/* Gallery Modal from thumbnail */}
+      {galleryModal.isOpen && galleryModal.property && (
+        <FullScreenGallery 
+          property={galleryModal.property} 
+          onClose={() => setGalleryModal({ isOpen: false, property: null })} 
+        />
+      )}
+
+      <section className="relative pt-32 pb-20 overflow-hidden bg-slate-900">
+        <div className="absolute inset-0 opacity-20">
+          <img 
+            src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1600&q=80" 
+            alt="Commercial Dubai" 
             className="w-full h-full object-cover"
           />
         </div>
-        <div className="absolute inset-0 bg-linear-to-b from-slate-900/90 via-slate-900/80 to-slate-900" />
-
+        <div className="absolute inset-0 bg-linear-to-b from-slate-900 via-slate-900/80 to-slate-900" />
+        
         <div className="container-custom relative z-10">
-          <div className="max-w-5xl mx-auto text-center space-y-6">
-            <h2 className="text-white font-bold tracking-[0.3em] uppercase text-sm">
-              {activeFilter ? getPageTitle() : "Commercial Properties Collection"}
+          <div className="max-w-4xl mx-auto text-center space-y-6">
+            <h2 className="text-primary font-bold tracking-[0.3em] uppercase text-sm animate-slide-up">
+              {formState.action === 'rent' ? 'RENTAL' : formState.action === 'buy' ? 'SALES' : 'ALL'} COMMERCIAL
             </h2>
-
             <h1 className="text-4xl md:text-7xl font-black text-white tracking-tight animate-slide-up [animation-delay:100ms]">
               {getPageTitle()}
             </h1>
-
-            <p className="text-lg md:text-xl text-white max-w-3xl mx-auto font-medium animate-slide-up [animation-delay:200ms]">
+            <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto font-medium animate-slide-up [animation-delay:200ms]">
               {getPageDescription()}
             </p>
 
-            {/* Property Stats and Filter Info */}
-            <div className="flex flex-wrap justify-center gap-3 pt-6 animate-slide-up [animation-delay:300ms]">
+            <div className="flex flex-wrap justify-center gap-3 pt-4 animate-slide-up [animation-delay:300ms]">
               <span className="px-6 py-2 bg-white/10 backdrop-blur-md text-white rounded-full border border-white/10 text-sm font-bold">
-                {total} Properties
+                {total} Commercial Properties Found
               </span>
-
-              {activeFilter && (
-                <button
-                  onClick={handleClearFilters}
-                  className="px-6 py-2 bg-red-500/20 backdrop-blur-md text-red-300 rounded-full border border-red-400/30 text-sm font-bold hover:bg-red-500/30 transition-colors"
-                >
-                  ✕ Clear Filter
-                </button>
+              {formState.search && (
+                <span className="px-6 py-2 bg-primary/20 backdrop-blur-md text-primary rounded-full border border-primary/30 text-sm font-bold">
+                  🔎 &ldquo;{formState.search}&rdquo;
+                </span>
               )}
-
-              {!activeFilter && (
-                <span className="px-6 py-2 bg-green-500/20 backdrop-blur-md text-green-300 rounded-full border border-green-400/30 text-sm font-bold">
-                  🏢 {new Set(allProperties.map((p) => p.type)).size} Property
-                  Types
+              {formState.area && (
+                <span className="px-6 py-2 bg-white/10 backdrop-blur-md text-white rounded-full border border-white/10 text-sm font-bold">
+                  📍 {formState.area}
+                </span>
+              )}
+              {formState.action === 'rent' && (
+                <span className="px-6 py-2 bg-green-500/20 backdrop-blur-md text-green-500 rounded-full border border-green-500/30 text-sm font-bold">
+                  🏢 For Rent
+                </span>
+              )}
+              {formState.action === 'buy' && (
+                <span className="px-6 py-2 bg-blue-500/20 backdrop-blur-md text-blue-500 rounded-full border border-blue-500/30 text-sm font-bold">
+                  🏢 For Sale
                 </span>
               )}
             </div>
@@ -3086,406 +3189,480 @@ function CommercialPropertiesPageContent() {
         </div>
       </section>
 
-      {/* Breadcrumbs & Navigation */}
-      <div className="bg-white border-b border-slate-100 sticky top-20 z-30">
-        <div className="container-custom py-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <nav className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
-              <Link href="/" className="hover:text-primary transition-colors">
-                Home
-              </Link>
-              <span className="text-slate-200">/</span>
-              <Link
-                href="/properties"
-                className="hover:text-primary transition-colors"
-              >
-                Properties
-              </Link>
-              <span className="text-slate-200">/</span>
-              <span className="text-slate-900 truncate max-w-[200px]">
-                Commercial Properties
-              </span>
-            </nav>
+      <div className="container-custom py-8 sm:py-16">
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+          <aside className="lg:w-1/4">
+            <div className="sticky top-24 space-y-6 lg:space-y-8">
+              <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-slate-200/50 p-4 sm:p-8 border border-slate-100">
+                <div className="flex items-center justify-between mb-6 sm:mb-8">
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900">Filters</h3>
+                  <button 
+                    type="button" 
+                    onClick={handleResetFilters}
+                    className="text-xs font-bold text-primary uppercase tracking-widest hover:text-primary/80 transition-colors"
+                  >
+                    Reset All
+                  </button>
+                </div>
 
-            <div className="flex items-center gap-3">
-             
-            </div>
-          </div>
-        </div>
-      </div>
+                <form onSubmit={handleFilterSubmit} className="space-y-8">
+                  <div className="space-y-3">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Keywords</label>
+                    <div className="relative">
+                      <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                      <input 
+                        name="search" 
+                        type="text" 
+                        value={formState.search}
+                        onChange={(e) => handleInputChange('search', e.target.value)}
+                        placeholder="Search commercial properties by name, location..." 
+                        className="w-full bg-slate-50 border-none rounded-2xl pl-12 pr-4 py-4 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 transition-all font-medium" 
+                      />
+                    </div>
+                  </div>
 
-      {/* Main Content */}
-      <div className="container-custom py-8 sm:py-16 bg-white">
-        <div className="flex flex-col">
-          {/* View Controls and Filters */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 sm:mb-10 gap-4 sm:gap-6 bg-white p-4 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-100 shadow-sm">
-            <div className="flex items-center gap-4 pl-4">
-              <span className="text-slate-400 font-bold text-sm uppercase tracking-widest">
-                {total} Properties Found
-              </span>
-            </div>
+                  <div className="space-y-3">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Action</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <label className="relative cursor-pointer group">
+                        <input 
+                          type="radio" 
+                          name="action" 
+                          value="all" 
+                          checked={formState.action === 'all'}
+                          onChange={(e) => handleInputChange('action', e.target.value)}
+                          className="peer sr-only" 
+                        />
+                        <div className="flex items-center justify-center py-3 rounded-xl bg-slate-50 text-slate-600 font-bold text-sm peer-checked:bg-primary peer-checked:text-white group-hover:bg-slate-100 transition-all">
+                          All
+                        </div>
+                      </label>
+                      <label className="relative cursor-pointer group">
+                        <input 
+                          type="radio" 
+                          name="action" 
+                          value="rent" 
+                          checked={formState.action === 'rent'}
+                          onChange={(e) => handleInputChange('action', e.target.value)}
+                          className="peer sr-only" 
+                        />
+                        <div className="flex items-center justify-center py-3 rounded-xl bg-slate-50 text-slate-600 font-bold text-sm peer-checked:bg-primary peer-checked:text-white group-hover:bg-slate-100 transition-all">
+                          Rent
+                        </div>
+                      </label>
+                      <label className="relative cursor-pointer group">
+                        <input 
+                          type="radio" 
+                          name="action" 
+                          value="buy" 
+                          checked={formState.action === 'buy'}
+                          onChange={(e) => handleInputChange('action', e.target.value)}
+                          className="peer sr-only" 
+                        />
+                        <div className="flex items-center justify-center py-3 rounded-xl bg-slate-50 text-slate-600 font-bold text-sm peer-checked:bg-primary peer-checked:text-white group-hover:bg-slate-100 transition-all">
+                          Buy
+                        </div>
+                      </label>
+                    </div>
+                  </div>
 
-            <div className="flex items-center gap-3">
-              {/* View Toggle */}
-             
-            </div>
-          </div>
+                  <div className="space-y-3">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Category</label>
+                    <div className="space-y-2">
+                      {[
+                        { value: '', label: 'All Categories' },
+                        { value: 'commercial', label: 'Commercial' },
+                        { value: 'office', label: 'Office Space' },
+                        { value: 'retail', label: 'Retail' },
+                        { value: 'warehouse', label: 'Warehouse' },
+                        { value: 'industrial', label: 'Industrial' }
+                      ].map((cat) => (
+                        <label key={cat.value} className="flex items-center gap-3 cursor-pointer group">
+                          <input 
+                            type="radio" 
+                            name="category" 
+                            value={cat.value}
+                            checked={formState.category === cat.value}
+                            onChange={(e) => handleInputChange('category', e.target.value)}
+                            className="w-4 h-4 text-primary bg-slate-50 border-slate-300 rounded focus:ring-primary/20 focus:ring-2 cursor-pointer" 
+                          />
+                          <span className="text-slate-700 font-medium group-hover:text-slate-900 transition-colors">
+                            {cat.label}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
 
-          {/* Properties Grid/List */}
-          {filteredProperties.length > 0 ? (
-            <>
-              <div
-                className={`grid gap-8 ${
-                  viewMode === "grid"
-                    ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
-                    : "grid-cols-1"
-                }`}
-              >
-                {paginatedProperties.map((property, i) => {
-                  const typeInfo = getTypeInfo(property.type);
-
-                  return (
-                    <div
-                      key={`${property.collection}-${property.id}`}
-                      className="animate-slide-up"
-                      style={{ animationDelay: `${i * 50}ms` }}
+                  <div className="space-y-3">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Property Type</label>
+                    <select 
+                      name="type" 
+                      value={formState.type}
+                      onChange={(e) => handleInputChange('type', e.target.value)}
+                      className="w-full bg-slate-50 border-none rounded-2xl px-4 py-4 text-slate-900 focus:ring-2 focus:ring-primary/20 transition-all font-medium appearance-none cursor-pointer"
                     >
+                      <option value="">All Types</option>
+                      <option value="commercial">Commercial</option>
+                      <option value="office">Office</option>
+                      <option value="shop">Shop / Retail</option>
+                      <option value="warehouse">Warehouse</option>
+                      <option value="industrial">Industrial</option>
+                      <option value="plot">Commercial Plot</option>
+                      <option value="building">Commercial Building</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Location</label>
+                    <select 
+                      name="area" 
+                      value={formState.area}
+                      onChange={(e) => handleInputChange('area', e.target.value)}
+                      className="w-full bg-slate-50 border-none rounded-2xl px-4 py-4 text-slate-900 focus:ring-2 focus:ring-primary/20 transition-all font-medium appearance-none cursor-pointer"
+                    >
+                      <option value="">All Areas</option>
+                      <option value="Business Bay">Business Bay</option>
+                      <option value="DIFC">DIFC</option>
+                      <option value="Downtown Dubai">Downtown Dubai</option>
+                      <option value="Dubai Marina">Dubai Marina</option>
+                      <option value="Jumeirah">Jumeirah</option>
+                      <option value="Deira">Deira</option>
+                      <option value="Dubai Silicon Oasis">Dubai Silicon Oasis</option>
+                      <option value="Dubai South">Dubai South</option>
+                      <option value="Al Barsha">Al Barsha</option>
+                      <option value="Dubai Creek Harbour">Dubai Creek Harbour</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Price Range (AED)</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        name="minPrice"
+                        type="number"
+                        placeholder="Min"
+                        value={formState.minPrice}
+                        onChange={(e) => handleInputChange('minPrice', e.target.value)}
+                        className="w-full bg-slate-50 border-none rounded-2xl px-4 py-4 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                      />
+                      <input
+                        name="maxPrice"
+                        type="number"
+                        placeholder="Max"
+                        value={formState.maxPrice}
+                        onChange={(e) => handleInputChange('maxPrice', e.target.value)}
+                        className="w-full bg-slate-50 border-none rounded-2xl px-4 py-4 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Bedrooms</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {['', '1', '2', '3', '4', '5'].map((val) => (
+                        <label key={val} className="relative cursor-pointer group">
+                          <input 
+                            type="radio" 
+                            name="beds" 
+                            value={val}
+                            checked={formState.beds === val}
+                            onChange={(e) => handleInputChange('beds', e.target.value)}
+                            className="peer sr-only" 
+                          />
+                          <div className="flex items-center justify-center py-3 rounded-xl bg-slate-50 text-slate-600 font-bold text-sm peer-checked:bg-primary peer-checked:text-white group-hover:bg-slate-100 transition-all">
+                            {val === '' ? 'Any' : val === '5' ? '5+' : val}
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Bathrooms</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {['', '1', '2', '3', '4', '5'].map((val) => (
+                        <label key={val} className="relative cursor-pointer group">
+                          <input 
+                            type="radio" 
+                            name="baths" 
+                            value={val}
+                            checked={formState.baths === val}
+                            onChange={(e) => handleInputChange('baths', e.target.value)}
+                            className="peer sr-only" 
+                          />
+                          <div className="flex items-center justify-center py-3 rounded-xl bg-slate-50 text-slate-600 font-bold text-sm peer-checked:bg-primary peer-checked:text-white group-hover:bg-slate-100 transition-all">
+                            {val === '' ? 'Any' : val === '5' ? '5+' : val}
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Furnished</label>
+                    <div className="space-y-2">
+                      {[
+                        { value: '', label: 'Any' },
+                        { value: 'true', label: 'Furnished' },
+                        { value: 'false', label: 'Unfurnished' }
+                      ].map((furnish) => (
+                        <label key={furnish.value} className="flex items-center gap-3 cursor-pointer group">
+                          <input 
+                            type="radio" 
+                            name="furnished" 
+                            value={furnish.value}
+                            checked={formState.furnished === furnish.value}
+                            onChange={(e) => handleInputChange('furnished', e.target.value)}
+                            className="w-4 h-4 text-primary bg-slate-50 border-slate-300 rounded focus:ring-primary/20 focus:ring-2 cursor-pointer" 
+                          />
+                          <span className="text-slate-700 font-medium group-hover:text-slate-900 transition-colors">
+                            {furnish.label}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Completion Status</label>
+                    <div className="space-y-2">
+                      {[
+                        { value: '', label: 'All Properties' },
+                        { value: 'ready', label: 'Ready to Move' },
+                        { value: 'off-plan', label: 'Off-Plan' }
+                      ].map((status) => (
+                        <label key={status.value} className="flex items-center gap-3 cursor-pointer group">
+                          <input 
+                            type="radio" 
+                            name="completion" 
+                            value={status.value}
+                            checked={formState.completion === status.value}
+                            onChange={(e) => handleInputChange('completion', e.target.value)}
+                            className="w-4 h-4 text-primary bg-slate-50 border-slate-300 rounded focus:ring-primary/20 focus:ring-2 cursor-pointer" 
+                          />
+                          <span className="text-slate-700 font-medium group-hover:text-slate-900 transition-colors">
+                            {status.label}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Property Features</label>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-3 cursor-pointer group">
+                        <input 
+                          type="checkbox" 
+                          name="hasVideo" 
+                          checked={formState.hasVideo === 'true'}
+                          onChange={(e) => handleInputChange('hasVideo', e.target.checked ? 'true' : '')}
+                          className="w-5 h-5 text-primary bg-slate-50 border-slate-300 rounded focus:ring-primary/20 focus:ring-2 cursor-pointer" 
+                        />
+                        <span className="text-slate-700 font-medium group-hover:text-slate-900 transition-colors">
+                          Properties with Video Tours
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <button type="submit" className="w-full bg-primary text-white py-4 rounded-2xl font-bold hover:bg-primary/90 transition-colors shadow-xl shadow-primary/20">
+                    Apply Filters
+                  </button>
+                </form>
+              </div>
+
+              <div className="bg-slate-900 rounded-3xl p-8 text-white relative overflow-hidden group">
+                <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-primary/20 rounded-full blur-3xl group-hover:bg-primary/30 transition-all duration-500" />
+                <div className="relative z-10">
+                  <h4 className="text-xl font-black mb-4">Need Commercial Space?</h4>
+                  <p className="text-slate-400 text-sm font-medium mb-6 leading-relaxed">
+                    Our commercial property specialists are ready to help you find the perfect business space.
+                  </p>
+                  <Link href={"/contact"} className="text-primary font-bold text-sm uppercase tracking-widest flex items-center gap-2 group/btn">
+                    Contact Us
+                    <span className="group-hover/btn:translate-x-1 transition-transform">→</span>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <main className="lg:w-3/4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 sm:mb-10 gap-4 sm:gap-6 bg-white p-4 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-100 shadow-sm">
+              <div className="flex items-center gap-4 pl-4">
+                <span className="text-slate-400 font-bold text-sm uppercase tracking-widest">
+                  {total} Commercial Properties Found
+                </span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
+                {/* Sort dropdown can be added here */}
+              </div>
+            </div>
+
+            {filteredProperties.length > 0 ? (
+              <>
+                <div className={`grid gap-8 ${
+                  viewMode === 'grid'
+                    ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'
+                    : 'grid-cols-1'
+                }`}>
+                  {paginatedProperties.map((property, i) => (
+                    <div key={`${property.collection}-${property.id}`} className="animate-slide-up" style={{ animationDelay: `${i * 50}ms` }}>
                       <div className="relative group">
-                        <div className="bg-white rounded-3xl overflow-hidden shadow-lg shadow-slate-200/50 border border-slate-100 hover:shadow-xl hover:shadow-slate-200/70 transition-all duration-300">
-                          {/* Property Image */}
-                          <div className="relative h-64 overflow-hidden">
-                            <img
-                              src={property.image}
-                              alt={property.title || "Property"}
-                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                              onError={(e) => {
-                                e.currentTarget.src =
-                                  "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop";
-                              }}
-                            />
+                        <PropertyCard
+                          property={{
+                            id: String(property.id),
+                            title: property.title || 'Commercial Property',
+                            price: property.price ?? 0,
+                            priceLabel: property.status === 'rent' ? 'yearly' : 'total',
+                            image: property.image || '',
+                            location: property.location || `${property.area || ''}${property.city ? ', ' + property.city : ''}`,
+                            beds: property.beds ?? 0,
+                            baths: property.baths ?? 0,
+                            sqft: property.sqft ?? 0,
+                            type: property.type || 'Commercial',
+                            featured: Boolean(property.featured),
+                            currency: property.currency || 'AED',
+                            status: property.status || 'sale',
+                            area: property.area || undefined,
+                            city: property.city || undefined,
+                            video_url: property.video_url || undefined,
+                            agent_name: property.agent_name || undefined,
+                          }}
+                        />
+                        
+                        {/* Gallery Icon Button */}
+                        <button
+                          onClick={() => handleGalleryOpenFromThumbnail(property)}
+                          className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-white/95 backdrop-blur-sm rounded-xl px-3 py-2 shadow-lg hover:shadow-xl hover:bg-white border border-slate-200 flex items-center gap-2 text-slate-700 hover:text-primary font-bold text-xs z-10"
+                        >
+                          <Squares2X2Icon className="h-4 w-4" />
+                          Gallery
+                        </button>
+                        
+                        {/* View Details Button */}
+                        <button
+                          onClick={() => handleViewDetails(property)}
+                          className="absolute top-10 left-3 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-white/95 backdrop-blur-sm rounded-xl px-3 py-2 shadow-lg hover:shadow-xl hover:bg-white border border-slate-200 flex items-center gap-2 text-slate-700 hover:text-primary font-bold text-xs"
+                        >
+                          <ArrowsPointingOutIcon className="h-4 w-4" />
+                          Details
+                        </button>
+                      </div>
 
-                            {/* Property Type Badge */}
-                            <div className="absolute top-3 left-3">
-                              <span
-                                className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold ${typeInfo.color} text-white shadow-lg`}
-                              >
-                                {typeInfo.emoji} {typeInfo.label}
-                              </span>
-                            </div>
-
-                            {/* Status Badge */}
-                            <div className="absolute top-3 right-3">
-                              <span
-                                className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold ${
-                                  property.status === "rent"
-                                    ? "bg-green-500"
-                                    : "bg-blue-500"
-                                } text-white shadow-lg`}
-                              >
-                                {property.status === "rent"
-                                  ? "🔑 FOR RENT"
-                                  : "🏠 FOR SALE"}
-                              </span>
-                            </div>
-
-                            {/* Featured Badge */}
-                            {property.featured && (
-                              <div className="absolute bottom-3 left-3">
-                                <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-yellow-500 text-white shadow-lg">
-                                  ⭐ FEATURED
-                                </span>
-                              </div>
-                            )}
-
-                            {/* VIEW DETAILS BUTTON - EXACT SAME AS LUXE */}
-                            <button
-                              onClick={() => handleViewDetails(property)}
-                              className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-white/90 backdrop-blur-md rounded-xl px-4 py-2 shadow-lg hover:shadow-xl hover:bg-white border border-slate-200 flex items-center gap-2 text-slate-700 hover:text-primary font-bold text-sm z-10"
-                            >
-                              <ArrowsPointingOutIcon className="h-4 w-4" />
-                              View Details
-                            </button>
-                          </div>
-
-                          {/* Property Details */}
-                          <div className="p-6">
-                            <div className="space-y-3">
-                              {/* Price */}
-                              <div className="flex items-center justify-between">
-                                <div className="text-2xl font-black text-primary">
-                                  AED {formatPrice(property.price || 0)}
-                                </div>
-                                {property.views && (
-                                  <div className="flex items-center gap-1 text-slate-400 text-sm">
-                                    <EyeIcon className="w-4 h-4" />
-                                    <span>{property.views}</span>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Title */}
-                              <h3 className="text-lg font-black text-slate-900 line-clamp-1">
-                                {property.title || "Property"}
-                              </h3>
-
-                              {/* Location */}
-                              <div className="flex items-center gap-2 text-slate-500">
-                                <MapPinIcon className="w-4 h-4 shrink-0" />
-                                <span className="text-sm font-medium line-clamp-1">
-                                  {property.location ||
-                                    property.area ||
-                                    property.city ||
-                                    "Dubai"}
-                                </span>
-                              </div>
-
-                              {/* Features */}
-                              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                                <div className="flex items-center gap-4">
-                                  <div className="flex items-center gap-1.5">
-                                    <BedIcon className="w-4 h-4 text-slate-400" />
-                                    <span className="text-sm font-bold text-slate-900">
-                                      {property.beds || 0}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-1.5">
-                                    <BathIcon className="w-4 h-4 text-slate-400" />
-                                    <span className="text-sm font-bold text-slate-900">
-                                      {property.baths || 0}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-1.5">
-                                    <Square3Stack3DIcon className="w-4 h-4 text-slate-400" />
-                                    <span className="text-sm font-bold text-slate-900">
-                                      {formatNumber(property.sqft || 0)}
-                                    </span>
-                                    <span className="text-xs text-slate-400">
-                                      sqft
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Agent Info */}
-                              {property.agent_name && (
-                                <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
-                                  <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-200">
-                                    <img
-                                      src={
-                                        property.agent_image ||
-                                        "https://img.freepik.com/free-photo/blond-businessman-happy-expression_1194-3866.jpg"
-                                      }
-                                      alt={property.agent_name}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  </div>
-                                  <span className="text-sm font-medium text-slate-700">
-                                    {property.agent_name}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Additional Info Tags */}
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {property.collection === "agent_properties" && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              🤝 Agent Property
-                            </span>
-                          )}
-                          {property.featured && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                              ⭐ Featured
-                            </span>
-                          )}
-                          {property.property_status && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              {property.property_status.toUpperCase()}
-                            </span>
-                          )}
-                        </div>
+                      <div className="mt-2 flex gap-2">
+                        {property.collection === 'agent_properties' && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            🤝 Agent Property
+                            {property.agent_name && ` - ${property.agent_name}`}
+                          </span>
+                        )}
+                        {property.status === 'rent' && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            🏢 For Rent
+                          </span>
+                        )}
+                        {property.status === 'sale' && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            🏢 For Sale
+                          </span>
+                        )}
+                        {property.type === 'commercial' && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            💼 Commercial
+                          </span>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="mt-16 flex items-center justify-center gap-2">
-                  {page > 1 && (
-                    <button
-                      onClick={() => handlePageChange(page - 1)}
-                      className="h-12 w-12 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-primary hover:text-white hover:border-primary transition-all font-bold shadow-sm hover:shadow-md"
-                    >
-                      ←
-                    </button>
-                  )}
-
-                  {[...Array(totalPages)].map((_, i) => {
-                    const p = i + 1;
-                    if (
-                      p === 1 ||
-                      p === totalPages ||
-                      (p >= page - 1 && p <= page + 1)
-                    ) {
-                      return (
-                        <button
-                          key={p}
-                          onClick={() => handlePageChange(p)}
-                          className={`h-12 w-12 flex items-center justify-center rounded-xl font-bold transition-all shadow-sm ${
-                            page === p
-                              ? "bg-primary text-white shadow-primary/20"
-                              : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {p}
-                        </button>
-                      );
-                    }
-                    if (p === page - 2 || p === page + 2) {
-                      return (
-                        <span key={p} className="text-slate-300">
-                          ...
-                        </span>
-                      );
-                    }
-                    return null;
-                  })}
-
-                  {page < totalPages && (
-                    <button
-                      onClick={() => handlePageChange(page + 1)}
-                      className="h-12 w-12 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-primary hover:text-white hover:border-primary transition-all font-bold shadow-sm hover:shadow-md"
-                    >
-                      →
-                    </button>
-                  )}
+                  ))}
                 </div>
-              )}
-            </>
-          ) : (
-            <div className="text-center py-32 bg-white rounded-[3rem] border border-slate-100 shadow-sm">
-              <div className="h-24 w-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                <HomeIcon className="h-12 w-12 text-slate-300" />
-              </div>
-              <h3 className="text-2xl font-black text-slate-900 mb-2">
-                No properties found
-              </h3>
-              <p className="text-slate-500 font-medium max-w-xs mx-auto">
-                {activeFilter
-                  ? `No ${getPageTitle().toLowerCase()} available at the moment.`
-                  : "No properties available at the moment."}
-              </p>
-              {activeFilter && (
+
+                {totalPages > 1 && (
+                  <div className="mt-16 flex items-center justify-center gap-2">
+                    {page > 1 && (
+                      <button
+                        onClick={() => handlePageChange(page - 1)}
+                        className="h-12 w-12 flex items-center justify-center rounded-xl bg-white border border-slate-100 text-slate-600 hover:bg-primary hover:text-white hover:border-primary transition-all font-bold shadow-sm"
+                      >
+                        ←
+                      </button>
+                    )}
+
+                    {[...Array(totalPages)].map((_, i) => {
+                      const p = i + 1;
+                      if (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) {
+                        return (
+                          <button
+                            key={p}
+                            onClick={() => handlePageChange(p)}
+                            className={`h-12 w-12 flex items-center justify-center rounded-xl font-bold transition-all shadow-sm ${
+                              page === p 
+                                ? 'bg-primary text-white shadow-primary/20' 
+                                : 'bg-white border border-slate-100 text-slate-600 hover:bg-slate-50'
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        );
+                      }
+                      if (p === page - 2 || p === page + 2) {
+                        return <span key={p} className="text-slate-300">...</span>;
+                      }
+                      return null;
+                    })}
+
+                    {page < totalPages && (
+                      <button
+                        onClick={() => handlePageChange(page + 1)}
+                        className="h-12 w-12 flex items-center justify-center rounded-xl bg-white border border-slate-100 text-slate-600 hover:bg-primary hover:text-white hover:border-primary transition-all font-bold shadow-sm"
+                      >
+                        →
+                      </button>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-32 bg-white rounded-[3rem] border border-slate-100 shadow-sm">
+                <div className="h-24 w-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <HomeIcon className="h-12 w-12 text-slate-300" />
+                </div>
+                <h3 className="text-2xl font-black text-slate-900 mb-2">No commercial properties found</h3>
+                <p className="text-slate-500 font-medium max-w-xs mx-auto">
+                  {allProperties.length === 0 
+                    ? 'No commercial properties available.'
+                    : 'We couldn\'t find any commercial properties matching your current filters.'
+                  }
+                </p>
                 <button
-                  onClick={handleClearFilters}
-                  className="mt-4 px-6 py-2 bg-primary text-white rounded-full hover:bg-primary/90 transition-colors"
+                  onClick={handleResetFilters}
+                  className="mt-8 bg-primary text-white py-3 px-8 rounded-full font-bold hover:bg-primary/90 transition-colors"
                 >
-                  View All Properties
+                  Clear All Filters
                 </button>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </main>
         </div>
       </div>
-
-      {/* Simple CTA Section */}
-      <section className="bg-linear-to-r from-slate-900 to-slate-800 py-20">
-        <div className="container-custom">
-          <div className="max-w-4xl mx-auto text-center text-white">
-            <h2 className="text-3xl md:text-5xl font-black mb-6">
-              Find Your Dream {getPageTitle()}
-            </h2>
-            <p className="text-lg text-white/90 mb-8 max-w-2xl mx-auto">
-              Browse our collection of premium commercial properties from both our main
-              listings and agent submissions.
-            </p>
-            <Link href={'/contact'} className="px-8 py-4 bg-white text-slate-900 font-bold rounded-full hover:bg-slate-100 transition-all shadow-lg">
-              Contact for More Information
-            </Link>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }
 
 export default function CommercialPropertiesPage() {
   return (
-    <Suspense fallback={<div className="p-6">Loading...</div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50/50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-slate-600">Loading...</p>
+        </div>
+      </div>
+    }>
       <CommercialPropertiesPageContent />
     </Suspense>
   );
 }
-
-// Add these CSS styles to your global.css or tailwind.config.js
-// Container custom class
-const containerCustomStyles = `
-.container-custom {
-  width: 100%;
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: 1rem;
-  padding-right: 1rem;
-}
-
-@media (min-width: 640px) {
-  .container-custom {
-    max-width: 640px;
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
-}
-
-@media (min-width: 768px) {
-  .container-custom {
-    max-width: 768px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .container-custom {
-    max-width: 1024px;
-    padding-left: 2rem;
-    padding-right: 2rem;
-  }
-}
-
-@media (min-width: 1280px) {
-  .container-custom {
-    max-width: 1280px;
-  }
-}
-
-@media (min-width: 1536px) {
-  .container-custom {
-    max-width: 1536px;
-  }
-}
-
-/* Primary Color */
-:root {
-  --color-primary: 59 130 246; /* blue-500 */
-}
-
-/* Tailwind Config Extension */
-/* Add to tailwind.config.js:
-  extend: {
-    colors: {
-      primary: 'rgb(var(--color-primary))',
-    },
-  }
-*/
-`;
-
-// Helper functions for formatting
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat("en-US").format(price);
-};
-
-const formatNumber = (num: number) => {
-  return new Intl.NumberFormat("en-US").format(num);
-};

@@ -8,7 +8,7 @@ export default function TermsOfServicePage() {
     {
       icon: DocumentTextIcon,
       title: 'Acceptance of Terms',
-      content: 'By accessing RAGDOL, you agree to be bound by these elite service standards and legal frameworks.'
+      content: 'By accessing RAGDOLL, you agree to be bound by these elite service standards and legal frameworks.'
     },
     {
       icon: ScaleIcon,
@@ -75,7 +75,7 @@ export default function TermsOfServicePage() {
                 <section>
                   <h2 className="text-3xl font-serif text-secondary mb-6">1. Introduction</h2>
                   <p className="text-slate-600 leading-relaxed">
-                    Welcome to RAGDOL ("we," "our," or "us"). These Terms of Service ("Terms") govern your use of our website,
+                    Welcome to RAGDOLL ("we," "our," or "us"). These Terms of Service ("Terms") govern your use of our website,
                     mobile application, and related services (collectively, the "Service"). By accessing or using our Service,
                     you agree to be bound by these Terms.
                   </p>
@@ -87,7 +87,7 @@ export default function TermsOfServicePage() {
                 <section>
                   <h2 className="text-3xl font-serif text-secondary mb-6">2. Description of Service</h2>
                   <p className="text-slate-600 leading-relaxed mb-6">
-                    RAGDOL is UAE's premier real estate platform that connects buyers, sellers, renters, and real estate
+                    RAGDOLL is UAE's premier real estate platform that connects buyers, sellers, renters, and real estate
                     professionals. Our services include:
                   </p>
                   <div className="grid md:grid-cols-2 gap-4">

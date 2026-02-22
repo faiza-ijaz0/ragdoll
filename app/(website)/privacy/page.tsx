@@ -75,7 +75,7 @@ export default function PrivacyPolicyPage() {
                 <section>
                   <h2 className="text-3xl font-serif text-secondary mb-6">1. Introduction</h2>
                   <p className="text-slate-600 leading-relaxed">
-                    This Privacy Policy explains how RAGDOL ("we," "our," or "us") collects, uses, discloses, and safeguards
+                    This Privacy Policy explains how RAGDOLl ("we," "our," or "us") collects, uses, discloses, and safeguards
                     your information when you use our website, mobile application, and related services (collectively, the "Service").
                   </p>
                   <p className="text-slate-600 leading-relaxed">

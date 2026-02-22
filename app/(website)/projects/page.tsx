@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import Image from 'next/image'
-import { Suspense, useState, useEffect } from 'react'
-import Link from 'next/link'
+import Image from "next/image";
+import { Suspense, useState, useEffect } from "react";
+import Link from "next/link";
 import {
   BuildingOfficeIcon,
   MapPinIcon,
@@ -36,11 +36,19 @@ import {
   Square3Stack3DIcon,
   PlayCircleIcon,
   GlobeAltIcon,
-  Squares2X2Icon // NEW: Added for gallery icon
-} from '@heroicons/react/24/outline'
-import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid'
-import { db } from '@/lib/firebase'
-import { collection, getDocs, query, where, doc, getDoc, addDoc } from 'firebase/firestore' // addDoc import kiya
+  Squares2X2Icon, // NEW: Added for gallery icon
+} from "@heroicons/react/24/outline";
+import { StarIcon as StarSolidIcon } from "@heroicons/react/24/solid";
+import { db } from "@/lib/firebase";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  doc,
+  getDoc,
+  addDoc,
+} from "firebase/firestore"; // addDoc import kiya
 
 // Types define karen
 interface Project {
@@ -85,93 +93,93 @@ interface Project {
 }
 
 const developers = [
-  { id: 'all', name: 'All Developers', count: 0 },
-  { id: 'emaar', name: 'Emaar Properties', count: 0 },
-  { id: 'damac', name: 'DAMAC Properties', count: 0 },
-  { id: 'nakheel', name: 'Nakheel Properties', count: 0 }
-]
+  { id: "all", name: "All Developers", count: 0 },
+  { id: "emaar", name: "Emaar Properties", count: 0 },
+  { id: "damac", name: "DAMAC Properties", count: 0 },
+  { id: "nakheel", name: "Nakheel Properties", count: 0 },
+];
 
 // Helper function for formatting price
 const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('en-US').format(price);
+  return new Intl.NumberFormat("en-US").format(price);
 };
 
 // Helper function for formatting number
 const formatNumber = (num: number) => {
-  return new Intl.NumberFormat('en-US').format(num);
+  return new Intl.NumberFormat("en-US").format(num);
 };
 
 // Video URL type check karna
 const getVideoType = (url: string) => {
-  if (!url) return 'none';
-  if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
-  if (url.includes('vimeo.com')) return 'vimeo';
-  if (/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i.test(url)) return 'direct';
-  return 'external';
-}
+  if (!url) return "none";
+  if (url.includes("youtube.com") || url.includes("youtu.be")) return "youtube";
+  if (url.includes("vimeo.com")) return "vimeo";
+  if (/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i.test(url))
+    return "direct";
+  return "external";
+};
 
 // YouTube video ID extract karna
 const extractYouTubeId = (url: string) => {
-  let videoId = '';
-  if (url.includes('youtube.com/watch?v=')) {
-    videoId = url.split('v=')[1];
-    const ampersandPosition = videoId.indexOf('&');
+  let videoId = "";
+  if (url.includes("youtube.com/watch?v=")) {
+    videoId = url.split("v=")[1];
+    const ampersandPosition = videoId.indexOf("&");
     if (ampersandPosition !== -1) {
       videoId = videoId.substring(0, ampersandPosition);
     }
-  } else if (url.includes('youtu.be/')) {
-    videoId = url.split('youtu.be/')[1];
-  } else if (url.includes('youtube.com/embed/')) {
-    videoId = url.split('embed/')[1];
+  } else if (url.includes("youtu.be/")) {
+    videoId = url.split("youtu.be/")[1];
+  } else if (url.includes("youtube.com/embed/")) {
+    videoId = url.split("embed/")[1];
   }
   return videoId;
-}
+};
 
 // Vimeo video ID extract karna
 const extractVimeoId = (url: string) => {
   const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
-  return vimeoMatch ? vimeoMatch[1] : '';
-}
+  return vimeoMatch ? vimeoMatch[1] : "";
+};
 
 // Get location coordinates for map based on project
 const getLocationCoordinates = (project: Project | null | undefined) => {
-  
   // Default coordinates for Dubai
- const defaultCoords = { lat: 25.2048, lng: 55.2708 };
+  const defaultCoords = { lat: 25.2048, lng: 55.2708 };
   // Check if project has specific coordinates
-    if (!project) {
+  if (!project) {
     return defaultCoords;
   }
   if (project.latitude && project.longitude) {
     return { lat: project.latitude, lng: project.longitude };
   }
-  
+
   // Try to get approximate coordinates based on area/city
   const locations: Record<string, { lat: number; lng: number }> = {
-    'downtown': { lat: 25.1972, lng: 55.2744 },
-    'dubai marina': { lat: 25.0736, lng: 55.1383 },
-    'jumeirah': { lat: 25.2146, lng: 55.2431 },
-    'business bay': { lat: 25.1867, lng: 55.2647 },
-    'palm jumeirah': { lat: 25.1121, lng: 55.1390 },
-    'dubai hills': { lat: 25.0883, lng: 55.2793 },
-    'meydan': { lat: 25.1798, lng: 55.2597 },
-    'jvc': { lat: 25.0345, lng: 55.2004 },
-    'dubai silicon oasis': { lat: 25.1148, lng: 55.3758 },
-    'international city': { lat: 25.1751, lng: 55.3587 },
-    'emirates hills': { lat: 25.0883, lng: 55.2793 },
-    'mirdif': { lat: 25.2181, lng: 55.4189 },
-    'al barsha': { lat: 25.1134, lng: 55.2000 }
+    downtown: { lat: 25.1972, lng: 55.2744 },
+    "dubai marina": { lat: 25.0736, lng: 55.1383 },
+    jumeirah: { lat: 25.2146, lng: 55.2431 },
+    "business bay": { lat: 25.1867, lng: 55.2647 },
+    "palm jumeirah": { lat: 25.1121, lng: 55.139 },
+    "dubai hills": { lat: 25.0883, lng: 55.2793 },
+    meydan: { lat: 25.1798, lng: 55.2597 },
+    jvc: { lat: 25.0345, lng: 55.2004 },
+    "dubai silicon oasis": { lat: 25.1148, lng: 55.3758 },
+    "international city": { lat: 25.1751, lng: 55.3587 },
+    "emirates hills": { lat: 25.0883, lng: 55.2793 },
+    mirdif: { lat: 25.2181, lng: 55.4189 },
+    "al barsha": { lat: 25.1134, lng: 55.2 },
   };
-  
-  const area = project.area?.toLowerCase() || project.city?.toLowerCase() || '';
+
+  const area = project.area?.toLowerCase() || project.city?.toLowerCase() || "";
   for (const [key, coords] of Object.entries(locations)) {
     if (area.includes(key)) {
       return coords;
     }
   }
-  
+
   return defaultCoords;
-}
+};
 
 // Gallery Icon Component - NEW
 const GalleryIcon = ({ onClick }: { onClick: () => void }) => (
@@ -182,90 +190,96 @@ const GalleryIcon = ({ onClick }: { onClick: () => void }) => (
     <Squares2X2Icon className="h-4 w-4" />
     View Gallery
   </button>
-)
+);
 
 // Request Information Form Component - NEW
-const RequestInfoForm = ({ 
-  project, 
-  onClose 
-}: { 
-  project: Project; 
-  onClose: () => void 
+const RequestInfoForm = ({
+  project,
+  onClose,
+}: {
+  project: Project;
+  onClose: () => void;
 }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    message: ''
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitSuccess, setSubmitSuccess] = useState(false)
-  const [error, setError] = useState('')
+    name: "",
+    email: "",
+    phone: "",
+    message: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value
-    }))
-    if (error) setError('')
-  }
+      [e.target.name]: e.target.value,
+    }));
+    if (error) setError("");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     // Form validation
-    if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim()) {
-      setError('Please fill all required fields')
-      return
+    if (
+      !formData.name.trim() ||
+      !formData.email.trim() ||
+      !formData.phone.trim()
+    ) {
+      setError("Please fill all required fields");
+      return;
     }
-    
-    setIsSubmitting(true)
-    setError('')
-    
+
+    setIsSubmitting(true);
+    setError("");
+
     try {
       // Firebase mein data save karna
-      const requestInfoRef = collection(db, 'request_information')
-      
+      const requestInfoRef = collection(db, "request_information");
+
       await addDoc(requestInfoRef, {
         project_id: project.id,
         project_name: project.name,
-        developer: project.developer || '',
+        developer: project.developer || "",
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
-        message: formData.message || '',
-        status: 'new',
+        message: formData.message || "",
+        status: "new",
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      
-      setSubmitSuccess(true)
-      
+        updated_at: new Date().toISOString(),
+      });
+
+      setSubmitSuccess(true);
+
       // Success message ke baad modal close karna
       setTimeout(() => {
-        onClose()
+        onClose();
         // Reset form
-        setFormData({ name: '', email: '', phone: '', message: '' })
-        setIsSubmitting(false)
-        setSubmitSuccess(false)
-      }, 3000)
-      
+        setFormData({ name: "", email: "", phone: "", message: "" });
+        setIsSubmitting(false);
+        setSubmitSuccess(false);
+      }, 3000);
     } catch (err) {
-      console.error('Error saving request information:', err)
-      setError('Something went wrong. Please try again.')
-      setIsSubmitting(false)
+      console.error("Error saving request information:", err);
+      setError("Something went wrong. Please try again.");
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-secondary/80 backdrop-blur-sm mt-20">
       <div className="bg-white w-full max-w-2xl rounded-[2.5rem] overflow-hidden shadow-2xl animate-fadeIn">
         <div className="relative h-15">
-        
           <div className="absolute inset-0 bg-secondary/60 flex items-center justify-center">
-            <h3 className="text-3xl font-serif text-white text-center px-4">Request Information: {project.name}</h3>
-         </div>
-          <button 
+            <h3 className="text-3xl font-serif text-white text-center px-4">
+              Request Information: {project.name}
+            </h3>
+          </div>
+          <button
             onClick={onClose}
             className="absolute top-2 right-6 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white hover:text-secondary transition-all"
           >
@@ -278,9 +292,17 @@ const RequestInfoForm = ({
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircleIcon className="h-8 w-8 text-emerald-600" />
               </div>
-              <h3 className="text-2xl font-bold text-secondary mb-2">Request Submitted!</h3>
-              <p className="text-slate-600 mb-2">Thank you for your interest in <span className="font-bold">{project.name}</span>.</p>
-              <p className="text-slate-500 text-sm">Our team will contact you within 24 hours with detailed information.</p>
+              <h3 className="text-2xl font-bold text-secondary mb-2">
+                Request Submitted!
+              </h3>
+              <p className="text-slate-600 mb-2">
+                Thank you for your interest in{" "}
+                <span className="font-bold">{project.name}</span>.
+              </p>
+              <p className="text-slate-500 text-sm">
+                Our team will contact you within 24 hours with detailed
+                information.
+              </p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -289,14 +311,14 @@ const RequestInfoForm = ({
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     Full Name <span className="text-red-500">*</span>
                   </label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     name="name"
-                    placeholder="Enter your full name" 
+                    placeholder="Enter your full name"
                     value={formData.name}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-6 py-4 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-primary/50 text-slate-700" 
+                    className="w-full px-6 py-4 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-primary/50 text-slate-700"
                   />
                 </div>
 
@@ -305,28 +327,28 @@ const RequestInfoForm = ({
                     <label className="block text-sm font-medium text-slate-700 mb-2">
                       Email Address <span className="text-red-500">*</span>
                     </label>
-                    <input 
-                      type="email" 
+                    <input
+                      type="email"
                       name="email"
-                      placeholder="your@email.com" 
+                      placeholder="your@email.com"
                       value={formData.email}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-6 py-4 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-primary/50 text-slate-700" 
+                      className="w-full px-6 py-4 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-primary/50 text-slate-700"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
                       Phone Number <span className="text-red-500">*</span>
                     </label>
-                    <input 
-                      type="tel" 
+                    <input
+                      type="tel"
                       name="phone"
-                      placeholder="+971 50 123 4567" 
+                      placeholder="+971 50 123 4567"
                       value={formData.phone}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-6 py-4 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-primary/50 text-slate-700" 
+                      className="w-full px-6 py-4 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-primary/50 text-slate-700"
                     />
                   </div>
                 </div>
@@ -335,10 +357,10 @@ const RequestInfoForm = ({
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     Message (Optional)
                   </label>
-                  <textarea 
+                  <textarea
                     name="message"
-                    placeholder="Please provide any specific information you're looking for..." 
-                    rows={4} 
+                    placeholder="Please provide any specific information you're looking for..."
+                    rows={4}
                     value={formData.message}
                     onChange={handleInputChange}
                     className="w-full px-6 py-4 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-primary/50 resize-none text-slate-700"
@@ -352,7 +374,7 @@ const RequestInfoForm = ({
                 </div>
               )}
 
-              <button 
+              <button
                 type="submit"
                 disabled={isSubmitting}
                 className="w-full py-5 bg-secondary text-white font-bold rounded-xl hover:bg-primary hover:text-secondary transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
@@ -362,88 +384,92 @@ const RequestInfoForm = ({
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     Submitting...
                   </span>
-                ) : 'Submit Request'}
+                ) : (
+                  "Submit Request"
+                )}
               </button>
-
-            
             </form>
           )}
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
 // Full Screen Gallery Component - NEW
-const FullScreenGallery = ({ 
-  project, 
-  onClose 
-}: { 
-  project: Project; 
-  onClose: () => void 
+const FullScreenGallery = ({
+  project,
+  onClose,
+}: {
+  project: Project;
+  onClose: () => void;
 }) => {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false)
-  
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+
   // Get all media (images + video) for the project
   const getProjectMedia = () => {
-    const media = []
-    
+    const media = [];
+
     // Add hero image
     if (project.hero_image_url) {
       media.push({
-        type: 'image',
+        type: "image",
         url: project.hero_image_url,
-        thumbnail: project.hero_image_url
-      })
+        thumbnail: project.hero_image_url,
+      });
     }
-    
+
     // Add other images
     if (project.images && project.images.length > 0) {
-      project.images.forEach(img => {
+      project.images.forEach((img) => {
         media.push({
-          type: 'image',
+          type: "image",
           url: img,
-          thumbnail: img
-        })
-      })
+          thumbnail: img,
+        });
+      });
     }
-    
+
     // Add video as last item if exists
     if (project.video_url) {
       const videoType = getVideoType(project.video_url);
-      if (videoType !== 'none') {
+      if (videoType !== "none") {
         media.push({
-          type: 'video',
+          type: "video",
           url: project.video_url,
-          thumbnail: project.video_url
-        })
+          thumbnail: project.video_url,
+        });
       }
     }
-    
+
     return media;
-  }
-  
+  };
+
   const projectMedia = getProjectMedia();
-  
+
   const handlePrev = () => {
-    setCurrentIndex(prev => prev === 0 ? projectMedia.length - 1 : prev - 1)
-    setIsVideoPlaying(false)
-  }
-  
+    setCurrentIndex((prev) =>
+      prev === 0 ? projectMedia.length - 1 : prev - 1,
+    );
+    setIsVideoPlaying(false);
+  };
+
   const handleNext = () => {
-    setCurrentIndex(prev => prev === projectMedia.length - 1 ? 0 : prev + 1)
-    setIsVideoPlaying(false)
-  }
-  
+    setCurrentIndex((prev) =>
+      prev === projectMedia.length - 1 ? 0 : prev + 1,
+    );
+    setIsVideoPlaying(false);
+  };
+
   const renderMedia = () => {
     const media = projectMedia[currentIndex];
     if (!media) return null;
-    
-    if (media.type === 'video') {
+
+    if (media.type === "video") {
       const videoType = getVideoType(media.url);
-      
-      if (videoType === 'youtube') {
+
+      if (videoType === "youtube") {
         const videoId = extractYouTubeId(media.url);
         return isVideoPlaying ? (
           <div className="w-full h-full">
@@ -463,7 +489,7 @@ const FullScreenGallery = ({
               alt={project.name}
               className="w-full h-full object-contain"
               onError={(e) => {
-                e.currentTarget.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+                e.currentTarget.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
               }}
             />
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
@@ -478,10 +504,8 @@ const FullScreenGallery = ({
               VIDEO
             </div>
           </div>
-        )
-      }
-      
-      else if (videoType === 'direct') {
+        );
+      } else if (videoType === "direct") {
         return (
           <div className="relative w-full h-full">
             <video
@@ -495,17 +519,18 @@ const FullScreenGallery = ({
               playsInline
               controlsList="nodownload"
             >
-              <source src={media.url} type={`video/${media.url.split('.').pop()?.split('?')[0]}`} />
+              <source
+                src={media.url}
+                type={`video/${media.url.split(".").pop()?.split("?")[0]}`}
+              />
               Your browser does not support the video tag.
             </video>
             <div className="absolute bottom-4 left-4 px-3 py-1 bg-blue-600 text-white text-sm font-bold rounded-full">
               VIDEO
             </div>
           </div>
-        )
-      }
-      
-      else {
+        );
+      } else {
         return (
           <div className="relative w-full h-full">
             <video
@@ -530,10 +555,10 @@ const FullScreenGallery = ({
               VIDEO
             </div>
           </div>
-        )
+        );
       }
     }
-    
+
     // Image display
     return (
       <img
@@ -541,24 +566,24 @@ const FullScreenGallery = ({
         alt={`${project.name} - Image ${currentIndex + 1}`}
         className="w-full h-full object-contain"
         onError={(e) => {
-          e.currentTarget.src = '/default-image.jpg'
+          e.currentTarget.src = "/default-image.jpg";
         }}
       />
-    )
-  }
-  
+    );
+  };
+
   // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowLeft') handlePrev();
-      if (e.key === 'ArrowRight') handleNext();
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") handlePrev();
+      if (e.key === "ArrowRight") handleNext();
     };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
-  
+
   return (
     <div className="fixed inset-0 z-100 bg-black">
       {/* Header */}
@@ -576,14 +601,12 @@ const FullScreenGallery = ({
           <XMarkIcon className="w-6 h-6 text-white" />
         </button>
       </div>
-      
+
       {/* Main Media */}
       <div className="w-full h-full flex items-center justify-center p-4">
-        <div className="w-full h-full max-w-7xl">
-          {renderMedia()}
-        </div>
+        <div className="w-full h-full max-w-7xl">{renderMedia()}</div>
       </div>
-      
+
       {/* Navigation Arrows */}
       {projectMedia.length > 1 && (
         <>
@@ -601,7 +624,7 @@ const FullScreenGallery = ({
           </button>
         </>
       )}
-      
+
       {/* Thumbnails */}
       {projectMedia.length > 1 && (
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-black/80 to-transparent">
@@ -614,12 +637,12 @@ const FullScreenGallery = ({
                   setIsVideoPlaying(false);
                 }}
                 className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
-                  index === currentIndex 
-                    ? 'border-white scale-110' 
-                    : 'border-transparent hover:border-gray-400'
+                  index === currentIndex
+                    ? "border-white scale-110"
+                    : "border-transparent hover:border-gray-400"
                 }`}
               >
-                {media.type === 'video' ? (
+                {media.type === "video" ? (
                   <div className="w-full h-full bg-gray-800 flex items-center justify-center relative">
                     <VideoCameraIcon className="w-6 h-6 text-white" />
                     <div className="absolute top-1 right-1 w-2 h-2 bg-red-600 rounded-full"></div>
@@ -630,7 +653,7 @@ const FullScreenGallery = ({
                     alt=""
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      e.currentTarget.src = '/default-image.jpg'
+                      e.currentTarget.src = "/default-image.jpg";
                     }}
                   />
                 )}
@@ -640,55 +663,66 @@ const FullScreenGallery = ({
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
 function ProjectsPageContent() {
-  const [projects, setProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedDeveloper, setSelectedDeveloper] = useState('all')
-  const [detailsModal, setDetailsModal] = useState<{ isOpen: boolean; project: Project | null }>({ isOpen: false, project: null })
-  const [galleryModal, setGalleryModal] = useState<{ isOpen: boolean; project: Project | null }>({ isOpen: false, project: null })
-  const [requestInfoModal, setRequestInfoModal] = useState<{ isOpen: boolean; project: Project | null }>({ isOpen: false, project: null }) // NEW: Request Info Modal
-  const [selectedImageIndex, setSelectedImageIndex] = useState<{[key: string]: number}>({})
-  const [currentMediaIndex, setCurrentMediaIndex] = useState(0)
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false)
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedDeveloper, setSelectedDeveloper] = useState("all");
+  const [detailsModal, setDetailsModal] = useState<{
+    isOpen: boolean;
+    project: Project | null;
+  }>({ isOpen: false, project: null });
+  const [galleryModal, setGalleryModal] = useState<{
+    isOpen: boolean;
+    project: Project | null;
+  }>({ isOpen: false, project: null });
+  const [requestInfoModal, setRequestInfoModal] = useState<{
+    isOpen: boolean;
+    project: Project | null;
+  }>({ isOpen: false, project: null }); // NEW: Request Info Modal
+  const [selectedImageIndex, setSelectedImageIndex] = useState<{
+    [key: string]: number;
+  }>({});
+  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
   // Firebase se data fetch karna
   useEffect(() => {
-    fetchProjects()
-  }, [])
+    fetchProjects();
+  }, []);
 
   const fetchProjects = async () => {
     try {
-      setLoading(true)
-      const projectsRef = collection(db, 'projects')
-      const q = query(projectsRef, where('published', '==', true))
-      const querySnapshot = await getDocs(q)
-      
-      const projectsData: Project[] = []
+      setLoading(true);
+      const projectsRef = collection(db, "projects");
+      const q = query(projectsRef, where("published", "==", true));
+      const querySnapshot = await getDocs(q);
+
+      const projectsData: Project[] = [];
       querySnapshot.forEach((doc) => {
-        const data = doc.data()
+        const data = doc.data();
         projectsData.push({
           id: doc.id,
-          name: data.name || '',
-          developer: data.developer || '',
+          name: data.name || "",
+          developer: data.developer || "",
           developer_id: data.developer_id || null,
-          status: data.status || 'in-progress',
-          launch_date: data.launch_date || '',
-          completion_date: data.completion_date || '',
-          city: data.city || '',
-          area: data.area || '',
-          address: data.address || '',
-          district: data.district || '',
+          status: data.status || "in-progress",
+          launch_date: data.launch_date || "",
+          completion_date: data.completion_date || "",
+          city: data.city || "",
+          area: data.area || "",
+          address: data.address || "",
+          district: data.district || "",
           starting_price: data.starting_price || 0,
-          currency: data.currency || 'AED',
+          currency: data.currency || "AED",
           total_units: data.total_units || 0,
           available_units: data.available_units || 0,
           property_types: data.property_types || [],
-          hero_image_url: data.hero_image_url || '/default-image.jpg',
+          hero_image_url: data.hero_image_url || "/default-image.jpg",
           images: data.images || [],
-          description: data.description || '',
+          description: data.description || "",
           payment_plan: data.payment_plan || null,
           payment_terms: data.payment_terms || null,
           amenities: data.amenities || [],
@@ -696,72 +730,83 @@ function ProjectsPageContent() {
           min_price: data.min_price || 0,
           max_price: data.max_price || 0,
           sold_units: data.sold_units || 0,
-          brochure_url: data.brochure_url || '',
-          video_url: data.video_url || '',
+          brochure_url: data.brochure_url || "",
+          video_url: data.video_url || "",
           featured: data.featured || false,
           published: data.published || false,
-          handover_date: data.handover_date || '',
+          handover_date: data.handover_date || "",
           enquiries_count: data.enquiries_count || 0,
           views_count: data.views_count || 0,
           seo_title: data.seo_title || null,
           seo_description: data.seo_description || null,
           seo_keywords: data.seo_keywords || [],
           latitude: data.latitude || null,
-          longitude: data.longitude || null
-        })
-      })
-      
-      setProjects(projectsData)
-      
+          longitude: data.longitude || null,
+        });
+      });
+
+      setProjects(projectsData);
+
       // Developer counts update karen
-      updateDeveloperCounts(projectsData)
-      
+      updateDeveloperCounts(projectsData);
     } catch (error) {
-      console.error('Error fetching projects:', error)
+      console.error("Error fetching projects:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const updateDeveloperCounts = (projectsData: Project[]) => {
-    const emaarCount = projectsData.filter(p => p.developer === 'Emaar Properties' || p.developer?.toLowerCase().includes('emaar')).length
-    const damacCount = projectsData.filter(p => p.developer === 'DAMAC Properties' || p.developer?.toLowerCase().includes('damac')).length
-    const nakheelCount = projectsData.filter(p => p.developer === 'Nakheel Properties' || p.developer?.toLowerCase().includes('nakheel')).length
-    
-    developers[0].count = projectsData.length
-    developers[1].count = emaarCount
-    developers[2].count = damacCount
-    developers[3].count = nakheelCount
-  }
+    const emaarCount = projectsData.filter(
+      (p) =>
+        p.developer === "Emaar Properties" ||
+        p.developer?.toLowerCase().includes("emaar"),
+    ).length;
+    const damacCount = projectsData.filter(
+      (p) =>
+        p.developer === "DAMAC Properties" ||
+        p.developer?.toLowerCase().includes("damac"),
+    ).length;
+    const nakheelCount = projectsData.filter(
+      (p) =>
+        p.developer === "Nakheel Properties" ||
+        p.developer?.toLowerCase().includes("nakheel"),
+    ).length;
+
+    developers[0].count = projectsData.length;
+    developers[1].count = emaarCount;
+    developers[2].count = damacCount;
+    developers[3].count = nakheelCount;
+  };
 
   const handleViewDetails = async (projectId: string) => {
     try {
       // Fetch complete project details from Firebase
-      const projectDoc = doc(db, 'projects', projectId)
-      const projectSnapshot = await getDoc(projectDoc)
-      
+      const projectDoc = doc(db, "projects", projectId);
+      const projectSnapshot = await getDoc(projectDoc);
+
       if (projectSnapshot.exists()) {
-        const data = projectSnapshot.data()
+        const data = projectSnapshot.data();
         const projectDetails: Project = {
           id: projectSnapshot.id,
-          name: data.name || '',
-          developer: data.developer || '',
+          name: data.name || "",
+          developer: data.developer || "",
           developer_id: data.developer_id || null,
-          status: data.status || 'in-progress',
-          launch_date: data.launch_date || '',
-          completion_date: data.completion_date || '',
-          city: data.city || '',
-          area: data.area || '',
-          address: data.address || '',
-          district: data.district || '',
+          status: data.status || "in-progress",
+          launch_date: data.launch_date || "",
+          completion_date: data.completion_date || "",
+          city: data.city || "",
+          area: data.area || "",
+          address: data.address || "",
+          district: data.district || "",
           starting_price: data.starting_price || 0,
-          currency: data.currency || 'AED',
+          currency: data.currency || "AED",
           total_units: data.total_units || 0,
           available_units: data.available_units || 0,
           property_types: data.property_types || [],
-          hero_image_url: data.hero_image_url || '/default-image.jpg',
+          hero_image_url: data.hero_image_url || "/default-image.jpg",
           images: data.images || [],
-          description: data.description || '',
+          description: data.description || "",
           payment_plan: data.payment_plan || null,
           payment_terms: data.payment_terms || null,
           amenities: data.amenities || [],
@@ -769,142 +814,143 @@ function ProjectsPageContent() {
           min_price: data.min_price || 0,
           max_price: data.max_price || 0,
           sold_units: data.sold_units || 0,
-          brochure_url: data.brochure_url || '',
-          video_url: data.video_url || '',
+          brochure_url: data.brochure_url || "",
+          video_url: data.video_url || "",
           featured: data.featured || false,
           published: data.published || false,
-          handover_date: data.handover_date || '',
+          handover_date: data.handover_date || "",
           enquiries_count: data.enquiries_count || 0,
           views_count: data.views_count || 0,
           seo_title: data.seo_title || null,
           seo_description: data.seo_description || null,
           seo_keywords: data.seo_keywords || [],
           latitude: data.latitude || null,
-          longitude: data.longitude || null
-        }
-        
-        setDetailsModal({ isOpen: true, project: projectDetails })
-        setCurrentMediaIndex(0)
-        setIsVideoPlaying(false)
+          longitude: data.longitude || null,
+        };
+
+        setDetailsModal({ isOpen: true, project: projectDetails });
+        setCurrentMediaIndex(0);
+        setIsVideoPlaying(false);
       }
     } catch (error) {
-      console.error('Error fetching project details:', error)
+      console.error("Error fetching project details:", error);
     }
-  }
+  };
 
   // NEW: Request Information button handler
   const handleRequestInfo = (project: Project) => {
-    setRequestInfoModal({ isOpen: true, project: project })
-  }
+    setRequestInfoModal({ isOpen: true, project: project });
+  };
 
-  const filteredProjects = selectedDeveloper === 'all' 
-    ? projects 
-    : projects.filter(project => {
-        if (selectedDeveloper === 'emaar') {
-          return project.developer?.toLowerCase().includes('emaar')
-        } else if (selectedDeveloper === 'damac') {
-          return project.developer?.toLowerCase().includes('damac')
-        } else if (selectedDeveloper === 'nakheel') {
-          return project.developer?.toLowerCase().includes('nakheel')
-        }
-        return false
-      })
+  const filteredProjects =
+    selectedDeveloper === "all"
+      ? projects
+      : projects.filter((project) => {
+          if (selectedDeveloper === "emaar") {
+            return project.developer?.toLowerCase().includes("emaar");
+          } else if (selectedDeveloper === "damac") {
+            return project.developer?.toLowerCase().includes("damac");
+          } else if (selectedDeveloper === "nakheel") {
+            return project.developer?.toLowerCase().includes("nakheel");
+          }
+          return false;
+        });
 
-  const handleImageChange = (projectId: string, direction: 'next' | 'prev') => {
-    const currentIndex = selectedImageIndex[projectId] || 0
-    const project = projects.find(p => p.id === projectId)
-    if (!project || !project.images || project.images.length === 0) return
+  const handleImageChange = (projectId: string, direction: "next" | "prev") => {
+    const currentIndex = selectedImageIndex[projectId] || 0;
+    const project = projects.find((p) => p.id === projectId);
+    if (!project || !project.images || project.images.length === 0) return;
 
-    const maxIndex = project.images.length - 1
-    let newIndex
+    const maxIndex = project.images.length - 1;
+    let newIndex;
 
-    if (direction === 'next') {
-      newIndex = currentIndex >= maxIndex ? 0 : currentIndex + 1
+    if (direction === "next") {
+      newIndex = currentIndex >= maxIndex ? 0 : currentIndex + 1;
     } else {
-      newIndex = currentIndex <= 0 ? maxIndex : currentIndex - 1
+      newIndex = currentIndex <= 0 ? maxIndex : currentIndex - 1;
     }
 
-    setSelectedImageIndex(prev => ({
+    setSelectedImageIndex((prev) => ({
       ...prev,
-      [projectId]: newIndex
-    }))
-  }
+      [projectId]: newIndex,
+    }));
+  };
 
   // Get all media (images + video) for a project
   const getProjectMedia = (project: Project) => {
-    const media = []
-    
+    const media = [];
+
     // Add hero image
     if (project.hero_image_url) {
       media.push({
-        type: 'image',
+        type: "image",
         url: project.hero_image_url,
-        thumbnail: project.hero_image_url
-      })
+        thumbnail: project.hero_image_url,
+      });
     }
-    
+
     // Add other images
     if (project.images && project.images.length > 0) {
-      project.images.forEach(img => {
+      project.images.forEach((img) => {
         media.push({
-          type: 'image',
+          type: "image",
           url: img,
-          thumbnail: img
-        })
-      })
+          thumbnail: img,
+        });
+      });
     }
-    
+
     // Add video as last item if exists
-    if (project.video_url && getVideoType(project.video_url) !== 'none') {
+    if (project.video_url && getVideoType(project.video_url) !== "none") {
       media.push({
-        type: 'video',
+        type: "video",
         url: project.video_url,
-        thumbnail: project.video_url
-      })
+        thumbnail: project.video_url,
+      });
     }
-    
-    return media
-  }
+
+    return media;
+  };
 
   const handlePrevMedia = () => {
-    if (!detailsModal.project) return
-    const projectMedia = getProjectMedia(detailsModal.project)
-    setCurrentMediaIndex(prev => 
-      prev === 0 ? projectMedia.length - 1 : prev - 1
-    )
-    setIsVideoPlaying(false)
-  }
+    if (!detailsModal.project) return;
+    const projectMedia = getProjectMedia(detailsModal.project);
+    setCurrentMediaIndex((prev) =>
+      prev === 0 ? projectMedia.length - 1 : prev - 1,
+    );
+    setIsVideoPlaying(false);
+  };
 
   const handleNextMedia = () => {
-    if (!detailsModal.project) return
-    const projectMedia = getProjectMedia(detailsModal.project)
-    setCurrentMediaIndex(prev => 
-      prev === projectMedia.length - 1 ? 0 : prev + 1
-    )
-    setIsVideoPlaying(false)
-  }
+    if (!detailsModal.project) return;
+    const projectMedia = getProjectMedia(detailsModal.project);
+    setCurrentMediaIndex((prev) =>
+      prev === projectMedia.length - 1 ? 0 : prev + 1,
+    );
+    setIsVideoPlaying(false);
+  };
 
   const handlePlayVideo = () => {
-    setIsVideoPlaying(true)
-  }
+    setIsVideoPlaying(true);
+  };
 
   const renderCurrentMedia = (project: Project) => {
-    const projectMedia = getProjectMedia(project)
-    const currentMedia = projectMedia[currentMediaIndex]
-    
+    const projectMedia = getProjectMedia(project);
+    const currentMedia = projectMedia[currentMediaIndex];
+
     if (!currentMedia) {
       return (
         <div className="w-full h-full flex items-center justify-center bg-slate-100">
           <div className="text-slate-400">No media available</div>
         </div>
-      )
+      );
     }
 
-    if (currentMedia.type === 'video') {
-      const videoType = getVideoType(currentMedia.url)
-      
-      if (videoType === 'youtube') {
-        const videoId = extractYouTubeId(currentMedia.url)
+    if (currentMedia.type === "video") {
+      const videoType = getVideoType(currentMedia.url);
+
+      if (videoType === "youtube") {
+        const videoId = extractYouTubeId(currentMedia.url);
         return (
           <div className="relative w-full h-full">
             {isVideoPlaying ? (
@@ -923,7 +969,7 @@ function ProjectsPageContent() {
                   alt={project.name}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    e.currentTarget.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+                    e.currentTarget.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
                   }}
                 />
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
@@ -940,10 +986,8 @@ function ProjectsPageContent() {
               </div>
             )}
           </div>
-        )
-      }
-      
-      else if (videoType === 'direct') {
+        );
+      } else if (videoType === "direct") {
         return (
           <div className="relative w-full h-full">
             <video
@@ -957,17 +1001,18 @@ function ProjectsPageContent() {
               playsInline
               controlsList="nodownload"
             >
-              <source src={currentMedia.url} type={`video/${currentMedia.url.split('.').pop()?.split('?')[0]}`} />
+              <source
+                src={currentMedia.url}
+                type={`video/${currentMedia.url.split(".").pop()?.split("?")[0]}`}
+              />
               Your browser does not support the video tag.
             </video>
             <div className="absolute bottom-4 left-4 px-3 py-1 bg-blue-600 text-white text-sm font-bold rounded-full">
               VIDEO
             </div>
           </div>
-        )
-      }
-      
-      else {
+        );
+      } else {
         // External video - ab automatically play hoga aur loop mein chalega
         // Pehle video play karne ki koshish karen
         return (
@@ -994,10 +1039,10 @@ function ProjectsPageContent() {
               VIDEO
             </div>
           </div>
-        )
+        );
       }
     }
-    
+
     // Image display
     return (
       <img
@@ -1005,18 +1050,18 @@ function ProjectsPageContent() {
         alt={project.name}
         className="w-full h-full object-cover"
         onError={(e) => {
-          e.currentTarget.src = '/default-image.jpg'
+          e.currentTarget.src = "/default-image.jpg";
         }}
       />
-    )
-  }
+    );
+  };
 
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
       <section className="relative h-[60vh] flex items-center justify-center overflow-hidden bg-secondary">
         <div className="absolute inset-0">
-          <Image 
+          <Image
             src="https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=1600"
             alt="Dubai Projects"
             fill
@@ -1024,7 +1069,7 @@ function ProjectsPageContent() {
           />
           <div className="absolute inset-0 bg-linear-to-b from-secondary/60 via-secondary/40 to-white"></div>
         </div>
-        
+
         <div className="container-custom relative z-10 text-center">
           <span className="inline-block px-4 py-1 bg-primary/20 text-primary text-sm font-bold tracking-widest uppercase rounded-full mb-6">
             Iconic Developments
@@ -1033,24 +1078,20 @@ function ProjectsPageContent() {
             masterpiece <span className="text-primary italic">Projects</span>
           </h1>
           <p className="text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
-            Discover Dubai's most ambitious architectural marvels and high-yield investment opportunities in off-plan properties.
+            Discover Dubai's most ambitious architectural marvels and high-yield
+            investment opportunities in off-plan properties.
           </p>
-           <p className="text-xl text-white max-w-2xl mx-auto">
-              {selectedDeveloper === 'all' 
-                ? 'Explore our curated selection of premium off-plan properties from Dubai\'s leading developers'
-                : `Discover exceptional properties from ${developers.find(d => d.id === selectedDeveloper)?.name}`
-              }
-            </p>
+          <p className="text-xl text-white max-w-2xl mx-auto">
+            {selectedDeveloper === "all"
+              ? "Explore our curated selection of premium off-plan properties from Dubai's leading developers"
+              : `Discover exceptional properties from ${developers.find((d) => d.id === selectedDeveloper)?.name}`}
+          </p>
         </div>
       </section>
-
-     
 
       {/* Projects Grid */}
       <section className="py-5">
         <div className="container-custom">
-          
-
           {loading ? (
             <div className="flex justify-center items-center py-20">
               <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -1060,40 +1101,54 @@ function ProjectsPageContent() {
               <div className="w-24 h-24 mx-auto mb-6 bg-slate-100 rounded-full flex items-center justify-center">
                 <BuildingOfficeIcon className="h-12 w-12 text-slate-400" />
               </div>
-              <h3 className="text-2xl text-slate-400 mb-2">No projects found</h3>
-              <p className="text-slate-500">Try selecting a different developer filter</p>
+              <h3 className="text-2xl text-slate-400 mb-2">
+                No projects found
+              </h3>
+              <p className="text-slate-500">
+                Try selecting a different developer filter
+              </p>
             </div>
           ) : (
             <div className="grid gap-12">
               {filteredProjects.map((project) => (
-                <div 
+                <div
                   key={project.id}
                   className="bg-white h-[300px] border border-slate-100 rounded-[3rem] overflow-hidden shadow-2xl shadow-slate-200/50 group flex flex-col lg:flex-row hover:shadow-primary/10 transition-shadow duration-500"
                 >
                   {/* Image Section */}
                   <div className="lg:w-2/5 relative h-[400px] lg:h-auto overflow-hidden">
-                    <Image 
-                      src={project.hero_image_url || '/default-image.jpg'}
+                    <Image
+                      src={project.hero_image_url || "/default-image.jpg"}
                       alt={project.name}
                       fill
                       className="object-cover group-hover:scale-110 transition-transform duration-1000"
                       onError={(e) => {
-                        const target = e.target as HTMLImageElement
-                        target.src = '/default-image.jpg'
+                        const target = e.target as HTMLImageElement;
+                        target.src = "/default-image.jpg";
                       }}
                     />
-                    
+
                     <div className="absolute top-6 left-6">
-                      <span className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest shadow-lg ${
-                        project.status === 'completed' ? 'bg-emerald-500 text-white' : 'bg-primary text-secondary'
-                      }`}>
-                        {project.status === 'completed' ? 'Completed' : 'In Progress'}
+                      <span
+                        className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest shadow-lg ${
+                          project.status === "completed"
+                            ? "bg-emerald-500 text-white"
+                            : "bg-primary text-secondary"
+                        }`}
+                      >
+                        {project.status === "completed"
+                          ? "Completed"
+                          : "In Progress"}
                       </span>
                     </div>
-                    
+
                     {/* NEW: Gallery Icon */}
-                    <GalleryIcon onClick={() => setGalleryModal({ isOpen: true, project: project })} />
-                    
+                    <GalleryIcon
+                      onClick={() =>
+                        setGalleryModal({ isOpen: true, project: project })
+                      }
+                    />
+
                     {/* VIEW DETAILS BUTTON - LUXE STYLE */}
                     <button
                       onClick={() => handleViewDetails(project.id)}
@@ -1108,71 +1163,109 @@ function ProjectsPageContent() {
                   <div className="lg:w-3/5 p-10 mt-2 md:p-16 flex flex-col justify-center">
                     <div className="flex items-center gap-2 text-primary">
                       <SparklesIcon className="h-5 w-5" />
-                      <span className="text-sm font-bold uppercase tracking-widest">{project.developer || 'Developer'}</span>
+                      <span className="text-sm font-bold uppercase tracking-widest">
+                        {project.developer || "Developer"}
+                      </span>
                     </div>
-                    
+
                     <h3 className="text-4xl font-serif text-secondary mb-2 group-hover:text-primary transition-colors">
                       {project.name}
                     </h3>
-                    
+
                     <p className="text-slate-500 mb-2 leading-relaxed text-lg">
-                       {project.description.slice(0,30)}....
+                      {project.description.slice(0, 30)}....
                     </p>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-2">
                       <div className="space-y-1">
-                        <div className="text-xs text-slate-400 uppercase tracking-widest">Location</div>
+                        <div className="text-xs text-slate-400 uppercase tracking-widest">
+                          Location
+                        </div>
                         <div className="text-secondary font-bold flex items-center gap-1">
                           <MapPinIcon className="h-4 w-4 text-primary" />
                           {project.area || project.city}
                         </div>
                       </div>
-                      
+
                       <div className="space-y-1">
-                        <div className="text-xs text-slate-400 uppercase tracking-widest">Completion</div>
+                        <div className="text-xs text-slate-400 uppercase tracking-widest">
+                          Completion
+                        </div>
                         <div className="text-secondary font-bold flex items-center gap-1">
                           <CalendarIcon className="h-4 w-4 text-primary" />
-                          {project.completion_date ? new Date(project.completion_date).getFullYear() : 'TBA'}
+                          {project.completion_date
+                            ? new Date(project.completion_date).getFullYear()
+                            : "TBA"}
                         </div>
                       </div>
-                      
+
                       <div className="space-y-1">
-                        <div className="text-xs text-slate-400 uppercase tracking-widest">Available Units</div>
+                        <div className="text-xs text-slate-400 uppercase tracking-widest">
+                          Available Units
+                        </div>
                         <div className="text-secondary font-bold text-sm">
                           {project.available_units} / {project.total_units}
                         </div>
                       </div>
-                      
+
                       <div className="space-y-1">
-                        <div className="text-xs text-slate-400 uppercase tracking-widest">Price Range</div>
+                        <div className="text-xs text-slate-400 uppercase tracking-widest">
+                          Price Range
+                        </div>
                         <div className="text-secondary font-bold text-sm">
-                          {project.currency} {project.min_price ? `${formatNumber(project.min_price)}` : 'N/A'} - {project.max_price ? `${formatNumber(project.max_price)}` : 'N/A'}
+                          {project.currency}{" "}
+                          {project.min_price
+                            ? `${formatNumber(project.min_price)}`
+                            : "N/A"}{" "}
+                          -{" "}
+                          {project.max_price
+                            ? `${formatNumber(project.max_price)}`
+                            : "N/A"}
                         </div>
                       </div>
                     </div>
 
                     {/* Amenities/Facilities show karen */}
                     <div className="mb-2">
-                      <div className="text-xs text-slate-400 uppercase tracking-widest mb-3">Amenities & Features</div>
+                      <div className="text-xs text-slate-400 uppercase tracking-widest mb-3">
+                        Amenities & Features
+                      </div>
                       <div className="flex flex-wrap gap-2">
                         {project.amenities && project.amenities.length > 0 ? (
-                          project.amenities.slice(0, 4).map((amenity, index) => (
-                            <span key={index} className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">
-                              {amenity}
-                            </span>
-                          ))
-                        ) : project.facilities && project.facilities.length > 0 ? (
-                          project.facilities.slice(0, 4).map((facility, index) => (
-                            <span key={index} className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">
-                              {facility}
-                            </span>
-                          ))
-                        ) : project.property_types && project.property_types.length > 0 ? (
-                          project.property_types.slice(0, 4).map((type, index) => (
-                            <span key={index} className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">
-                              {type}
-                            </span>
-                          ))
+                          project.amenities
+                            .slice(0, 4)
+                            .map((amenity, index) => (
+                              <span
+                                key={index}
+                                className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full"
+                              >
+                                {amenity}
+                              </span>
+                            ))
+                        ) : project.facilities &&
+                          project.facilities.length > 0 ? (
+                          project.facilities
+                            .slice(0, 4)
+                            .map((facility, index) => (
+                              <span
+                                key={index}
+                                className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full"
+                              >
+                                {facility}
+                              </span>
+                            ))
+                        ) : project.property_types &&
+                          project.property_types.length > 0 ? (
+                          project.property_types
+                            .slice(0, 4)
+                            .map((type, index) => (
+                              <span
+                                key={index}
+                                className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full"
+                              >
+                                {type}
+                              </span>
+                            ))
                         ) : (
                           <span className="px-3 py-1 bg-slate-100 text-slate-500 text-sm rounded-full">
                             Features coming soon
@@ -1189,7 +1282,6 @@ function ProjectsPageContent() {
                         <ArrowsPointingOutIcon className="h-5 w-5" />
                         View Full Details
                       </button>
-                     
                     </div>
                   </div>
                 </div>
@@ -1207,33 +1299,52 @@ function ProjectsPageContent() {
               Investment <span className="text-primary italic">Benefits</span>
             </h2>
             <p className="text-xl text-slate-300 max-w-3xl mx-auto">
-              Dubai's off-plan property market offers unparalleled opportunities for investors seeking capital growth and rental income
+              Dubai's off-plan property market offers unparalleled opportunities
+              for investors seeking capital growth and rental income
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="text-center">
               <div className="text-4xl font-bold text-primary mb-2">8-15%</div>
-              <div className="text-lg font-semibold mb-4">Annual Appreciation</div>
-              <p className="text-slate-300">Consistent property value growth driven by Dubai's expanding economy and infrastructure development</p>
+              <div className="text-lg font-semibold mb-4">
+                Annual Appreciation
+              </div>
+              <p className="text-slate-300">
+                Consistent property value growth driven by Dubai's expanding
+                economy and infrastructure development
+              </p>
             </div>
-            
+
             <div className="text-center">
-              <div className="text-4xl font-bold text-primary mb-2">4-6 Years</div>
+              <div className="text-4xl font-bold text-primary mb-2">
+                4-6 Years
+              </div>
               <div className="text-lg font-semibold mb-4">Payment Plans</div>
-              <p className="text-slate-300">Extended payment schedules allowing investors to spread costs while construction progresses</p>
+              <p className="text-slate-300">
+                Extended payment schedules allowing investors to spread costs
+                while construction progresses
+              </p>
             </div>
-            
+
             <div className="text-center">
               <div className="text-4xl font-bold text-primary mb-2">0%</div>
-              <div className="text-lg font-semibold mb-4">Interest Payments</div>
-              <p className="text-slate-300">No interest charges on construction payments, preserving capital for other investments</p>
+              <div className="text-lg font-semibold mb-4">
+                Interest Payments
+              </div>
+              <p className="text-slate-300">
+                No interest charges on construction payments, preserving capital
+                for other investments
+              </p>
             </div>
-            
+
             <div className="text-center">
               <div className="text-4xl font-bold text-primary mb-2">5-8%</div>
               <div className="text-lg font-semibold mb-4">Rental Yield</div>
-              <p className="text-slate-300">Competitive rental returns from Dubai's growing expatriate and tourist population</p>
+              <p className="text-slate-300">
+                Competitive rental returns from Dubai's growing expatriate and
+                tourist population
+              </p>
             </div>
           </div>
         </div>
@@ -1241,37 +1352,29 @@ function ProjectsPageContent() {
 
       {/* NEW: Full Screen Gallery Modal */}
       {galleryModal.isOpen && galleryModal.project && (
-        <FullScreenGallery 
-          project={galleryModal.project} 
-          onClose={() => setGalleryModal({ isOpen: false, project: null })} 
+        <FullScreenGallery
+          project={galleryModal.project}
+          onClose={() => setGalleryModal({ isOpen: false, project: null })}
         />
       )}
 
       {/* NEW: Request Information Modal */}
       {requestInfoModal.isOpen && requestInfoModal.project && (
-        <RequestInfoForm 
-          project={requestInfoModal.project} 
-          onClose={() => setRequestInfoModal({ isOpen: false, project: null })} 
+        <RequestInfoForm
+          project={requestInfoModal.project}
+          onClose={() => setRequestInfoModal({ isOpen: false, project: null })}
         />
       )}
 
       {/* Project Details Modal - LUXE STYLE with VIDEO in Gallery */}
       {detailsModal.isOpen && detailsModal.project && (
         <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
-          {/* Top Header Bar */}
+          {/* Top Header Bar - WITH TITLE AND ARROW */}
           <div className="sticky top-0 z-50 bg-white border-b border-slate-100 shadow-sm">
             <div className="container-custom py-4">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setDetailsModal({ isOpen: false, project: null })}
-                    className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 hover:bg-gray-200 transition-colors"
-                  >
-                    <ArrowLeftIcon className="h-5 w-5" />
-                  </button>
-                  <span className="text-sm font-bold text-slate-700">
-                    Back to Projects
-                  </span>
+                  {/* Arrow Button - Click se modal close */}
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -1289,11 +1392,29 @@ function ProjectsPageContent() {
           </div>
 
           {/* Main Content - Full Screen */}
+
           <div className="container-custom pt-8 pb-12 mt-25">
+            <div className="flex -mt-10 mb-5">
+              <button
+                onClick={() =>
+                  setDetailsModal({ isOpen: false, project: null })
+                }
+                className="h-10 w-10 rounded-full bg-gray-100 -mt- flex items-center justify-center text-gray-700 hover:bg-gray-200 transition-colors"
+              >
+                <ArrowLeftIcon className="h-5 w-5" />
+              </button>
+              {/* Project Title */}
+              <span className="text-4xl ml-5 font-bold text-slate-700">
+                {detailsModal.project.name} Project
+              </span>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
               {/* Left Column - Main Content */}
+
               <div className="lg:col-span-8 space-y-12">
                 {/* Media Gallery (Images + Video) */}
+
                 <div className="overflow-hidden shadow-2xl rounded-3xl shadow-slate-200/50">
                   <div className="relative h-[500px] bg-slate-100 overflow-hidden">
                     {renderCurrentMedia(detailsModal.project)}
@@ -1311,43 +1432,52 @@ function ProjectsPageContent() {
                           </span>
                         )}
                         <span className="px-4 py-2 bg-black text-white text-sm font-bold rounded-full shadow-lg">
-                          {detailsModal.project.status?.toUpperCase() || 'IN-PROGRESS'}
+                          {detailsModal.project.status?.toUpperCase() ||
+                            "IN-PROGRESS"}
                         </span>
 
-                       <button
-                onClick={() => setGalleryModal({ isOpen: true, project: detailsModal.project })}
-                className="px-3 py-1.5 bg-white/90 backdrop-blur-md rounded-full text-slate-700 hover:text-primary font-bold text-sm flex items-center gap-1 shadow-lg hover:shadow-xl hover:bg-white transition-all duration-300 z-20"
-                title="Open Full Screen Gallery"
-              >
-                <Squares2X2Icon className="w-4 h-4" />
-                <span>Gallery</span>
-              </button>
-
+                        <button
+                          onClick={() =>
+                            setGalleryModal({
+                              isOpen: true,
+                              project: detailsModal.project,
+                            })
+                          }
+                          className="px-3 py-1.5 bg-white/90 backdrop-blur-md rounded-full text-slate-700 hover:text-primary font-bold text-sm flex items-center gap-1 shadow-lg hover:shadow-xl hover:bg-white transition-all duration-300 z-20"
+                          title="Open Full Screen Gallery"
+                        >
+                          <Squares2X2Icon className="w-4 h-4" />
+                          <span>Gallery</span>
+                        </button>
                       </div>
 
                       {/* Right side - Media counter */}
                       {(() => {
-                        const projectMedia = getProjectMedia(detailsModal.project)
+                        const projectMedia = getProjectMedia(
+                          detailsModal.project,
+                        );
                         if (projectMedia.length > 0) {
-                          const currentMedia = projectMedia[currentMediaIndex]
+                          const currentMedia = projectMedia[currentMediaIndex];
                           return (
                             <div className="absolute top-2 right-4 px-3 py-1 bg-black/50 text-white text-sm rounded-full flex items-center gap-1 z-20">
-                              {currentMedia.type === 'video' ? (
+                              {currentMedia.type === "video" ? (
                                 <VideoCameraIcon className="w-4 h-4" />
                               ) : (
                                 <PhotoIcon className="w-4 h-4" />
                               )}
                               {currentMediaIndex + 1} / {projectMedia.length}
                             </div>
-                          )
+                          );
                         }
-                        return null
+                        return null;
                       })()}
                     </div>
 
                     {/* Media Navigation - Always show for multiple media */}
                     {(() => {
-                      const projectMedia = getProjectMedia(detailsModal.project)
+                      const projectMedia = getProjectMedia(
+                        detailsModal.project,
+                      );
                       if (projectMedia.length > 1) {
                         return (
                           <>
@@ -1365,15 +1495,15 @@ function ProjectsPageContent() {
                               <ChevronRightIcon className="w-5 h-5 text-white" />
                             </button>
                           </>
-                        )
+                        );
                       }
-                      return null
+                      return null;
                     })()}
                   </div>
 
                   {/* Thumbnail Gallery */}
                   {(() => {
-                    const projectMedia = getProjectMedia(detailsModal.project)
+                    const projectMedia = getProjectMedia(detailsModal.project);
                     if (projectMedia.length > 1) {
                       return (
                         <div className="p-1 py-4">
@@ -1382,9 +1512,9 @@ function ProjectsPageContent() {
                               <button
                                 key={idx}
                                 onClick={() => {
-                                  setCurrentMediaIndex(idx)
-                                  if (media.type === 'video') {
-                                    setIsVideoPlaying(false)
+                                  setCurrentMediaIndex(idx);
+                                  if (media.type === "video") {
+                                    setIsVideoPlaying(false);
                                   }
                                 }}
                                 className={`shrink-0 w-25 rounded-xl h-20 overflow-hidden border-4 transition-all ${
@@ -1393,7 +1523,7 @@ function ProjectsPageContent() {
                                     : "border-transparent hover:border-slate-300"
                                 }`}
                               >
-                                {media.type === 'video' ? (
+                                {media.type === "video" ? (
                                   <div className="relative w-full h-full">
                                     <div className="w-full h-full bg-linear-to-br from-slate-900 to-slate-800 flex items-center justify-center">
                                       <VideoCameraIcon className="w-8 h-8 text-white" />
@@ -1404,7 +1534,9 @@ function ProjectsPageContent() {
                                   </div>
                                 ) : (
                                   <img
-                                    src={media.thumbnail || '/default-image.jpg'}
+                                    src={
+                                      media.thumbnail || "/default-image.jpg"
+                                    }
                                     alt={`Thumbnail ${idx + 1}`}
                                     className="w-full h-full object-cover"
                                   />
@@ -1413,9 +1545,9 @@ function ProjectsPageContent() {
                             ))}
                           </div>
                         </div>
-                      )
+                      );
                     }
-                    return null
+                    return null;
                   })()}
                 </div>
 
@@ -1427,10 +1559,12 @@ function ProjectsPageContent() {
                       <div className="space-y-4">
                         <div className="flex items-center gap-2">
                           <span className="px-4 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.2em] rounded-full">
-                            {detailsModal.project.property_types?.[0]?.toUpperCase() || 'DEVELOPMENT'}
+                            {detailsModal.project.property_types?.[0]?.toUpperCase() ||
+                              "DEVELOPMENT"}
                           </span>
                           <span className="px-4 py-1 bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] rounded-full">
-                            {detailsModal.project.status?.toUpperCase() || 'IN-PROGRESS'}
+                            {detailsModal.project.status?.toUpperCase() ||
+                              "IN-PROGRESS"}
                           </span>
                         </div>
                         <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
@@ -1439,9 +1573,9 @@ function ProjectsPageContent() {
                         <div className="flex items-center gap-2 text-slate-500 font-medium">
                           <MapPinIcon className="w-5 h-5 text-primary" />
                           <span>
-                            {detailsModal.project.address || 
-                             detailsModal.project.area || 
-                             `${detailsModal.project.city || 'Dubai'}`}
+                            {detailsModal.project.address ||
+                              detailsModal.project.area ||
+                              `${detailsModal.project.city || "Dubai"}`}
                           </span>
                         </div>
                       </div>
@@ -1450,7 +1584,10 @@ function ProjectsPageContent() {
                           STARTING PRICE
                         </div>
                         <div className="text-4xl md:text-5xl font-black text-primary">
-                          {detailsModal.project.currency} {formatPrice(detailsModal.project.starting_price * 1000)}
+                          {detailsModal.project.currency}{" "}
+                          {formatPrice(
+                            detailsModal.project.starting_price * 1000,
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1508,51 +1645,57 @@ function ProjectsPageContent() {
                     </div>
 
                     {/* Amenities */}
-                    {detailsModal.project.amenities && detailsModal.project.amenities.length > 0 && (
-                      <div className="space-y-6 pt-10 border-t border-slate-100">
-                        <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
-                          <span className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
-                            <SparklesIcon className="w-5 h-5" />
-                          </span>
-                          Amenities & Facilities
-                        </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {detailsModal.project.amenities.map((amenity, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:bg-white hover:shadow-md transition-all duration-300"
-                            >
-                              <CheckCircleIcon className="w-5 h-5 text-primary shrink-0" />
-                              <span className="text-slate-700 font-bold text-sm">
-                                {amenity}
-                              </span>
-                            </div>
-                          ))}
+                    {detailsModal.project.amenities &&
+                      detailsModal.project.amenities.length > 0 && (
+                        <div className="space-y-6 pt-10 border-t border-slate-100">
+                          <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
+                            <span className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                              <SparklesIcon className="w-5 h-5" />
+                            </span>
+                            Amenities & Facilities
+                          </h2>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {detailsModal.project.amenities.map(
+                              (amenity, index) => (
+                                <div
+                                  key={index}
+                                  className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:bg-white hover:shadow-md transition-all duration-300"
+                                >
+                                  <CheckCircleIcon className="w-5 h-5 text-primary shrink-0" />
+                                  <span className="text-slate-700 font-bold text-sm">
+                                    {amenity}
+                                  </span>
+                                </div>
+                              ),
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
                     {/* Property Types */}
-                    {detailsModal.project.property_types && detailsModal.project.property_types.length > 0 && (
-                      <div className="space-y-6 pt-10 border-t border-slate-100">
-                        <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
-                          <span className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
-                            <HomeModernIcon className="w-5 h-5" />
-                          </span>
-                          Property Types Available
-                        </h2>
-                        <div className="flex flex-wrap gap-3">
-                          {detailsModal.project.property_types.map((type, index) => (
-                            <span
-                              key={index}
-                              className="px-6 py-3 bg-primary/10 text-primary font-bold rounded-2xl text-sm"
-                            >
-                              {type}
+                    {detailsModal.project.property_types &&
+                      detailsModal.project.property_types.length > 0 && (
+                        <div className="space-y-6 pt-10 border-t border-slate-100">
+                          <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
+                            <span className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                              <HomeModernIcon className="w-5 h-5" />
                             </span>
-                          ))}
+                            Property Types Available
+                          </h2>
+                          <div className="flex flex-wrap gap-3">
+                            {detailsModal.project.property_types.map(
+                              (type, index) => (
+                                <span
+                                  key={index}
+                                  className="px-6 py-3 bg-primary/10 text-primary font-bold rounded-2xl text-sm"
+                                >
+                                  {type}
+                                </span>
+                              ),
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
                     {/* Google Map Location */}
                     <div className="space-y-6 pt-10 border-t border-slate-100">
@@ -1562,24 +1705,28 @@ function ProjectsPageContent() {
                         </span>
                         Project Location
                       </h2>
-                      
+
                       <div className="bg-gray-100 rounded-[2.5rem] h-[500px] overflow-hidden border border-slate-100 shadow-xl shadow-slate-200/50 relative">
                         {/* Map iframe */}
                         <div className="w-full h-full">
                           {(() => {
-                            const coords = getLocationCoordinates(detailsModal.project);
+                            const coords = getLocationCoordinates(
+                              detailsModal.project,
+                            );
                             const address = encodeURIComponent(
-                              detailsModal.project.address || 
-                              detailsModal.project.area || 
-                              detailsModal.project.city || 
-                              'Dubai, United Arab Emirates'
+                              detailsModal.project.address ||
+                                detailsModal.project.area ||
+                                detailsModal.project.city ||
+                                "Dubai, United Arab Emirates",
                             );
                             const mapUrl = `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d462562.65095637795!2d54.94728926249997!3d25.07575955953261!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e5f43496ad9c645%3A0xbde66e5084295162!2sDubai%20-%20United%20Arab%20Emirates!5e0!3m2!1sen!2s!4v1690465000000!5m2!1sen!2s`;
-                            
+
                             // If we have specific coordinates, use them
-                            const preciseMapUrl = detailsModal.project.latitude && detailsModal.project.longitude 
-                              ? `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3610.178258875107!2d${detailsModal.project.longitude}!3d${detailsModal.project.latitude}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e5f43496ad9c645%3A0xbde66e5084295162!2sDubai%20-%20United%20Arab% Emirates!4v${Date.now()}`
-                              : `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d462562.65095637795!2d54.94728926249997!3d25.07575955953261!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e5f43496ad9c645%3A0xbde66e5084295162!2sDubai%20-%20United%20Arab%20Emirates!5e0!3m2!1sen!2s!4v1690465000000!5m2!1sen!2s`;
+                            const preciseMapUrl =
+                              detailsModal.project.latitude &&
+                              detailsModal.project.longitude
+                                ? `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3610.178258875107!2d${detailsModal.project.longitude}!3d${detailsModal.project.latitude}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e5f43496ad9c645%3A0xbde66e5084295162!2sDubai%20-%20United%20Arab%20Emirates!4v${Date.now()}`
+                                : `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d462562.65095637795!2d54.94728926249997!3d25.07575955953261!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e5f43496ad9c645%3A0xbde66e5084295162!2sDubai%20-%20United%20Arab%20Emirates!5e0!3m2!1sen!2s!4v1690465000000!5m2!1sen!2s`;
 
                             return (
                               <iframe
@@ -1614,14 +1761,16 @@ function ProjectsPageContent() {
                                   {detailsModal.project.name}
                                 </div>
                                 <div className="text-slate-600 text-sm">
-                                  {detailsModal.project.address || 
-                                   detailsModal.project.area || 
-                                   detailsModal.project.city ||
-                                   "Dubai, United Arab Emirates"}
+                                  {detailsModal.project.address ||
+                                    detailsModal.project.area ||
+                                    detailsModal.project.city ||
+                                    "Dubai, United Arab Emirates"}
                                 </div>
                                 <div className="mt-2 text-xs text-slate-500">
                                   {(() => {
-                                    const coords = getLocationCoordinates(detailsModal.project);
+                                    const coords = getLocationCoordinates(
+                                      detailsModal.project,
+                                    );
                                     return `Coordinates: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
                                   })()}
                                 </div>
@@ -1635,10 +1784,10 @@ function ProjectsPageContent() {
                       <div className="flex flex-wrap gap-3 mt-4">
                         <a
                           href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-                            detailsModal.project.address || 
-                            detailsModal.project.area || 
-                            detailsModal.project.city || 
-                            'Dubai'
+                            detailsModal.project.address ||
+                              detailsModal.project.area ||
+                              detailsModal.project.city ||
+                              "Dubai",
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -1649,9 +1798,11 @@ function ProjectsPageContent() {
                         </a>
                         <button
                           onClick={() => {
-                            const coords = getLocationCoordinates(detailsModal.project);
+                            const coords = getLocationCoordinates(
+                              detailsModal.project,
+                            );
                             const mapsUrl = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
-                            window.open(mapsUrl, '_blank');
+                            window.open(mapsUrl, "_blank");
                           }}
                           className="px-6 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-all flex items-center gap-2"
                         >
@@ -1692,7 +1843,9 @@ function ProjectsPageContent() {
                       {/* Contact Buttons - UPDATED */}
                       <div className="space-y-3">
                         <button
-                          onClick={() => handleRequestInfo(detailsModal.project!)}
+                          onClick={() =>
+                            handleRequestInfo(detailsModal.project!)
+                          }
                           className="w-full bg-primary hover:bg-primary/90 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-lg shadow-primary/20"
                         >
                           <EnvelopeIcon className="w-5 h-5" />
@@ -1723,24 +1876,30 @@ function ProjectsPageContent() {
                         <div className="flex justify-between items-center pb-3 border-b border-white/20">
                           <span className="text-slate-300">Launch Date</span>
                           <span className="font-bold">
-                            {detailsModal.project.launch_date ? 
-                              new Date(detailsModal.project.launch_date).toLocaleDateString() : 
-                              'TBA'}
+                            {detailsModal.project.launch_date
+                              ? new Date(
+                                  detailsModal.project.launch_date,
+                                ).toLocaleDateString()
+                              : "TBA"}
                           </span>
                         </div>
                         <div className="flex justify-between items-center pb-3 border-b border-white/20">
                           <span className="text-slate-300">Completion</span>
                           <span className="font-bold">
-                            {detailsModal.project.completion_date ? 
-                              new Date(detailsModal.project.completion_date).toLocaleDateString() : 
-                              'TBA'}
+                            {detailsModal.project.completion_date
+                              ? new Date(
+                                  detailsModal.project.completion_date,
+                                ).toLocaleDateString()
+                              : "TBA"}
                           </span>
                         </div>
                         {detailsModal.project.handover_date && (
                           <div className="flex justify-between items-center">
                             <span className="text-slate-300">Handover</span>
                             <span className="font-bold">
-                              {new Date(detailsModal.project.handover_date).toLocaleDateString()}
+                              {new Date(
+                                detailsModal.project.handover_date,
+                              ).toLocaleDateString()}
                             </span>
                           </div>
                         )}
@@ -1757,19 +1916,24 @@ function ProjectsPageContent() {
                       <div className="flex justify-between items-center">
                         <span className="text-slate-600">Starting Price</span>
                         <span className="text-lg font-bold text-primary">
-                          {detailsModal.project.currency} {formatPrice(detailsModal.project.starting_price * 1000)}
+                          {detailsModal.project.currency}{" "}
+                          {formatPrice(
+                            detailsModal.project.starting_price * 1000,
+                          )}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-slate-600">Min Price</span>
                         <span className="text-lg font-bold text-slate-900">
-                          {detailsModal.project.currency} {formatNumber(detailsModal.project.min_price)}
+                          {detailsModal.project.currency}{" "}
+                          {formatNumber(detailsModal.project.min_price)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-slate-600">Max Price</span>
                         <span className="text-lg font-bold text-slate-900">
-                          {detailsModal.project.currency} {formatNumber(detailsModal.project.max_price)}
+                          {detailsModal.project.currency}{" "}
+                          {formatNumber(detailsModal.project.max_price)}
                         </span>
                       </div>
                     </div>
@@ -1781,17 +1945,19 @@ function ProjectsPageContent() {
         </div>
       )}
     </div>
-  )
+  );
 }
 
 export default function ProjectsPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-white">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      }
+    >
       <ProjectsPageContent />
     </Suspense>
-  )
+  );
 }

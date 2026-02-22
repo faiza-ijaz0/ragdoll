@@ -33,7 +33,7 @@ const services = [
     icon: BuildingOffice2Icon,
     href: "/services/property-sales",
     color: "from-amber-400 to-amber-600",
-    details: "At Ragdol Properties, we specialize in managing off-plan property sales for developers—and when we say 'delivered,' we mean it. Our mission is to facilitate seamless property sales while ensuring our clients achieve maximum returns on their investments."
+    details: "At Ragdoll Properties, we specialize in managing off-plan property sales for developers—and when we say 'delivered,' we mean it. Our mission is to facilitate seamless property sales while ensuring our clients achieve maximum returns on their investments."
   },
   {
     id: 2,
@@ -238,7 +238,7 @@ const services = [
 
 export default function ServicesPage() {
   return (
-    <div className="min-h-screen bg-linear-to-b from-slate-950 via-slate-900 to-white">
+    <div className="min-h-screen bg-white">
       {/* Premium Hero Section */}
       <div className="relative overflow-hidden pt-20 pb-32 px-4 sm:px-6 lg:px-8">
         {/* Golden gradient background */}
@@ -251,10 +251,10 @@ export default function ServicesPage() {
             <span className="text-sm font-black text-amber-900 tracking-widest uppercase">Our Expertise</span>
           </div>
           <h1 className="text-5xl md:text-6xl font-black text-white mb-6 leading-tight">
-            Premium Real Estate <span className="bg-linear-to-r from-amber-300 to-yellow-400 bg-clip-text text-transparent">Services</span>
+            <span className="bg-linear-to-r from-amber-300 to-yellow-400 bg-clip-text text-transparent"> Premium Real Estate Services</span>
           </h1>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            Experience excellence with Ragdol Properties' comprehensive suite of real estate solutions
+          <p className="text-xl text-gray-500 max-w-2xl mx-auto">
+            Experience excellence with Ragdoll Properties' comprehensive suite of real estate solutions
           </p>
         </div>
       </div>
@@ -308,7 +308,7 @@ export default function ServicesPage() {
               <span className="text-sm font-black text-amber-900 tracking-widest uppercase">Why Choose Us</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-black text-white mb-6">
-              The Ragdol <span className="bg-linear-to-r from-amber-300 to-yellow-400 bg-clip-text text-transparent">Difference</span>
+              <span className="bg-linear-to-r from-amber-300 to-yellow-400 bg-clip-text text-transparent"> The Ragdoll Properties Difference</span>
             </h2>
           </div>
 
@@ -337,7 +337,7 @@ export default function ServicesPage() {
                     <Icon className="h-6 w-6 text-white" />
                   </div>
                   <h3 className="text-xl font-bold text-white mb-3">{item.title}</h3>
-                  <p className="text-gray-400 leading-relaxed">{item.description}</p>
+                  <p className="text-gray-600 leading-relaxed">{item.description}</p>
                 </div>
               )
             })}
@@ -353,7 +353,7 @@ export default function ServicesPage() {
               <span className="text-sm font-black text-amber-900 tracking-widest uppercase">Featured Portfolio</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-black text-white mb-6">
-              Premium Property <span className="bg-linear-to-r from-amber-300 to-yellow-400 bg-clip-text text-transparent">Showcase</span>
+            <span className="bg-linear-to-r from-amber-300 to-yellow-400 bg-clip-text text-transparent">  Premium Property  Showcase</span>
             </h2>
             <p className="text-gray-400 text-lg">Explore our curated selection of luxury developments</p>
           </div>

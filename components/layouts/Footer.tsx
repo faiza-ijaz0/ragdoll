@@ -80,9 +80,13 @@ export default function Footer() {
                   placeholder={t('footer.emailAddress')} 
                   className="flex-1 px-6 py-4 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/50 transition-all text-white"
                 />
-                <button className="px-6 py-4 bg-primary text-secondary font-bold rounded-xl hover:bg-white transition-all">
-                  <ArrowRightIcon className="h-5 w-5" />
-                </button>
+               
+
+               <Link href="/contact">
+  <button className="px-6 py-4 bg-primary text-secondary font-bold rounded-xl hover:bg-white transition-all">
+    <ArrowRightIcon className="h-5 w-5" />
+  </button>
+</Link>
               </form>
             </div>
           </div>

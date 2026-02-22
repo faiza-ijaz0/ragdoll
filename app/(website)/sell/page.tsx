@@ -146,7 +146,7 @@ export default function SellPage() {
         <div className="container-custom">
           <div className="max-w-3xl mx-auto text-center space-y-6">
             <h1 className="text-5xl md:text-6xl font-bold leading-tight">
-              List Your Property on <span className="text-gradient">RAGDOL</span>
+              List Your Property on <span className="text-gradient">RAGDOLL</span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
               Reach thousands of potential buyers and renters. Quick, easy, and completely free
@@ -713,7 +713,7 @@ export default function SellPage() {
       <section className="section-padding bg-card border-t border-border">
         <div className="container-custom">
           <h2 className="text-4xl font-bold mb-12 text-center">
-            Why List on <span className="text-gradient">RAGDOL</span>
+            Why List on <span className="text-gradient">RAGDOLL</span>
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto">

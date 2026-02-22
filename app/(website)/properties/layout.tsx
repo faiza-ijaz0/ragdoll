@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Properties for Sale in Dubai | Luxury Homes & Apartments | RAGDOL',
+  title: 'Properties for Sale in Dubai | Luxury Homes & Apartments | RAGDOLL',
   description: 'Browse thousands of properties for sale in Dubai. Find luxury apartments, villas, penthouses, and commercial properties. Advanced search and filters available.',
   keywords: 'properties dubai, real estate dubai, apartments dubai, villas dubai, penthouses dubai, commercial properties dubai, property for sale dubai',
   openGraph: {

@@ -74,7 +74,7 @@ export default function ApplyPage() {
           </div>
           <h1 className="text-3xl font-serif text-secondary mb-4">Application Received</h1>
           <p className="text-slate-500 mb-10 leading-relaxed">
-            Thank you for your interest in joining RAGDOL. Our talent acquisition team will review your profile and get back to you within 48 hours.
+            Thank you for your interest in joining RAGDOLL. Our talent acquisition team will review your profile and get back to you within 48 hours.
           </p>
           <Link 
             href="/"
@@ -234,7 +234,7 @@ export default function ApplyPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-400 uppercase tracking-widest">Why RAGDOL? (Cover Letter)</label>
+                    <label className="text-sm font-bold text-slate-400 uppercase tracking-widest">Why RAGDOLL? (Cover Letter)</label>
                     <textarea 
                       name="message"
                       value={formData.message}
@@ -275,7 +275,7 @@ export default function ApplyPage() {
                     {[
                       { step: '01', title: 'Review', desc: 'Our team reviews your portfolio and experience.' },
                       { step: '02', title: 'Interview', desc: 'A deep-dive into your vision and skills.' },
-                      { step: '03', title: 'Onboarding', desc: 'Welcome to the elite RAGDOL collective.' }
+                      { step: '03', title: 'Onboarding', desc: 'Welcome to the elite RAGDOLL collective.' }
                     ].map((item, i) => (
                       <div key={i} className="flex gap-4">
                         <span className="text-primary font-serif text-xl">{item.step}</span>
