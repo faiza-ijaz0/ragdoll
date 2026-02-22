@@ -41,6 +41,8 @@ import {
   PhotoIcon,
   Squares2X2Icon,
   PlayCircleIcon,
+  ArrowsPointingInIcon,
+  ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
 import {
   StarIcon as StarSolidIcon,
