@@ -73,7 +73,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 
-// Import jsPDF for PDF generation
+// Import jsPDF for PDF generation (fallback only)
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -158,383 +158,42 @@ type NormalizedProperty = Property & {
   agent_phone?: string
   agent_whatsapp?: string
   views?: number
+  // New fields for brochures and documents
+  brochures?: string[]
+  documents?: {
+    name: string
+    url: string
+    type?: string
+    category?: string
+  }[]
+  videos?: string[]
 }
 
-// Full Screen Gallery Component 
-const FullScreenGallery = ({ 
-  property, 
-  onClose 
-}: { 
-  property: NormalizedProperty; 
-  onClose: () => void 
-}) => {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false)
-  const [isZoomed, setIsZoomed] = useState(false)
-  const [imageLoaded, setImageLoaded] = useState(false)
+// Helper function to convert Google Drive URL to direct download URL
+const getGoogleDriveDirectLink = (url: string) => {
+  if (!url) return url;
   
-  // Get all media (images + video) for the property
-  const getPropertyMedia = () => {
-    const media = []
-    
-    // Get all images
-    if (property.images && property.images.length > 0) {
-      property.images.forEach(img => {
-        media.push({
-          type: 'image',
-          url: img,
-          thumbnail: img
-        })
-      })
-    } else if (property.image) {
-      // Use main image if no images array
-      media.push({
-        type: 'image',
-        url: property.image,
-        thumbnail: property.image
-      })
+  // Handle different Google Drive URL formats
+  if (url.includes('drive.google.com')) {
+    // Format: https://drive.google.com/file/d/FILE_ID/view
+    const match = url.match(/\/d\/(.+?)\//);
+    if (match && match[1]) {
+      const fileId = match[1];
+      return `https://drive.google.com/uc?export=download&id=${fileId}`;
     }
     
-    // Add video as last item if exists
-    if (property.video_url) {
-      const videoType = getVideoType(property.video_url);
-      if (videoType !== 'none') {
-        media.push({
-          type: 'video',
-          url: property.video_url,
-          thumbnail: property.video_url
-        })
-      }
+    // Format: https://drive.google.com/open?id=FILE_ID
+    const idMatch = url.match(/id=([^&]+)/);
+    if (idMatch && idMatch[1]) {
+      return `https://drive.google.com/uc?export=download&id=${idMatch[1]}`;
     }
-    
-    // If no media, add default
-    if (media.length === 0) {
-      media.push({
-        type: 'image',
-        url: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop',
-        thumbnail: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop'
-      })
-    }
-    
-    return media;
   }
   
-  // Helper function to determine video type
-  const getVideoType = (url: string) => {
-    if (!url) return 'none';
-    if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
-    if (url.includes('vimeo.com')) return 'vimeo';
-    if (/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i.test(url)) return 'direct';
-    return 'external';
-  }
+  return url;
+};
 
-  // Extract YouTube video ID
-  const extractYouTubeId = (url: string) => {
-    let videoId = '';
-    if (url.includes('youtube.com/watch?v=')) {
-      videoId = url.split('v=')[1];
-      const ampersandPosition = videoId.indexOf('&');
-      if (ampersandPosition !== -1) {
-        videoId = videoId.substring(0, ampersandPosition);
-      }
-    } else if (url.includes('youtu.be/')) {
-      videoId = url.split('youtu.be/')[1];
-    } else if (url.includes('youtube.com/embed/')) {
-      videoId = url.split('embed/')[1];
-    }
-    return videoId;
-  }
-  
-  const propertyMedia = getPropertyMedia();
-  
-  const handlePrev = () => {
-    setCurrentIndex(prev => prev === 0 ? propertyMedia.length - 1 : prev - 1)
-    setIsVideoPlaying(false)
-    setIsZoomed(false)
-    setImageLoaded(false)
-  }
-  
-  const handleNext = () => {
-    setCurrentIndex(prev => prev === propertyMedia.length - 1 ? 0 : prev + 1)
-    setIsVideoPlaying(false)
-    setIsZoomed(false)
-    setImageLoaded(false)
-  }
-
-  const toggleZoom = () => {
-    setIsZoomed(!isZoomed)
-  }
-  
-  const renderMedia = () => {
-    const media = propertyMedia[currentIndex];
-    if (!media) return null;
-    
-    if (media.type === 'video') {
-      const videoType = getVideoType(media.url);
-      
-      if (videoType === 'youtube') {
-        const videoId = extractYouTubeId(media.url);
-        return isVideoPlaying ? (
-          <div className="w-full h-full">
-            <iframe
-              src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
-              className="w-full h-full"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              title={`${property.title} - YouTube Video`}
-            />
-          </div>
-        ) : (
-          <div className="relative w-full h-full">
-            <img
-              src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
-              alt={property.title}
-              className="w-full h-full object-contain"
-              onError={(e) => {
-                e.currentTarget.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
-              }}
-            />
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-              <button
-                onClick={() => setIsVideoPlaying(true)}
-                className="w-20 h-20 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-transform hover:scale-110"
-              >
-                <PlayCircleIcon className="w-12 h-12 text-white" />
-              </button>
-            </div>
-            <div className="absolute bottom-4 left-4 px-3 py-1 bg-red-600 text-white text-sm font-bold rounded-full">
-              VIDEO
-            </div>
-          </div>
-        )
-      }
-      
-      else if (videoType === 'direct') {
-        return (
-          <div className="relative w-full h-full">
-            <video
-              key={media.url}
-              controls
-              autoPlay
-              loop
-              muted
-              className="w-full h-full object-contain bg-black"
-              preload="auto"
-              playsInline
-              controlsList="nodownload"
-            >
-              <source src={media.url} type={`video/${media.url.split('.').pop()?.split('?')[0]}`} />
-              Your browser does not support the video tag.
-            </video>
-            <div className="absolute bottom-4 left-4 px-3 py-1 bg-blue-600 text-white text-sm font-bold rounded-full">
-              VIDEO
-            </div>
-          </div>
-        )
-      }
-      
-      else {
-        return (
-          <div className="relative w-full h-full">
-            <video
-              key={media.url}
-              controls
-              autoPlay
-              loop
-              muted
-              className="w-full h-full object-contain bg-black"
-              preload="auto"
-              playsInline
-              controlsList="nodownload"
-            >
-              <source src={media.url} type="video/mp4" />
-              <source src={media.url} type="video/webm" />
-              <source src={media.url} type="video/ogg" />
-              <source src={media.url} type="video/mov" />
-              Your browser does not support the video tag.
-            </video>
-            <div className="absolute bottom-4 left-4 px-3 py-1 bg-purple-600 text-white text-sm font-bold rounded-full">
-              VIDEO
-            </div>
-          </div>
-        )
-      }
-    }
-    
-    // Image display
-    return (
-      <div className="w-full h-full flex items-center justify-center">
-        {!imageLoaded && !isZoomed && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-          </div>
-        )}
-        <img
-          src={media.url}
-          alt={`${property.title} - Image ${currentIndex + 1}`}
-          className={`transition-all duration-300 ${
-            isZoomed 
-              ? 'object-contain w-auto h-auto max-w-[2000px] max-h-[2000px] cursor-zoom-out' 
-              : 'object-contain w-full h-full max-w-full max-h-full cursor-zoom-in'
-          } ${!imageLoaded ? 'opacity-0' : 'opacity-100'}`}
-          onClick={toggleZoom}
-          onLoad={() => setImageLoaded(true)}
-          onError={(e) => {
-            e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop'
-            setImageLoaded(true)
-          }}
-          style={{
-            maxWidth: isZoomed ? '2000px' : '100%',
-            maxHeight: isZoomed ? '2000px' : '100%',
-          }}
-        />
-      </div>
-    )
-  }
-  
-  // Handle keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (isZoomed) {
-          setIsZoomed(false)
-        } else {
-          onClose();
-        }
-      }
-      if (e.key === 'ArrowLeft') handlePrev();
-      if (e.key === 'ArrowRight') handleNext();
-      if (e.key === ' ' || e.key === 'Enter') toggleZoom();
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    document.body.style.overflow = 'hidden';
-    
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'auto';
-    };
-  }, [isZoomed]);
-  
-  return (
-    <div className="fixed inset-0 z-2000 bg-black">
-      {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-10 p-6 flex justify-between items-center bg-linear-to-b from-black/80 to-transparent">
-        <div className="text-white">
-          <h2 className="text-xl font-bold">{property.title}</h2>
-          <p className="text-sm text-gray-300">
-            {currentIndex + 1} / {propertyMedia.length}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={toggleZoom}
-            className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white"
-            title={isZoomed ? "Zoom Out" : "Zoom In"}
-          >
-            {isZoomed ? (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7m6 0V7m0 3v3" />
-              </svg>
-            )}
-          </button>
-          <button
-            onClick={onClose}
-            className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all"
-          >
-            <XMarkIcon className="w-6 h-6 text-white" />
-          </button>
-        </div>
-      </div>
-      
-      {/* Main Media */}
-      <div className="w-full h-full flex items-center justify-center p-4">
-        <div className="w-full h-full max-w-7xl">
-          {renderMedia()}
-        </div>
-      </div>
-      
-      {/* Navigation Arrows - Only show when not zoomed */}
-      {propertyMedia.length > 1 && !isZoomed && (
-        <>
-          <button
-            onClick={handlePrev}
-            className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all"
-          >
-            <ChevronLeftIcon className="w-8 h-8 text-white" />
-          </button>
-          <button
-            onClick={handleNext}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all"
-          >
-            <ChevronRightIcon className="w-8 h-8 text-white" />
-          </button>
-        </>
-      )}
-      
-      {/* Zoom indicator */}
-      {isZoomed && (
-        <div className="absolute bottom-4 right-4 bg-black/50 text-white px-3 py-2 rounded-lg backdrop-blur-sm">
-          <div className="flex items-center gap-2 text-sm">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-            <span>Click or press ESC to zoom out</span>
-          </div>
-        </div>
-      )}
-      
-      {/* Thumbnails - Only show when not zoomed */}
-      {propertyMedia.length > 1 && !isZoomed && (
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-black/80 to-transparent">
-          <div className="flex gap-2 overflow-x-auto justify-center">
-            {propertyMedia.map((media, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  setCurrentIndex(index);
-                  setIsVideoPlaying(false);
-                  setIsZoomed(false);
-                  setImageLoaded(false);
-                }}
-                className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
-                  index === currentIndex 
-                    ? 'border-white scale-110' 
-                    : 'border-transparent hover:border-gray-400'
-                }`}
-              >
-                {media.type === 'video' ? (
-                  <div className="w-full h-full bg-gray-800 flex items-center justify-center relative">
-                    <VideoCameraIcon className="w-6 h-6 text-white" />
-                    <div className="absolute top-1 right-1 w-2 h-2 bg-red-600 rounded-full"></div>
-                  </div>
-                ) : (
-                  <img
-                    src={media.thumbnail}
-                    alt=""
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop'
-                    }}
-                  />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Floor Plan Form Component - COMPLETED
-function FloorPlanForm({
+// Download Brochure Form Component
+function BrochureForm({
   property,
   onClose,
 }: {
@@ -545,112 +204,59 @@ function FloorPlanForm({
     fullName: "",
     email: "",
     phoneNumber: "",
-    nationality: "",
-    occupation: "",
-    employerCompany: "",
-    monthlyIncome: "",
-    budgetRange: "",
-    timeline: "",
-    interestedInFinancing: false,
-    additionalNotes: "",
   });
 
-  const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [agentData, setAgentData] = useState<AgentData | null>(null);
-  const [agentLoading, setAgentLoading] = useState(true);
+  const [brochures, setBrochures] = useState<{name: string, url: string, directUrl: string}[]>([]);
+  const [selectedBrochure, setSelectedBrochure] = useState<{name: string, url: string, directUrl: string} | null>(null);
 
-  const getPropertyImages = () => {
-    if (property.images && property.images.length > 0) {
-      return property.images;
-    }
-    if (property.floorplans && property.floorplans.length > 0) {
-      return property.floorplans;
-    }
-    return [
-      property.image ||
-        "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop",
-    ];
-  };
-
-  const propertyImages = getPropertyImages();
-
+  // Fetch brochures from Firebase
   useEffect(() => {
-    async function fetchAgentData() {
+    async function fetchBrochures() {
       try {
-        setAgentLoading(true);
-        const agentId = property.agent_id;
-
-        if (agentId) {
-          const agentDocRef = doc(db, "agents", agentId);
-          const agentDoc = await getDoc(agentDocRef);
-
-          if (agentDoc.exists()) {
-            const data = agentDoc.data() as AgentData;
-            setAgentData(data);
-            setAgentLoading(false);
-            return;
-          }
-        }
-
-        const agentName = property.agent_name;
-        if (agentName) {
-          const agentsRef = collection(db, "agents");
-          const q = query(agentsRef, where("title", "==", agentName));
-          const querySnapshot = await getDocs(q);
-
-          if (!querySnapshot.empty) {
-            const doc = querySnapshot.docs[0];
-            const data = doc.data() as AgentData;
-            setAgentData(data);
-          } else {
-            setAgentData({
-              title: agentName || "Sarah Ahmed",
-              office: "dubai",
-              experience_years: 5,
-              total_sales: 11,
-              profile_image:
-                "https://img.freepik.com/free-photo/blond-businessman-happy-expression_1194-3866.jpg",
-              whatsapp: "03291082882",
-              verified: true,
-              rating: 4.5,
-              review_count: 0,
-            });
-          }
-        } else {
-          setAgentData({
-            title: "Sarah Ahmed",
-            office: "dubai",
-            experience_years: 5,
-            total_sales: 11,
-            profile_image:
-              "https://img.freepik.com/free-photo/blond-businessman-happy-expression_1194-3866.jpg",
-            whatsapp: "03291082882",
-            verified: true,
-            rating: 4.5,
-            review_count: 0,
+        const brochureList: {name: string, url: string, directUrl: string}[] = [];
+        
+        // Check brochures array
+        if (property.brochures && Array.isArray(property.brochures)) {
+          property.brochures.forEach((url: string, index: number) => {
+            if (url.toLowerCase().includes('.pdf') || url.includes('drive.google.com')) {
+              brochureList.push({
+                name: `Brochure ${index + 1}`,
+                url: url,
+                directUrl: getGoogleDriveDirectLink(url)
+              });
+            }
           });
         }
+        
+        // Check documents array for brochures
+        if (property.documents && Array.isArray(property.documents)) {
+          property.documents.forEach((doc: any, index: number) => {
+            const docName = doc.name?.toLowerCase() || '';
+            if (doc.url && (doc.url.toLowerCase().includes('.pdf') || doc.url.includes('drive.google.com'))) {
+              if (docName.includes('brochure') || doc.type === 'brochure' || doc.category === 'brochure') {
+                brochureList.push({
+                  name: doc.name || `Brochure ${index + 1}`,
+                  url: doc.url,
+                  directUrl: getGoogleDriveDirectLink(doc.url)
+                });
+              }
+            }
+          });
+        }
+        
+        setBrochures(brochureList);
+        if (brochureList.length > 0) {
+          setSelectedBrochure(brochureList[0]);
+        }
       } catch (error) {
-        console.error("Error fetching agent data:", error);
-        setAgentData({
-          title: property.agent_name || "Sarah Ahmed",
-          office: "dubai",
-          experience_years: 5,
-          total_sales: 11,
-          profile_image:
-            "https://img.freepik.com/free-photo/blond-businessman-happy-expression_1194-3866.jpg",
-          whatsapp: "03291082882",
-          verified: true,
-          rating: 4.5,
-          review_count: 0,
-        });
-      } finally {
-        setAgentLoading(false);
+        console.error("Error fetching brochures:", error);
       }
     }
-
-    fetchAgentData();
+    
+    if (property) {
+      fetchBrochures();
+    }
   }, [property]);
 
   const handleChange = (
@@ -658,28 +264,37 @@ function FloorPlanForm({
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
-    const { name, value, type } = e.target;
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-    if (type === "checkbox") {
-      const checkbox = e.target as HTMLInputElement;
-      setFormData((prev) => ({
-        ...prev,
-        [name]: checkbox.checked,
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+  // Function to download real PDF from URL
+  const downloadRealPDF = (brochure: {name: string, url: string, directUrl: string}) => {
+    try {
+      const downloadUrl = brochure.directUrl || brochure.url;
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = brochure.name.replace(/[^a-z0-9]/gi, '_') + '.pdf';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      console.log("✅ Real PDF download triggered:", brochure.url);
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      window.open(brochure.url, '_blank');
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
     try {
-      const floorplanData = {
+      const brochureData = {
         ...formData,
         property_id: property.id,
         property_title: property.title,
@@ -688,133 +303,31 @@ function FloorPlanForm({
         submitted_at: serverTimestamp(),
         download_requested: true,
         status: "pending",
+        type: "brochure"
       };
 
-      await addDoc(collection(db, "floorplans"), floorplanData);
-      console.log("✅ Floor plan request saved to Firebase");
-      generatePDF();
+      await addDoc(collection(db, "brochure_inquiries"), brochureData);
+      console.log("✅ Brochure request saved to Firebase");
+      
+      if (selectedBrochure) {
+        downloadRealPDF(selectedBrochure);
+      } else if (brochures.length > 0) {
+        downloadRealPDF(brochures[0]);
+      }
+      
       setSubmitted(true);
       setTimeout(() => {
         onClose();
       }, 3000);
     } catch (error) {
-      console.error("❌ Error saving floor plan request:", error);
+      console.error("❌ Error saving brochure request:", error);
       alert("Error submitting form. Please try again.");
-    } finally {
-      setLoading(false);
     }
   };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-US").format(price);
   };
-
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat("en-US").format(num);
-  };
-  
-  const generatePDF = () => {
-    try {
-      const doc = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-        compress: true,
-      });
-
-      doc.setFont("helvetica");
-      doc.setFont("normal");
-      doc.setFontSize(12);
-
-      // Page 1: Cover Page
-      doc.setFillColor(25, 50, 120);
-      doc.rect(0, 0, 210, 50, "F");
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(24);
-      doc.text("PROPERTIES FOR SALE - DUBAI", 105, 30, { align: "center" });
-      doc.setFontSize(16);
-      doc.text("Sales Information Package", 105, 45, { align: "center" });
-
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(20);
-      doc.setFont("helvetica", "bold");
-      const propertyTitle = property.title || "Property for Sale";
-      const splitTitle = doc.splitTextToSize(propertyTitle, 180);
-      doc.text(splitTitle, 105, 80, { align: "center" });
-
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Type: ${property.type || "Property"}`, 105, 95, {
-        align: "center",
-      });
-
-      doc.setFontSize(28);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(59, 130, 246);
-      doc.text(`AED ${formatPrice(property.price || 0)}`, 105, 120, {
-        align: "center",
-      });
-
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      const locationText =
-        property.location || property.address || property.area || "Dubai, UAE";
-      doc.text(locationText, 105, 140, { align: "center" });
-
-      if (propertyImages.length > 0) {
-        try {
-          doc.addImage(propertyImages[0], "JPEG", 50, 150, 110, 80);
-        } catch (error) {
-          console.log("Image loading error:", error);
-        }
-      }
-
-      doc.setFontSize(10);
-      doc.setTextColor(100, 100, 100);
-      doc.text(`Document ID: ${property.id || "N/A"}`, 105, 250, {
-        align: "center",
-      });
-      doc.text(
-        `Generated: ${new Date().toLocaleDateString("en-US")}`,
-        105, 260,
-        { align: "center" }
-      );
-
-      // Add more pages
-      doc.addPage();
-      
-      const fileName = `Sale_Property_Details_${
-        property.title?.replace(/[^a-z0-9]/gi, "_") || "property"
-      }_${Date.now()}.pdf`;
-      doc.save(fileName);
-
-      console.log("✅ PDF generated successfully!");
-    } catch (error) {
-      console.error("❌ Error generating PDF:", error);
-      alert("Error generating PDF. Please try again.");
-    }
-  };
-  
-  const budgetOptions = [
-    "Select budget range",
-    "Under 500,000 AED",
-    "500,000 - 1,000,000 AED",
-    "1,000,000 - 2,000,000 AED",
-    "2,000,000 - 5,000,000 AED",
-    "5,000,000 - 10,000,000 AED",
-    "10,000,000+ AED",
-  ];
-
-  const timelineOptions = [
-    "Select timeline",
-    "Immediately",
-    "Within 1 month",
-    "Within 3 months",
-    "Within 6 months",
-    "Within 1 year",
-    "Just exploring",
-  ];
 
   if (submitted) {
     return (
@@ -825,10 +338,10 @@ function FloorPlanForm({
               <CheckIcon className="h-10 w-10 text-green-600" />
             </div>
             <h3 className="text-3xl font-black text-gray-900 mb-4">
-              Request Submitted Successfully!
+              Brochure Downloaded Successfully!
             </h3>
             <p className="text-gray-600 text-lg mb-8">
-              Your sales inquiry has been submitted. The PDF is downloading now.
+              Your brochure has been downloaded. Check your downloads folder.
             </p>
           </div>
         </div>
@@ -844,10 +357,10 @@ function FloorPlanForm({
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-2xl font-black text-gray-900">
-                  Download Property Details
+                  Download Brochure
                 </h3>
                 <p className="text-gray-600">
-                  Fill out the form for detailed property information
+                  Fill out the form to receive the property brochure
                 </p>
               </div>
               <button
@@ -871,11 +384,496 @@ function FloorPlanForm({
                 <div className="text-2xl font-black text-blue-600">
                   AED {formatPrice(property.price || 0)}
                 </div>
-                <div className="text-gray-600">
-                  {property.type} • {property.beds} Beds • {property.baths} Baths
+              </div>
+            </div>
+          </div>
+
+          {/* Available Brochures Section */}
+          {brochures.length > 0 && (
+            <div className="p-6 bg-gray-50 border-b border-gray-200">
+              <h4 className="text-sm font-bold text-gray-700 mb-3">Available Brochures:</h4>
+              <div className="space-y-2">
+                {brochures.map((brochure, index) => (
+                  <div 
+                    key={index}
+                    className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                      selectedBrochure?.url === brochure.url 
+                        ? 'border-blue-500 bg-blue-50' 
+                        : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/50'
+                    }`}
+                    onClick={() => setSelectedBrochure(brochure)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <DocumentTextIcon className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <span className="font-medium text-gray-800">{brochure.name}</span>
+                        {brochure.url.includes('drive.google.com') && (
+                          <span className="ml-2 text-xs text-blue-600">📁 Google Drive</span>
+                        )}
+                      </div>
+                    </div>
+                    {selectedBrochure?.url === brochure.url && (
+                      <CheckIcon className="w-5 h-5 text-blue-600" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <form
+            onSubmit={handleSubmit}
+            className="p-6 max-h-[70vh] overflow-y-auto"
+          >
+            <div className="space-y-8">
+              <div>
+                <h4 className="text-xl font-black text-gray-900 mb-6 pb-2 border-b border-gray-200">
+                  <span className="text-blue-600">1.</span> Personal Information
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      name="fullName"
+                      value={formData.fullName}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter your full name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter your email"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      Phone Number *
+                    </label>
+                    <input
+                      type="tel"
+                      name="phoneNumber"
+                      value={formData.phoneNumber}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="+971 XX XXX XXXX"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {selectedBrochure && (
+                <div className="bg-blue-50 p-4 rounded-xl">
+                  <p className="text-sm text-blue-800">
+                    <span className="font-bold">Selected:</span> {selectedBrochure.name}
+                  </p>
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-gray-200">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-8 py-4 border-2 border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={brochures.length > 0 && !selectedBrochure}
+                    className="flex-1 px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                  >
+                    <DocumentTextIcon className="w-5 h-5" />
+                    Download Brochure
+                  </button>
                 </div>
               </div>
             </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Floor Plan Form Component - UPDATED with Other Documents section
+function FloorPlanForm({
+  property,
+  onClose,
+}: {
+  property: NormalizedProperty;
+  onClose: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    phoneNumber: "",
+  });
+
+  const [submitted, setSubmitted] = useState(false);
+  const [floorplans, setFloorplans] = useState<{name: string, url: string, directUrl: string}[]>([]);
+  const [otherDocuments, setOtherDocuments] = useState<{name: string, url: string, directUrl: string}[]>([]);
+  const [selectedFloorplan, setSelectedFloorplan] = useState<{name: string, url: string, directUrl: string} | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<{name: string, url: string, directUrl: string} | null>(null);
+  const [activeTab, setActiveTab] = useState<'floorplans' | 'documents'>('floorplans');
+
+  // Fetch floorplans and documents from Firebase
+  useEffect(() => {
+    async function fetchFiles() {
+      try {
+        const allFloorplans: {name: string, url: string, directUrl: string}[] = [];
+        const allDocuments: {name: string, url: string, directUrl: string}[] = [];
+        
+        // Check floorplans array
+        if (property.floorplans && Array.isArray(property.floorplans)) {
+          property.floorplans.forEach((url: string, index: number) => {
+            if (url.toLowerCase().includes('.pdf') || url.includes('drive.google.com')) {
+              allFloorplans.push({
+                name: `Floor Plan ${index + 1}`,
+                url: url,
+                directUrl: getGoogleDriveDirectLink(url)
+              });
+            }
+          });
+        }
+        
+        // Check brochures array
+        if (property.brochures && Array.isArray(property.brochures)) {
+          property.brochures.forEach((url: string, index: number) => {
+            if (url.toLowerCase().includes('.pdf') || url.includes('drive.google.com')) {
+              allFloorplans.push({
+                name: `Brochure ${index + 1}`,
+                url: url,
+                directUrl: getGoogleDriveDirectLink(url)
+              });
+            }
+          });
+        }
+        
+        // Check documents array with name and url
+        if (property.documents && Array.isArray(property.documents)) {
+          property.documents.forEach((doc: any, index: number) => {
+            if (doc.url && (doc.url.toLowerCase().includes('.pdf') || doc.url.includes('drive.google.com'))) {
+              const docName = doc.name?.toLowerCase() || '';
+              if (docName.includes('floor') || docName.includes('plan') || doc.type === 'floorplan') {
+                allFloorplans.push({
+                  name: doc.name || `Floor Plan ${index + 1}`,
+                  url: doc.url,
+                  directUrl: getGoogleDriveDirectLink(doc.url)
+                });
+              } else {
+                allDocuments.push({
+                  name: doc.name || `Document ${index + 1}`,
+                  url: doc.url,
+                  directUrl: getGoogleDriveDirectLink(doc.url)
+                });
+              }
+            }
+          });
+        }
+        
+        setFloorplans(allFloorplans);
+        setOtherDocuments(allDocuments);
+        
+        if (allFloorplans.length > 0) {
+          setSelectedFloorplan(allFloorplans[0]);
+          setActiveTab('floorplans');
+        } else if (allDocuments.length > 0) {
+          setSelectedDocument(allDocuments[0]);
+          setActiveTab('documents');
+        }
+        
+      } catch (error) {
+        console.error("Error fetching files:", error);
+      }
+    }
+    
+    if (property) {
+      fetchFiles();
+    }
+  }, [property]);
+
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Function to download real PDF from URL
+  const downloadRealPDF = (file: {name: string, url: string, directUrl: string}) => {
+    try {
+      const downloadUrl = file.directUrl || file.url;
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = file.name.replace(/[^a-z0-9]/gi, '_') + '.pdf';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      console.log("✅ Real PDF download triggered:", file.url);
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      window.open(file.url, '_blank');
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const floorplanData = {
+        ...formData,
+        property_id: property.id,
+        property_title: property.title,
+        property_price: property.price,
+        property_location: property.location,
+        submitted_at: serverTimestamp(),
+        download_requested: true,
+        status: "pending",
+        type: activeTab === 'floorplans' ? "floorplan" : "document"
+      };
+
+      await addDoc(collection(db, "floorplan_inquiries"), floorplanData);
+      console.log("✅ Request saved to Firebase");
+      
+      if (activeTab === 'floorplans' && selectedFloorplan) {
+        downloadRealPDF(selectedFloorplan);
+      } else if (activeTab === 'documents' && selectedDocument) {
+        downloadRealPDF(selectedDocument);
+      } else if (floorplans.length > 0) {
+        downloadRealPDF(floorplans[0]);
+      } else if (otherDocuments.length > 0) {
+        downloadRealPDF(otherDocuments[0]);
+      }
+      
+      setSubmitted(true);
+      setTimeout(() => {
+        onClose();
+      }, 3000);
+    } catch (error) {
+      console.error("❌ Error saving request:", error);
+      alert("Error submitting form. Please try again.");
+    }
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("en-US").format(price);
+  };
+
+  if (submitted) {
+    return (
+      <div className="fixed inset-0 z-100 bg-black/50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl max-w-2xl w-full p-8">
+          <div className="text-center">
+            <div className="h-20 w-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckIcon className="h-10 w-10 text-green-600" />
+            </div>
+            <h3 className="text-3xl font-black text-gray-900 mb-4">
+              {activeTab === 'floorplans' ? 'Floor Plan' : 'Document'} Downloaded Successfully!
+            </h3>
+            <p className="text-gray-600 text-lg mb-8">
+              Your file has been downloaded. Check your downloads folder.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-100 bg-black/50 overflow-y-auto p-4">
+      <div className="min-h-full flex items-center justify-center py-8">
+        <div className="bg-white rounded-3xl max-w-4xl w-full">
+          <div className="border-b border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-2xl font-black text-gray-900">
+                  {activeTab === 'floorplans' ? 'Floor Plan' : 'Documents'}
+                </h3>
+                <p className="text-gray-600">
+                  Fill out the form to access {activeTab === 'floorplans' ? 'floor plans' : 'documents'}
+                </p>
+              </div>
+              <button
+                onClick={onClose}
+                className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 hover:bg-gray-200 transition-colors"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          <div className="p-6 bg-blue-50 border-b border-blue-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-bold text-gray-900 text-lg">
+                  {property.title}
+                </h4>
+                <p className="text-gray-600">{property.location}</p>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-black text-blue-600">
+                  AED {formatPrice(property.price || 0)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tab Navigation */}
+          {(floorplans.length > 0 || otherDocuments.length > 0) && (
+            <div className="border-b border-gray-200 px-6 pt-4">
+              <div className="flex gap-4">
+                {floorplans.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setActiveTab('floorplans');
+                      setSelectedFloorplan(floorplans[0]);
+                      setSelectedDocument(null);
+                    }}
+                    className={`pb-3 px-4 font-bold text-sm transition-all relative ${
+                      activeTab === 'floorplans'
+                        ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Floor Plans ({floorplans.length})
+                  </button>
+                )}
+                {otherDocuments.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setActiveTab('documents');
+                      setSelectedDocument(otherDocuments[0]);
+                      setSelectedFloorplan(null);
+                    }}
+                    className={`pb-3 px-4 font-bold text-sm transition-all relative ${
+                      activeTab === 'documents'
+                        ? 'text-green-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-green-600'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Other Documents ({otherDocuments.length})
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Available Files Section */}
+          <div className="p-6 bg-gray-50 border-b border-gray-200 max-h-60 overflow-y-auto">
+            {/* Floor Plans Tab Content */}
+            {activeTab === 'floorplans' && floorplans.length > 0 && (
+              <div>
+                <h4 className="text-sm font-bold text-blue-600 mb-3 flex items-center gap-2">
+                  <DocumentTextIcon className="w-4 h-4" />
+                  Available Floor Plans:
+                </h4>
+                <div className="space-y-2">
+                  {floorplans.map((plan, index) => (
+                    <div 
+                      key={`floorplan-${index}`}
+                      className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                        selectedFloorplan?.url === plan.url 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/50'
+                      }`}
+                      onClick={() => {
+                        setSelectedFloorplan(plan);
+                        setSelectedDocument(null);
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <DocumentTextIcon className="w-5 h-5 text-blue-600" />
+                        <div>
+                          <span className="font-medium text-gray-800">{plan.name}</span>
+                          {plan.url.includes('drive.google.com') && (
+                            <span className="ml-2 text-xs text-blue-600">📁 Google Drive</span>
+                          )}
+                        </div>
+                      </div>
+                      {selectedFloorplan?.url === plan.url && (
+                        <CheckIcon className="w-5 h-5 text-blue-600" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Other Documents Tab Content */}
+            {activeTab === 'documents' && otherDocuments.length > 0 && (
+              <div>
+                <h4 className="text-sm font-bold text-green-600 mb-3 flex items-center gap-2">
+                  <DocumentTextIcon className="w-4 h-4" />
+                  Other Documents:
+                </h4>
+                <div className="space-y-2">
+                  {otherDocuments.map((doc, index) => (
+                    <div 
+                      key={`doc-${index}`}
+                      className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                        selectedDocument?.url === doc.url 
+                          ? 'border-green-500 bg-green-50' 
+                          : 'border-gray-200 hover:border-green-300 hover:bg-green-50/50'
+                      }`}
+                      onClick={() => {
+                        setSelectedDocument(doc);
+                        setSelectedFloorplan(null);
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <DocumentTextIcon className="w-5 h-5 text-green-600" />
+                        <div>
+                          <span className="font-medium text-gray-800">{doc.name}</span>
+                          {doc.url.includes('drive.google.com') && (
+                            <span className="ml-2 text-xs text-green-600">📁 Google Drive</span>
+                          )}
+                        </div>
+                      </div>
+                      {selectedDocument?.url === doc.url && (
+                        <CheckIcon className="w-5 h-5 text-green-600" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* No Files Message */}
+            {activeTab === 'floorplans' && floorplans.length === 0 && (
+              <div className="text-center py-8">
+                <DocumentTextIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">No floor plans available</p>
+              </div>
+            )}
+            {activeTab === 'documents' && otherDocuments.length === 0 && (
+              <div className="text-center py-8">
+                <DocumentTextIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">No documents available</p>
+              </div>
+            )}
           </div>
 
           <form
@@ -930,9 +928,24 @@ function FloorPlanForm({
                       placeholder="+971 XX XXX XXXX"
                     />
                   </div>
-                 
                 </div>
               </div>
+
+              {/* Selected File Info */}
+              {activeTab === 'floorplans' && selectedFloorplan && (
+                <div className="bg-blue-50 p-4 rounded-xl">
+                  <p className="text-sm text-blue-800">
+                    <span className="font-bold">Selected:</span> {selectedFloorplan.name}
+                  </p>
+                </div>
+              )}
+              {activeTab === 'documents' && selectedDocument && (
+                <div className="bg-green-50 p-4 rounded-xl">
+                  <p className="text-sm text-green-800">
+                    <span className="font-bold">Selected:</span> {selectedDocument.name}
+                  </p>
+                </div>
+              )}
 
               <div className="pt-2 border-t border-gray-200">
                 <div className="flex flex-col sm:flex-row gap-4">
@@ -945,20 +958,11 @@ function FloorPlanForm({
                   </button>
                   <button
                     type="submit"
-                    disabled={loading}
+                    disabled={(activeTab === 'floorplans' ? !selectedFloorplan && floorplans.length === 0 : !selectedDocument && otherDocuments.length === 0)}
                     className="flex-1 px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                   >
-                    {loading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <span>📥</span>
-                        Download Property Details & Submit Inquiry
-                      </>
-                    )}
+                    <DocumentTextIcon className="w-5 h-5" />
+                    {activeTab === 'floorplans' ? 'Download Floor Plan' : 'Download Document'}
                   </button>
                 </div>
               </div>
@@ -970,7 +974,842 @@ function FloorPlanForm({
   );
 }
 
-// Agent Popup Modal Component - COMPLETED
+// Video Gallery Component - UPDATED FIXED VERSION
+function VideoGallery({ 
+  property, 
+  onClose 
+}: { 
+  property: NormalizedProperty; 
+  onClose: () => void 
+}) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [videos, setVideos] = useState<{url: string, type: string, thumbnail?: string}[]>([]);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+
+  // Fetch videos from Firebase
+  useEffect(() => {
+    async function fetchVideos() {
+      try {
+        setVideoError(false);
+        const videoList: {url: string, type: string, thumbnail?: string}[] = [];
+        
+        // Check videos array first
+        if (property.videos && Array.isArray(property.videos) && property.videos.length > 0) {
+          property.videos.forEach((videoUrl: string, index: number) => {
+            if (videoUrl && typeof videoUrl === 'string' && videoUrl.trim() !== '') {
+              const videoType = getVideoType(videoUrl);
+              if (videoType !== 'none') {
+                videoList.push({
+                  url: videoUrl,
+                  type: videoType,
+                  thumbnail: getVideoThumbnail(videoUrl, videoType, index)
+                });
+              }
+            }
+          });
+        }
+        
+        // If no videos in videos array, check video_url
+        if (videoList.length === 0 && property.video_url) {
+          const videoUrl = property.video_url;
+          if (videoUrl && typeof videoUrl === 'string' && videoUrl.trim() !== '') {
+            const videoType = getVideoType(videoUrl);
+            if (videoType !== 'none') {
+              videoList.push({
+                url: videoUrl,
+                type: videoType,
+                thumbnail: getVideoThumbnail(videoUrl, videoType, 0)
+              });
+            }
+          }
+        }
+        
+        // Add fallback video if none found (optional - remove if you don't want fallback)
+        if (videoList.length === 0) {
+          videoList.push({
+            url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // Sample video
+            type: 'youtube',
+            thumbnail: getVideoThumbnail('https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 0)
+          });
+        }
+        
+        console.log("📹 Videos loaded:", videoList.length);
+        setVideos(videoList);
+      } catch (error) {
+        console.error("Error fetching videos:", error);
+        setVideoError(true);
+      }
+    }
+    
+    if (property) {
+      fetchVideos();
+    }
+  }, [property]);
+
+  const getVideoType = (url: string) => {
+    if (!url || typeof url !== 'string') return 'none';
+    if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('youtube.com/embed')) return 'youtube';
+    if (url.includes('vimeo.com')) return 'vimeo';
+    if (url.includes('pexels.com')) return 'pexels';
+    if (/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i.test(url)) return 'direct';
+    return 'external';
+  };
+
+  const getVideoThumbnail = (url: string, type: string, index: number) => {
+    try {
+      if (type === 'youtube') {
+        const videoId = extractYouTubeId(url);
+        if (videoId) {
+          return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+        }
+      } else if (type === 'vimeo') {
+        return 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop';
+      } else if (type === 'pexels') {
+        return 'https://images.pexels.com/videos/7578549/pictures/preview-0.jpg';
+      }
+    } catch (error) {
+      console.error("Error getting thumbnail:", error);
+    }
+    
+    // Fallback thumbnail based on index
+    const fallbackThumbnails = [
+      'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1579165466741-7f35e4755660?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1579165466991-d467bfe99277?w=800&auto=format&fit=crop'
+    ];
+    return fallbackThumbnails[index % fallbackThumbnails.length];
+  };
+
+  const extractYouTubeId = (url: string) => {
+    try {
+      let videoId = '';
+      if (url.includes('youtube.com/watch?v=')) {
+        videoId = url.split('v=')[1];
+        const ampersandPosition = videoId.indexOf('&');
+        if (ampersandPosition !== -1) {
+          videoId = videoId.substring(0, ampersandPosition);
+        }
+      } else if (url.includes('youtu.be/')) {
+        videoId = url.split('youtu.be/')[1];
+        if (videoId.includes('?')) {
+          videoId = videoId.split('?')[0];
+        }
+      } else if (url.includes('youtube.com/embed/')) {
+        videoId = url.split('embed/')[1];
+        if (videoId.includes('?')) {
+          videoId = videoId.split('?')[0];
+        }
+      }
+      return videoId;
+    } catch (error) {
+      console.error("Error extracting YouTube ID:", error);
+      return '';
+    }
+  };
+
+  const handlePrev = () => {
+    setCurrentIndex(prev => (prev === 0 ? videos.length - 1 : prev - 1));
+    setIsPlaying(false);
+    setVideoError(false);
+  };
+
+  const handleNext = () => {
+    setCurrentIndex(prev => (prev === videos.length - 1 ? 0 : prev + 1));
+    setIsPlaying(false);
+    setVideoError(false);
+  };
+
+  const renderVideo = (video: {
+    [x: string]: string;url: string, type: string
+}) => {
+    if (videoError) {
+      return (
+        <div className="relative w-full h-full flex items-center justify-center bg-gray-900">
+          <div className="text-center text-white p-8">
+            <VideoCameraIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
+            <h3 className="text-xl font-bold mb-2">Video Failed to Load</h3>
+            <p className="text-gray-400 mb-4">Unable to play this video</p>
+            <button
+              onClick={() => setVideoError(false)}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white font-bold transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (!isPlaying) {
+      return (
+        <div className="relative w-full h-full bg-black">
+          <img
+            src={video.thumbnail || getVideoThumbnail(video.url, video.type, currentIndex)}
+            alt={`Video thumbnail ${currentIndex + 1}`}
+            className="w-full h-full object-contain"
+            onError={(e) => {
+              e.currentTarget.src = 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop';
+            }}
+          />
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+            <button
+              onClick={() => setIsPlaying(true)}
+              className="w-20 h-20 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-transform hover:scale-110 shadow-2xl"
+            >
+              <PlayCircleIcon className="w-12 h-12 text-white" />
+            </button>
+          </div>
+          <div className="absolute bottom-4 left-4 px-3 py-1 bg-red-600 text-white text-sm font-bold rounded-full">
+            VIDEO {currentIndex + 1} / {videos.length}
+          </div>
+        </div>
+      );
+    }
+
+    if (video.type === 'youtube') {
+      const videoId = extractYouTubeId(video.url);
+      if (!videoId) {
+        return (
+          <div className="w-full h-full flex items-center justify-center bg-gray-900 text-white">
+            Invalid YouTube URL
+          </div>
+        );
+      }
+      return (
+        <iframe
+          key={`youtube-${currentIndex}-${videoId}`}
+          src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
+          className="w-full h-full"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          title={`${property.title} - Video ${currentIndex + 1}`}
+          onError={() => setVideoError(true)}
+        />
+      );
+    } else {
+      return (
+        <video
+          key={`video-${currentIndex}-${video.url}`}
+          controls
+          autoPlay
+          className="w-full h-full object-contain bg-black"
+          preload="auto"
+          playsInline
+          onError={() => setVideoError(true)}
+        >
+          <source src={video.url} type="video/mp4" />
+          <source src={video.url} type="video/webm" />
+          <source src={video.url} type="video/ogg" />
+          Your browser does not support the video tag.
+        </video>
+      );
+    }
+  };
+
+  if (videos.length === 0 || videoError) {
+    return (
+      <div className="fixed inset-0 z-2000 bg-black flex items-center justify-center">
+        <div className="text-center text-white">
+          <VideoCameraIcon className="w-20 h-20 mx-auto mb-4 opacity-50" />
+          <h3 className="text-2xl font-bold mb-2">No Videos Available</h3>
+          <p className="text-gray-400">This property doesn't have any videos yet.</p>
+          <button
+            onClick={onClose}
+            className="mt-6 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-bold transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-2000 bg-black">
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 z-10 p-6 flex justify-between items-center bg-linear-to-b from-black/80 to-transparent">
+        <div className="text-white">
+          <h2 className="text-xl font-bold">Property Videos - {property.title}</h2>
+          <p className="text-sm text-gray-300">
+            <span className="font-bold text-red-500">{currentIndex + 1}</span> / {videos.length} Videos
+          </p>
+        </div>
+        <button
+          onClick={onClose}
+          className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all"
+        >
+          <XMarkIcon className="w-6 h-6 text-white" />
+        </button>
+      </div>
+      
+      {/* Main Video Player */}
+      <div className="w-full h-full flex items-center justify-center p-4 pt-20 pb-24">
+        <div className="w-full h-full max-w-7xl bg-black rounded-lg overflow-hidden">
+          {renderVideo(videos[currentIndex])}
+        </div>
+      </div>
+      
+      {/* Navigation Arrows */}
+      {videos.length > 1 && (
+        <>
+          <button
+            onClick={handlePrev}
+            className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all z-20"
+          >
+            <ChevronLeftIcon className="w-8 h-8 text-white" />
+          </button>
+          <button
+            onClick={handleNext}
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all z-20"
+          >
+            <ChevronRightIcon className="w-8 h-8 text-white" />
+          </button>
+        </>
+      )}
+      
+      {/* Thumbnails with Numbering */}
+      {videos.length > 1 && (
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-black/80 to-transparent">
+          <div className="flex gap-2 overflow-x-auto justify-center pb-2 px-4">
+            {videos.map((video, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  setCurrentIndex(index);
+                  setIsPlaying(false);
+                  setVideoError(false);
+                }}
+                className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all relative group ${
+                  index === currentIndex 
+                    ? 'border-red-600 scale-110 shadow-lg' 
+                    : 'border-transparent hover:border-gray-400'
+                }`}
+              >
+                <div className="w-full h-full bg-gray-800 relative">
+                  <img
+                    src={video.thumbnail || getVideoThumbnail(video.url, video.type, index)}
+                    alt={`Video thumbnail ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop';
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                    <PlayCircleIcon className="w-6 h-6 text-white opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all" />
+                  </div>
+                  
+                  {/* Numbering Badge */}
+                  <div className={`absolute top-1 left-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                    index === currentIndex ? 'bg-red-600 text-white' : 'bg-black/70 text-white'
+                  }`}>
+                    {index + 1}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+          
+          {/* Video Count Indicator */}
+          <div className="text-center mt-2 text-white/70 text-sm">
+            {currentIndex + 1} of {videos.length} videos
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Full Screen Gallery Component - WITH VIDEOS IN MAIN GALLERY
+const FullScreenGallery = ({ 
+  property, 
+  onClose 
+}: { 
+  property: NormalizedProperty; 
+  onClose: () => void 
+}) => {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false)
+  const [isZoomed, setIsZoomed] = useState(false)
+  const [imageLoaded, setImageLoaded] = useState(false)
+  const [videoError, setVideoError] = useState(false)
+  const [mediaItems, setMediaItems] = useState<{type: 'image' | 'video', url: string, thumbnail?: string}[]>([])
+  
+  // Fetch all media (images and videos combined)
+  useEffect(() => {
+    async function fetchAllMedia() {
+      try {
+        const items: {type: 'image' | 'video', url: string, thumbnail?: string}[] = [];
+        
+        // Add images first
+        if (property.images && Array.isArray(property.images) && property.images.length > 0) {
+          property.images.forEach((img: string) => {
+            if (img && typeof img === 'string' && img.trim() !== '') {
+              items.push({
+                type: 'image',
+                url: img,
+                thumbnail: img
+              });
+            }
+          });
+        } else if (property.image) {
+          items.push({
+            type: 'image',
+            url: property.image,
+            thumbnail: property.image
+          });
+        }
+        
+        // Add videos from videos array
+        if (property.videos && Array.isArray(property.videos) && property.videos.length > 0) {
+          property.videos.forEach((videoUrl: string, index: number) => {
+            if (videoUrl && typeof videoUrl === 'string' && videoUrl.trim() !== '') {
+              const videoType = getVideoType(videoUrl);
+              if (videoType !== 'none') {
+                items.push({
+                  type: 'video',
+                  url: videoUrl,
+                  thumbnail: getVideoThumbnail(videoUrl, videoType, index + items.length)
+                });
+              }
+            }
+          });
+        }
+        
+        // Add video from video_url if no videos in array
+        if (property.video_url && !property.videos?.length) {
+          const videoUrl = property.video_url;
+          if (videoUrl && typeof videoUrl === 'string' && videoUrl.trim() !== '') {
+            const videoType = getVideoType(videoUrl);
+            if (videoType !== 'none') {
+              items.push({
+                type: 'video',
+                url: videoUrl,
+                thumbnail: getVideoThumbnail(videoUrl, videoType, items.length)
+              });
+            }
+          }
+        }
+        
+        // Add fallback image if no media found
+        if (items.length === 0) {
+          items.push({
+            type: 'image',
+            url: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop',
+            thumbnail: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop'
+          });
+        }
+        
+        console.log("📸 Gallery loaded:", items.length, "items", 
+          items.filter(i => i.type === 'image').length, "images,", 
+          items.filter(i => i.type === 'video').length, "videos");
+        setMediaItems(items);
+      } catch (error) {
+        console.error("Error fetching media:", error);
+        setMediaItems([{
+          type: 'image',
+          url: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop',
+          thumbnail: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop'
+        }]);
+      }
+    }
+    
+    fetchAllMedia();
+  }, [property]);
+  
+  const getVideoType = (url: string) => {
+    if (!url || typeof url !== 'string') return 'none';
+    if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('youtube.com/embed')) return 'youtube';
+    if (url.includes('vimeo.com')) return 'vimeo';
+    if (url.includes('pexels.com')) return 'pexels';
+    if (/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i.test(url)) return 'direct';
+    return 'external';
+  }
+
+  const getVideoThumbnail = (url: string, type: string, index: number) => {
+    try {
+      if (type === 'youtube') {
+        const videoId = extractYouTubeId(url);
+        if (videoId) {
+          return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+        }
+      } else if (type === 'vimeo') {
+        return 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop';
+      } else if (type === 'pexels') {
+        return 'https://images.pexels.com/videos/7578549/pictures/preview-0.jpg';
+      }
+    } catch (error) {
+      console.error("Error getting thumbnail:", error);
+    }
+    
+    const fallbackThumbnails = [
+      'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1579165466741-7f35e4755660?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1579165466991-d467bfe99277?w=800&auto=format&fit=crop'
+    ];
+    return fallbackThumbnails[index % fallbackThumbnails.length];
+  };
+
+  const extractYouTubeId = (url: string) => {
+    try {
+      let videoId = '';
+      if (url.includes('youtube.com/watch?v=')) {
+        videoId = url.split('v=')[1];
+        const ampersandPosition = videoId.indexOf('&');
+        if (ampersandPosition !== -1) {
+          videoId = videoId.substring(0, ampersandPosition);
+        }
+      } else if (url.includes('youtu.be/')) {
+        videoId = url.split('youtu.be/')[1];
+        if (videoId.includes('?')) {
+          videoId = videoId.split('?')[0];
+        }
+      } else if (url.includes('youtube.com/embed/')) {
+        videoId = url.split('embed/')[1];
+        if (videoId.includes('?')) {
+          videoId = videoId.split('?')[0];
+        }
+      }
+      return videoId;
+    } catch (error) {
+      console.error("Error extracting YouTube ID:", error);
+      return '';
+    }
+  }
+  
+  const handlePrev = () => {
+    if (mediaItems.length > 0) {
+      setCurrentIndex(prev => prev === 0 ? mediaItems.length - 1 : prev - 1);
+      setIsVideoPlaying(false);
+      setIsZoomed(false);
+      setImageLoaded(false);
+      setVideoError(false);
+    }
+  }
+  
+  const handleNext = () => {
+    if (mediaItems.length > 0) {
+      setCurrentIndex(prev => prev === mediaItems.length - 1 ? 0 : prev + 1);
+      setIsVideoPlaying(false);
+      setIsZoomed(false);
+      setImageLoaded(false);
+      setVideoError(false);
+    }
+  }
+
+  const toggleZoom = () => {
+    if (mediaItems[currentIndex]?.type === 'image') {
+      setIsZoomed(!isZoomed);
+    }
+  }
+  
+  const renderMedia = () => {
+    if (!mediaItems || mediaItems.length === 0 || !mediaItems[currentIndex]) {
+      return (
+        <div className="w-full h-full flex items-center justify-center bg-black text-white">
+          No media available
+        </div>
+      );
+    }
+    
+    const media = mediaItems[currentIndex];
+    
+    if (media.type === 'video') {
+      const videoType = getVideoType(media.url);
+      
+      if (videoError) {
+        return (
+          <div className="relative w-full h-full flex items-center justify-center bg-gray-900">
+            <div className="text-center text-white p-8">
+              <VideoCameraIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
+              <h3 className="text-xl font-bold mb-2">Video Failed to Load</h3>
+              <p className="text-gray-400 mb-4">Unable to play this video</p>
+              <button
+                onClick={() => setVideoError(false)}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white font-bold transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        );
+      }
+      
+      if (!isVideoPlaying) {
+        return (
+          <div className="relative w-full h-full bg-black">
+            <img
+              src={media.thumbnail || getVideoThumbnail(media.url, videoType, currentIndex)}
+              alt={`Video thumbnail ${currentIndex + 1}`}
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                e.currentTarget.src = 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop';
+              }}
+            />
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+              <button
+                onClick={() => setIsVideoPlaying(true)}
+                className="w-20 h-20 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-transform hover:scale-110 shadow-2xl"
+              >
+                <PlayCircleIcon className="w-12 h-12 text-white" />
+              </button>
+            </div>
+            <div className="absolute bottom-4 left-4 px-3 py-1 bg-red-600 text-white text-sm font-bold rounded-full">
+              VIDEO {currentIndex + 1}
+            </div>
+          </div>
+        );
+      }
+      
+      if (videoType === 'youtube') {
+        const videoId = extractYouTubeId(media.url);
+        if (!videoId) {
+          return (
+            <div className="w-full h-full flex items-center justify-center bg-gray-900 text-white">
+              Invalid YouTube URL
+            </div>
+          );
+        }
+        return (
+          <iframe
+            key={`youtube-${currentIndex}-${videoId}`}
+            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
+            className="w-full h-full"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            title={`${property.title} - YouTube Video ${currentIndex + 1}`}
+            onError={() => setVideoError(true)}
+          />
+        );
+      } else {
+        return (
+          <video
+            key={`video-${currentIndex}-${media.url}`}
+            controls
+            autoPlay
+            className="w-full h-full object-contain bg-black"
+            preload="auto"
+            playsInline
+            onError={() => setVideoError(true)}
+          >
+            <source src={media.url} type="video/mp4" />
+            <source src={media.url} type="video/webm" />
+            <source src={media.url} type="video/ogg" />
+            Your browser does not support the video tag.
+          </video>
+        );
+      }
+    }
+    
+    // Image rendering
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <img
+          src={media.url}
+          alt={`${property.title} - Image ${currentIndex + 1}`}
+          className={`transition-all duration-300 ${
+            isZoomed 
+              ? 'object-contain w-auto h-auto max-w-[2000px] max-h-[2000px] cursor-zoom-out' 
+              : 'object-contain w-full h-full max-w-full max-h-full cursor-zoom-in'
+          }`}
+          onClick={toggleZoom}
+          onLoad={() => setImageLoaded(true)}
+          onError={(e) => {
+            e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop';
+            setImageLoaded(true);
+          }}
+        />
+      </div>
+    );
+  }
+  
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isZoomed) {
+          setIsZoomed(false);
+        } else {
+          onClose();
+        }
+      }
+      if (e.key === 'ArrowLeft') handlePrev();
+      if (e.key === 'ArrowRight') handleNext();
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'auto';
+    };
+  }, [isZoomed, mediaItems.length, onClose]);
+  
+  if (mediaItems.length === 0) {
+    return (
+      <div className="fixed inset-0 z-2000 bg-black flex items-center justify-center">
+        <div className="text-center text-white">
+          <PhotoIcon className="w-20 h-20 mx-auto mb-4 opacity-50" />
+          <h3 className="text-2xl font-bold mb-2">No Media Available</h3>
+          <p className="text-gray-400">This property doesn't have any images or videos.</p>
+          <button
+            onClick={onClose}
+            className="mt-6 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-bold transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
+  const imageCount = mediaItems.filter(m => m.type === 'image').length;
+  const videoCount = mediaItems.filter(m => m.type === 'video').length;
+
+  return (
+    <div className="fixed inset-0 z-2000 bg-black">
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 z-10 p-6 flex justify-between items-center bg-linear-to-b from-black/80 to-transparent">
+        <div className="text-white">
+          <h2 className="text-xl font-bold">{property.title}</h2>
+          <p className="text-sm text-gray-300">
+            <span className="font-bold text-red-500">{currentIndex + 1}</span> / {mediaItems.length} 
+            ({imageCount} {imageCount === 1 ? 'image' : 'images'}, {videoCount} {videoCount === 1 ? 'video' : 'videos'})
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {mediaItems[currentIndex]?.type === 'image' && (
+            <button
+              onClick={toggleZoom}
+              className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white"
+              title={isZoomed ? "Zoom Out" : "Zoom In"}
+            >
+              {isZoomed ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7m6 0V7m0 3v3" />
+                </svg>
+              )}
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all"
+          >
+            <XMarkIcon className="w-6 h-6 text-white" />
+          </button>
+        </div>
+      </div>
+      
+      {/* Main Media Display */}
+      <div className="w-full h-full flex items-center justify-center p-4 pt-20 pb-24">
+        <div className="w-full h-full max-w-7xl bg-black rounded-lg overflow-hidden">
+          {renderMedia()}
+        </div>
+      </div>
+      
+      {/* Navigation Arrows */}
+      {mediaItems.length > 1 && !isZoomed && (
+        <>
+          <button
+            onClick={handlePrev}
+            className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all z-20"
+          >
+            <ChevronLeftIcon className="w-8 h-8 text-white" />
+          </button>
+          <button
+            onClick={handleNext}
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all z-20"
+          >
+            <ChevronRightIcon className="w-8 h-8 text-white" />
+          </button>
+        </>
+      )}
+      
+      {/* Thumbnails with Numbering - Images and Videos Together */}
+      {mediaItems.length > 1 && !isZoomed && (
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-black/80 to-transparent">
+          <div className="flex gap-2 overflow-x-auto justify-center pb-2 px-4">
+            {mediaItems.map((media, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  setCurrentIndex(index);
+                  setIsVideoPlaying(false);
+                  setIsZoomed(false);
+                  setImageLoaded(false);
+                  setVideoError(false);
+                }}
+                className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all relative group ${
+                  index === currentIndex 
+                    ? media.type === 'video' ? 'border-red-600 scale-110 shadow-lg' : 'border-blue-600 scale-110 shadow-lg'
+                    : 'border-transparent hover:border-gray-400'
+                }`}
+              >
+                <div className="w-full h-full bg-gray-800 relative">
+                  {media.type === 'video' ? (
+                    <>
+                      <img
+                        src={media.thumbnail || getVideoThumbnail(media.url, 'youtube', index)}
+                        alt={`Video thumbnail ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                        <PlayCircleIcon className="w-6 h-6 text-white opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all" />
+                      </div>
+                    </>
+                  ) : (
+                    <img
+                      src={media.thumbnail}
+                      alt={`Image thumbnail ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop';
+                      }}
+                    />
+                  )}
+                  
+                  {/* Numbering Badge */}
+                  <div className={`absolute top-1 left-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                    index === currentIndex 
+                      ? media.type === 'video' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'
+                      : 'bg-black/70 text-white'
+                  }`}>
+                    {index + 1}
+                  </div>
+                  
+                  {/* Media Type Indicator */}
+                  <div className="absolute bottom-1 right-1">
+                    {media.type === 'video' ? (
+                      <VideoCameraIcon className="w-3 h-3 text-white drop-shadow-lg" />
+                    ) : (
+                      <PhotoIcon className="w-3 h-3 text-white drop-shadow-lg" />
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+          
+          {/* Media Count Indicator */}
+          <div className="text-center mt-2 text-white/70 text-sm">
+            {currentIndex + 1} of {mediaItems.length} • {imageCount} images, {videoCount} videos
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Agent Popup Modal Component
 function AgentPopupModal({
   agentData,
   isOpen,
@@ -1358,7 +2197,7 @@ function AgentPopupModal({
   );
 }
 
-// MAIN VIEW DETAILS MODAL - COMPLETED
+// MAIN VIEW DETAILS MODAL - UPDATED WITH VIDEOS IN MAIN GALLERY
 function ViewDetailsModal({ 
   property, 
   onClose 
@@ -1368,25 +2207,147 @@ function ViewDetailsModal({
 }) {
   if (!property) return null;
 
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [mortgageData, setMortgageData] = useState({
     downPaymentPercent: 20,
     interestRate: 4.5,
     loanTerm: 25,
   });
   const [agentData, setAgentData] = useState<AgentData | null>(null);
-  const [agentLoading, setAgentLoading] = useState(true);
+  const [showBrochureForm, setShowBrochureForm] = useState(false);
   const [showFloorPlanForm, setShowFloorPlanForm] = useState(false);
+  const [showVideoGallery, setShowVideoGallery] = useState(false);
   const [showAgentPopup, setShowAgentPopup] = useState(false);
   const [agentPopupData, setAgentPopupData] = useState<AgentData | null>(null);
-  const [agentPopupLoading, setAgentPopupLoading] = useState(false);
   const [showFullScreenGallery, setShowFullScreenGallery] = useState(false);
+  const [hasVideos, setHasVideos] = useState(false);
+  const [mediaItems, setMediaItems] = useState<{type: 'image' | 'video', url: string, thumbnail?: string}[]>([]);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+
+  // Combine images and videos
+  useEffect(() => {
+    const items: {type: 'image' | 'video', url: string, thumbnail?: string}[] = [];
+    
+    // Add images
+    if (property.images && property.images.length > 0) {
+      property.images.forEach(img => {
+        if (img && typeof img === 'string' && img.trim() !== '') {
+          items.push({ type: 'image', url: img, thumbnail: img });
+        }
+      });
+    } else if (property.image) {
+      items.push({ type: 'image', url: property.image, thumbnail: property.image });
+    }
+    
+    // Add videos
+    if (property.videos && property.videos.length > 0) {
+      property.videos.forEach((videoUrl, index) => {
+        if (videoUrl && typeof videoUrl === 'string' && videoUrl.trim() !== '') {
+          const videoType = getVideoType(videoUrl);
+          if (videoType !== 'none') {
+            items.push({ 
+              type: 'video', 
+              url: videoUrl,
+              thumbnail: getVideoThumbnail(videoUrl, videoType, index + items.length)
+            });
+          }
+        }
+      });
+    } else if (property.video_url) {
+      const videoUrl = property.video_url;
+      if (videoUrl && typeof videoUrl === 'string' && videoUrl.trim() !== '') {
+        const videoType = getVideoType(videoUrl);
+        if (videoType !== 'none') {
+          items.push({ 
+            type: 'video', 
+            url: videoUrl,
+            thumbnail: getVideoThumbnail(videoUrl, videoType, items.length)
+          });
+        }
+      }
+    }
+    
+    // Add fallback if no items
+    if (items.length === 0) {
+      items.push({
+        type: 'image',
+        url: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop',
+        thumbnail: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop'
+      });
+    }
+    
+    setMediaItems(items);
+    
+    // Check if has videos
+    if (items.some(item => item.type === 'video')) {
+      setHasVideos(true);
+    }
+  }, [property]);
+
+  const getVideoType = (url: string) => {
+    if (!url || typeof url !== 'string') return 'none';
+    if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('youtube.com/embed')) return 'youtube';
+    if (url.includes('vimeo.com')) return 'vimeo';
+    if (url.includes('pexels.com')) return 'pexels';
+    if (/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i.test(url)) return 'direct';
+    return 'external';
+  };
+
+  const getVideoThumbnail = (url: string, type: string, index: number) => {
+    try {
+      if (type === 'youtube') {
+        const videoId = extractYouTubeId(url);
+        if (videoId) {
+          return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+        }
+      } else if (type === 'vimeo') {
+        return 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop';
+      } else if (type === 'pexels') {
+        return 'https://images.pexels.com/videos/7578549/pictures/preview-0.jpg';
+      }
+    } catch (error) {
+      console.error("Error getting thumbnail:", error);
+    }
+    
+    const fallbackThumbnails = [
+      'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1579165466741-7f35e4755660?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1579165466991-d467bfe99277?w=800&auto=format&fit=crop'
+    ];
+    return fallbackThumbnails[index % fallbackThumbnails.length];
+  };
+
+  const extractYouTubeId = (url: string) => {
+    try {
+      let videoId = '';
+      if (url.includes('youtube.com/watch?v=')) {
+        videoId = url.split('v=')[1];
+        const ampersandPosition = videoId.indexOf('&');
+        if (ampersandPosition !== -1) {
+          videoId = videoId.substring(0, ampersandPosition);
+        }
+      } else if (url.includes('youtu.be/')) {
+        videoId = url.split('youtu.be/')[1];
+        if (videoId.includes('?')) {
+          videoId = videoId.split('?')[0];
+        }
+      } else if (url.includes('youtube.com/embed/')) {
+        videoId = url.split('embed/')[1];
+        if (videoId.includes('?')) {
+          videoId = videoId.split('?')[0];
+        }
+      }
+      return videoId;
+    } catch (error) {
+      console.error("Error extracting YouTube ID:", error);
+      return '';
+    }
+  };
 
   // Fetch agent data
   useEffect(() => {
     async function fetchAgentData() {
       try {
-        setAgentLoading(true);
         const agentId = property?.agent_id;
 
         if (agentId) {
@@ -1396,7 +2357,6 @@ function ViewDetailsModal({
           if (agentDoc.exists()) {
             const data = agentDoc.data() as AgentData;
             setAgentData(data);
-            setAgentLoading(false);
             return;
           }
         }
@@ -1453,8 +2413,6 @@ function ViewDetailsModal({
           rating: 4.5,
           review_count: 0,
         });
-      } finally {
-        setAgentLoading(false);
       }
     }
 
@@ -1465,7 +2423,6 @@ function ViewDetailsModal({
 
   const openAgentPopup = async () => {
     try {
-      setAgentPopupLoading(true);
       
       if (property.agent_id) {
         const agentDocRef = doc(db, "agents", property.agent_id);
@@ -1479,7 +2436,6 @@ function ViewDetailsModal({
           });
           setShowAgentPopup(true);
           document.body.style.overflow = 'hidden';
-          setAgentPopupLoading(false);
           return;
         }
       }
@@ -1498,7 +2454,6 @@ function ViewDetailsModal({
           });
           setShowAgentPopup(true);
           document.body.style.overflow = 'hidden';
-          setAgentPopupLoading(false);
           return;
         }
       }
@@ -1507,7 +2462,6 @@ function ViewDetailsModal({
         setAgentPopupData(agentData);
         setShowAgentPopup(true);
         document.body.style.overflow = 'hidden';
-        setAgentPopupLoading(false);
         return;
       }
       
@@ -1540,8 +2494,6 @@ function ViewDetailsModal({
       });
       setShowAgentPopup(true);
       document.body.style.overflow = 'hidden';
-    } finally {
-      setAgentPopupLoading(false);
     }
   };
 
@@ -1558,21 +2510,6 @@ function ViewDetailsModal({
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('en-US').format(num);
   };
-
-  const getPropertyImages = () => {
-    if (property.images && property.images.length > 0) {
-      return property.images;
-    }
-    if (property.floorplans && property.floorplans.length > 0) {
-      return property.floorplans;
-    }
-    return [
-      property.image ||
-        "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop",
-    ];
-  };
-
-  const propertyImages = getPropertyImages();
 
   const calculateMortgage = () => {
     const price = property.price || 0;
@@ -1600,24 +2537,123 @@ function ViewDetailsModal({
 
   const mortgage = calculateMortgage();
 
-  const handlePrevImage = () => {
-    setCurrentImageIndex((prev) =>
-      prev === 0 ? propertyImages.length - 1 : prev - 1
-    );
+  const handlePrevMedia = () => {
+    setCurrentIndex(prev => prev === 0 ? mediaItems.length - 1 : prev - 1);
+    setIsVideoPlaying(false);
   };
 
-  const handleNextImage = () => {
-    setCurrentImageIndex((prev) =>
-      prev === propertyImages.length - 1 ? 0 : prev + 1
+  const handleNextMedia = () => {
+    setCurrentIndex(prev => prev === mediaItems.length - 1 ? 0 : prev + 1);
+    setIsVideoPlaying(false);
+  };
+
+  const imageCount = mediaItems.filter(m => m.type === 'image').length;
+  const videoCount = mediaItems.filter(m => m.type === 'video').length;
+  const currentMedia = mediaItems[currentIndex];
+
+  const renderMainMedia = () => {
+    if (!currentMedia) return null;
+
+    if (currentMedia.type === 'video') {
+      const videoType = getVideoType(currentMedia.url);
+      
+      if (!isVideoPlaying) {
+        return (
+          <div className="relative w-full h-full bg-black">
+            <img
+              src={currentMedia.thumbnail || getVideoThumbnail(currentMedia.url, videoType, currentIndex)}
+              alt={`Video thumbnail ${currentIndex + 1}`}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop";
+              }}
+            />
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+              <button
+                onClick={() => setIsVideoPlaying(true)}
+                className="w-20 h-20 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-transform hover:scale-110 shadow-2xl"
+              >
+                <PlayCircleIcon className="w-12 h-12 text-white" />
+              </button>
+            </div>
+            <div className="absolute top-4 left-4 px-3 py-1 bg-red-600 text-white text-sm font-bold rounded-full">
+              VIDEO {mediaItems.filter(m => m.type === 'video').findIndex(v => v.url === currentMedia.url) + 1} / {videoCount}
+            </div>
+          </div>
+        );
+      }
+
+      if (videoType === 'youtube') {
+        const videoId = extractYouTubeId(currentMedia.url);
+        if (!videoId) {
+          return (
+            <div className="w-full h-full flex items-center justify-center bg-gray-900 text-white">
+              Invalid YouTube URL
+            </div>
+          );
+        }
+        return (
+          <iframe
+            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
+            className="w-full h-full"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            title={`${property.title} - Video`}
+          />
+        );
+      } else {
+        return (
+          <video
+            controls
+            autoPlay
+            className="w-full h-full object-contain bg-black"
+            preload="auto"
+            playsInline
+          >
+            <source src={currentMedia.url} type="video/mp4" />
+            <source src={currentMedia.url} type="video/webm" />
+            <source src={currentMedia.url} type="video/ogg" />
+            Your browser does not support the video tag.
+          </video>
+        );
+      }
+    }
+
+    // Image rendering
+    return (
+      <img
+        src={currentMedia.url}
+        alt={property.title || "Property Image"}
+        className="w-full h-full object-cover cursor-pointer"
+        onClick={() => setShowFullScreenGallery(true)}
+        onError={(e) => {
+          e.currentTarget.src = "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop";
+        }}
+      />
     );
   };
 
   return (
     <>
+      {showBrochureForm && (
+        <BrochureForm
+          property={property}
+          onClose={() => setShowBrochureForm(false)}
+        />
+      )}
+
       {showFloorPlanForm && (
         <FloorPlanForm
           property={property}
           onClose={() => setShowFloorPlanForm(false)}
+        />
+      )}
+
+      {showVideoGallery && (
+        <VideoGallery
+          property={property}
+          onClose={() => setShowVideoGallery(false)}
         />
       )}
 
@@ -1629,7 +2665,6 @@ function ViewDetailsModal({
         />
       )}
 
-      {/* Full Screen Gallery */}
       {showFullScreenGallery && (
         <FullScreenGallery 
           property={property} 
@@ -1638,7 +2673,6 @@ function ViewDetailsModal({
       )}
 
       <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
-        {/* Sticky Header */}
         <div className="sticky top-0 z-50 bg-white border-b border-slate-100 shadow-sm">
           <div className="container-custom py-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1666,7 +2700,6 @@ function ViewDetailsModal({
           </div>
         </div>
 
-        {/* Main Content */}
         <div className="container-custom pt-8 pb-12">
           <div className="flex flex-row gap-3 mb-6">
             <div className="-mt-1">
@@ -1681,23 +2714,11 @@ function ViewDetailsModal({
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-            {/* Left Column - Images & Details */}
             <div className="lg:col-span-8 space-y-12">
-              {/* Main Image Gallery */}
               <div className="overflow-hidden shadow-2xl rounded-3xl shadow-slate-200/50">
                 <div className="relative h-[500px] bg-slate-100 overflow-hidden">
-                  <img
-                    src={propertyImages[currentImageIndex]}
-                    alt={property.title || "Property Image"}
-                    className="w-full h-full object-cover cursor-pointer"
-                    onClick={() => setShowFullScreenGallery(true)}
-                    onError={(e) => {
-                      e.currentTarget.src =
-                        "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop";
-                    }}
-                  />
+                  {renderMainMedia()}
 
-                  {/* Open Gallery Button */}
                   <button
                     onClick={() => setShowFullScreenGallery(true)}
                     className="absolute bottom-6 right-6 bg-black/70 hover:bg-black/90 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition-colors backdrop-blur-sm shadow-lg z-10"
@@ -1706,7 +2727,6 @@ function ViewDetailsModal({
                     <span className="font-bold text-sm">Open Gallery</span>
                   </button>
 
-                  {/* Image Counter */}
                   <div className="absolute top-4 left-4 right-4 flex justify-between">
                     <div className="flex gap-2">
                       <span className="px-4 py-2 bg-primary text-white text-sm font-bold rounded-full shadow-lg">
@@ -1723,23 +2743,29 @@ function ViewDetailsModal({
                     </div>
 
                     <div className="absolute top-2 right-4 px-3 py-1 bg-black/50 text-white text-sm rounded-full flex items-center gap-1 z-20">
-                      <PhotoIcon className="w-4 h-4" />
-                      {currentImageIndex + 1} / {propertyImages.length}
+                      {currentMedia?.type === 'video' ? (
+                        <VideoCameraIcon className="w-4 h-4" />
+                      ) : (
+                        <PhotoIcon className="w-4 h-4" />
+                      )}
+                      {currentIndex + 1} / {mediaItems.length}
+                      <span className="text-xs opacity-75 ml-1">
+                        ({imageCount} img, {videoCount} vid)
+                      </span>
                     </div>
                   </div>
 
-                  {/* Navigation Arrows */}
-                  {propertyImages.length > 1 && (
+                  {mediaItems.length > 1 && (
                     <>
                       <button
-                        onClick={handlePrevImage}
+                        onClick={handlePrevMedia}
                         className="absolute left-6 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors shadow-xl"
                       >
                         <ChevronLeftIcon className="w-5 h-5 text-white" />
                       </button>
 
                       <button
-                        onClick={handleNextImage}
+                        onClick={handleNextMedia}
                         className="absolute right-6 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors shadow-xl"
                       >
                         <ChevronRightIcon className="w-5 h-5 text-white" />
@@ -1748,25 +2774,40 @@ function ViewDetailsModal({
                   )}
                 </div>
 
-                {/* Thumbnails */}
-                {propertyImages.length > 1 && (
+                {mediaItems.length > 1 && (
                   <div className="p-4">
                     <div className="flex gap-4 overflow-x-auto pb-2">
-                      {propertyImages.map((img, idx) => (
+                      {mediaItems.map((media, idx) => (
                         <button
                           key={idx}
-                          onClick={() => setCurrentImageIndex(idx)}
-                          className={`shrink-0 w-24 h-20 rounded-xl overflow-hidden border-4 transition-all ${
-                            idx === currentImageIndex
-                              ? "border-primary"
-                              : "border-transparent hover:border-slate-300"
+                          onClick={() => {
+                            setCurrentIndex(idx);
+                            setIsVideoPlaying(false);
+                          }}
+                          className={`shrink-0 w-24 h-20 rounded-xl overflow-hidden border-4 transition-all relative ${
+                            idx === currentIndex
+                              ? media.type === 'video' ? 'border-red-600' : 'border-primary'
+                              : 'border-transparent hover:border-slate-300'
                           }`}
                         >
                           <img
-                            src={img}
+                            src={media.type === 'video' ? (media.thumbnail || getVideoThumbnail(media.url, getVideoType(media.url), idx)) : media.url}
                             alt={`Thumbnail ${idx + 1}`}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop";
+                            }}
                           />
+                          {media.type === 'video' && (
+                            <>
+                              <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                <PlayCircleIcon className="w-6 h-6 text-white opacity-80" />
+                              </div>
+                              <div className="absolute top-1 left-1 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center text-[10px] font-bold text-white">
+                                {mediaItems.filter(m => m.type === 'video').findIndex(v => v.url === media.url) + 1}
+                              </div>
+                            </>
+                          )}
                         </button>
                       ))}
                     </div>
@@ -1774,10 +2815,8 @@ function ViewDetailsModal({
                 )}
               </div>
 
-              {/* Property Details Card */}
               <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl shadow-slate-200/50 border border-slate-100">
                 <div className="space-y-10">
-                  {/* Title and Price */}
                   <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
@@ -1812,7 +2851,6 @@ function ViewDetailsModal({
                     </div>
                   </div>
 
-                  {/* Key Features */}
                   <div className="flex gap-20 justify-around p-8 bg-slate-50 rounded-4xl border border-slate-100">
                     <div className="space-y-1">
                       <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -1854,7 +2892,6 @@ function ViewDetailsModal({
                     </div>
                   </div>
 
-                  {/* Description */}
                   <div className="space-y-6">
                     <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
                       <span className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
@@ -1870,7 +2907,6 @@ function ViewDetailsModal({
                     </div>
                   </div>
 
-                  {/* Features & Amenities */}
                   {property.features && property.features.length > 0 && (
                     <div className="space-y-6 pt-10 border-t border-slate-100">
                       <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
@@ -1895,7 +2931,6 @@ function ViewDetailsModal({
                     </div>
                   )}
 
-                  {/* Property Details Grid */}
                   <div className="space-y-6 pt-10 border-t border-slate-100">
                     <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
                       <span className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
@@ -1945,7 +2980,6 @@ function ViewDetailsModal({
                     </div>
                   </div>
 
-                  {/* Location Map */}
                   <div className="space-y-6 pt-10 border-t border-slate-100">
                     <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
                       <span className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
@@ -1998,7 +3032,6 @@ function ViewDetailsModal({
                     </div>
                   </div>
 
-                  {/* Download Resources */}
                   <div className="space-y-6 pt-10 border-t border-slate-100">
                     <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
                       <span className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
@@ -2012,7 +3045,7 @@ function ViewDetailsModal({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <button
-                        onClick={() => setShowFloorPlanForm(true)}
+                        onClick={() => setShowBrochureForm(true)}
                         className="group p-6 bg-slate-50 hover:bg-primary hover:text-white border border-slate-200 hover:border-primary rounded-2xl transition-all duration-300 text-left"
                       >
                         <div className="flex items-center gap-4">
@@ -2048,26 +3081,20 @@ function ViewDetailsModal({
                           </div>
                         </div>
                       </button>
+
+                     
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Right Column - Agent & Actions */}
             <aside className="lg:col-span-4 space-y-8">
               <div className="sticky top-32 space-y-8">
-                {/* Agent Card */}
                 <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative">
                   <div className="absolute top-0 left-0 w-full h-2 bg-primary" />
                   <div className="text-center space-y-6">
-                    {agentLoading ? (
-                      <div className="animate-pulse">
-                        <div className="w-24 h-24 mx-auto rounded-full bg-gray-300 mb-4"></div>
-                        <div className="h-6 bg-gray-300 rounded w-3/4 mx-auto mb-2"></div>
-                        <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
-                      </div>
-                    ) : (
+                    {agentData ? (
                       <>
                         <div className="relative inline-block">
                           <div className="w-24 h-24 mx-auto rounded-full overflow-hidden ring-4 ring-slate-50 shadow-lg">
@@ -2162,26 +3189,19 @@ function ViewDetailsModal({
                           </button>
                         </div>
                       </>
+                    ) : (
+                      <div>Loading agent...</div>
                     )}
 
                     <button
                       onClick={openAgentPopup}
-                      disabled={agentPopupLoading}
-                      className="w-full inline-block text-center text-slate-400 font-bold hover:text-primary transition-colors cursor-pointer mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full inline-block text-center text-slate-400 font-bold hover:text-primary transition-colors cursor-pointer mt-4"
                     >
-                      {agentPopupLoading ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                          Loading...
-                        </div>
-                      ) : (
-                        'VIEW FULL PROFILE'
-                      )}
+                      VIEW FULL PROFILE
                     </button>
                   </div>
                 </div>
 
-                {/* Inquiry Form */}
                 <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-slate-900/20 relative overflow-hidden">
                   <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
                   <div className="relative z-10 space-y-6">
@@ -2217,7 +3237,6 @@ function ViewDetailsModal({
                   </div>
                 </div>
 
-                {/* Mortgage Calculator */}
                 <MortgageCalculator defaultPrice={property.price || 0} />
               </div>
             </aside>
@@ -2227,6 +3246,7 @@ function ViewDetailsModal({
     </>
   );
 }
+
 
 // Function to fetch property details
 async function fetchPropertyDetails(
@@ -2341,7 +3361,6 @@ function PropertiesPageContent() {
   const [selectedProperty, setSelectedProperty] = useState<NormalizedProperty | null>(null);
   const [galleryModal, setGalleryModal] = useState<{ isOpen: boolean; property: NormalizedProperty | null }>({ isOpen: false, property: null });
   const [showFullScreenGallery, setShowFullScreenGallery] = useState(false);
-  const [dataLoaded, setDataLoaded] = useState(false);
   
   const viewMode = searchParams.get('view') === 'list' ? 'list' : 'grid';
   const sortBy = searchParams.get('sortBy') || 'featured';
@@ -2367,7 +3386,6 @@ function PropertiesPageContent() {
   const search = searchParams.get('search') || '';
   const hasVideo = searchParams.get('hasVideo') || '';
 
-  // Form state - initial values from URL params
   const [formState, setFormState] = useState({
     action: action,
     category: category,
@@ -2383,12 +3401,36 @@ function PropertiesPageContent() {
     search: search
   });
 
-  // Update formState when URL params change
+  // NEW: State for video filter
+  const [showOnlyVideos, setShowOnlyVideos] = useState(false);
+
+  // NEW: Function to handle video filter change
+  const handleVideoFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    setShowOnlyVideos(checked);
+    
+    // Update formState
+    setFormState(prev => ({
+      ...prev,
+      hasVideo: checked ? 'true' : ''
+    }));
+    
+    // Update URL params
+    const params = new URLSearchParams(searchParams.toString());
+    if (checked) {
+      params.set('hasVideo', 'true');
+    } else {
+      params.delete('hasVideo');
+    }
+    router.replace(`/sale?${params.toString()}`, { scroll: false });
+  };
+
   useEffect(() => {
     console.log('🔍 URL Params:', {
       area: searchParams.get('area'),
       type: searchParams.get('type'),
-      action: searchParams.get('action')
+      action: searchParams.get('action'),
+      hasVideo: searchParams.get('hasVideo')
     });
     
     setFormState({
@@ -2405,6 +3447,9 @@ function PropertiesPageContent() {
       hasVideo: searchParams.get('hasVideo') || '',
       search: searchParams.get('search') || ''
     });
+    
+    // Set showOnlyVideos from URL
+    setShowOnlyVideos(searchParams.get('hasVideo') === 'true');
   }, [searchParams]);
 
   const handleViewDetails = async (property: NormalizedProperty) => {
@@ -2462,6 +3507,9 @@ function PropertiesPageContent() {
           agent_phone: detailedProperty.phone || "03291082882",
           agent_whatsapp: detailedProperty.whatsapp || "03291082882",
           views: detailedProperty.views || 1250,
+          brochures: detailedProperty.brochures || [],
+          documents: detailedProperty.documents || [],
+          videos: detailedProperty.videos || [],
         };
         
         setSelectedProperty(normalized as NormalizedProperty);
@@ -2483,7 +3531,6 @@ function PropertiesPageContent() {
     setShowFullScreenGallery(false);
   };
 
-  // Load properties once on mount
   useEffect(() => {
     async function loadProperties() {
       const properties = await fetchAllSaleProperties();
@@ -2547,63 +3594,43 @@ function PropertiesPageContent() {
           agent_phone: p.phone || "03291082882",
           agent_whatsapp: p.whatsapp || "03291082882",
           views: p.views || 1250,
+          brochures: p.brochures || [],
+          documents: p.documents || [],
+          videos: p.videos || [],
         };
       });
       
       setAllProperties(normalized);
-      setDataLoaded(true);
     }
     
     loadProperties();
   }, []);
 
-  // Apply filters locally - NO REDIRECT
   useEffect(() => {
-    if (!dataLoaded || allProperties.length === 0) {
+    if (allProperties.length === 0) {
       setFilteredProperties([]);
       return;
     }
     
     let filtered = [...allProperties];
     
-    // Filter by action (sale)
     if (formState.action === 'sale') {
       filtered = filtered.filter(p => p.status === 'sale');
     }
 
-    // Filter by category
     if (formState.category) {
       filtered = filtered.filter(p => p.category === formState.category);
     }
 
-    // Filter by property type
     if (formState.type) {
       filtered = filtered.filter(p => p.type?.toLowerCase() === formState.type.toLowerCase());
     }
 
-    // Filter by area/location - FIXED VERSION
     if (formState.area) {
-      // Convert hyphen to space and prepare search terms
       const searchPhrase = formState.area.replace(/-/g, ' ').toLowerCase();
       const searchTerms = searchPhrase.split(' ').filter(term => term.length > 0);
       
-      console.log('🔎 Searching for phrase:', searchPhrase);
-      console.log('🔎 Individual terms:', searchTerms);
-      console.log('📍 Total properties before filter:', filtered.length);
-      
-      // Sample properties data for debugging
-      console.log('📍 Sample properties area data:');
-      filtered.slice(0, 5).forEach((p, i) => {
-        console.log(`Property ${i + 1}:`, {
-          title: p.title,
-          area: p.area,
-          city: p.city,
-          location: p.location
-        });
-      });
-      
       filtered = filtered.filter(p => {
-        // Create a single string from all location fields
         const locationFields = [
           p.area,
           p.city,
@@ -2618,32 +3645,17 @@ function PropertiesPageContent() {
           .join(' ')
           .toLowerCase();
         
-        // Check 1: Does it contain the exact phrase?
         const exactMatch = locationText.includes(searchPhrase);
+        const allTermsMatch = searchTerms.every(term => locationText.includes(term));
         
-        // Check 2: Does it contain all individual words?
-        const allTermsMatch = searchTerms.every(term => 
-          locationText.includes(term)
-        );
-        
-        const matches = exactMatch || allTermsMatch;
-        
-        if (matches) {
-          console.log('✅ Matched:', p.title);
-        }
-        
-        return matches;
+        return exactMatch || allTermsMatch;
       });
-      
-      console.log('📍 Properties after filter:', filtered.length);
     }
 
-    // Filter by developer
     if (developer) {
       filtered = filtered.filter(p => p.developer?.toLowerCase().includes(developer.toLowerCase()));
     }
 
-    // Filter by price range
     if (formState.minPrice) {
       filtered = filtered.filter(p => p.price >= parseInt(formState.minPrice));
     }
@@ -2651,7 +3663,6 @@ function PropertiesPageContent() {
       filtered = filtered.filter(p => p.price <= parseInt(formState.maxPrice));
     }
 
-    // Filter by bedrooms
     if (formState.beds) {
       const bedNum = parseInt(formState.beds);
       if (formState.beds === '5') {
@@ -2661,7 +3672,6 @@ function PropertiesPageContent() {
       }
     }
 
-    // Filter by bathrooms
     if (formState.baths) {
       const bathNum = parseInt(formState.baths);
       if (formState.baths === '5') {
@@ -2671,7 +3681,6 @@ function PropertiesPageContent() {
       }
     }
 
-    // Filter by size range
     if (minSqft) {
       filtered = filtered.filter(p => p.sqft >= parseInt(minSqft));
     }
@@ -2679,34 +3688,36 @@ function PropertiesPageContent() {
       filtered = filtered.filter(p => p.sqft <= parseInt(maxSqft));
     }
 
-    // Filter by furnished
     if (formState.furnished === 'true') {
       filtered = filtered.filter(p => p.furnished === true);
     } else if (formState.furnished === 'false') {
       filtered = filtered.filter(p => p.furnished === false || p.furnished === null);
     }
 
-    // Filter by parking
     if (parking) {
       filtered = filtered.filter(p => p.parking?.toLowerCase() === parking.toLowerCase());
     }
 
-    // Filter by property age
     if (propertyAge) {
       filtered = filtered.filter(p => p.propertyAge === propertyAge);
     }
 
-    // Filter by completion status
     if (formState.completion) {
       filtered = filtered.filter(p => p.completion === formState.completion);
     }
 
-    // Filter by video availability
-    if (formState.hasVideo === 'true') {
-      filtered = filtered.filter(p => p.video_url && p.video_url.trim() !== '');
+    // UPDATED: Video filter - check both videos array and video_url
+    if (formState.hasVideo === 'true' || showOnlyVideos) {
+      filtered = filtered.filter(p => {
+        // Check if property has videos in videos array
+        const hasVideosArray = p.videos && Array.isArray(p.videos) && p.videos.length > 0;
+        // Check if property has video_url
+        const hasVideoUrl = p.video_url && typeof p.video_url === 'string' && p.video_url.trim() !== '';
+        
+        return hasVideosArray || hasVideoUrl;
+      });
     }
 
-    // Filter by features
     const featuresList = features ? features.split(',').map(f => f.trim()).filter(Boolean) : [];
     if (featuresList.length > 0) {
       filtered = filtered.filter((p: NormalizedProperty) => {
@@ -2715,7 +3726,6 @@ function PropertiesPageContent() {
       });
     }
 
-    // Keywords search - Property name search working properly
     if (formState.search && formState.search.trim() !== '') {
       const sLower = formState.search.toLowerCase();
       filtered = filtered.filter(p => {
@@ -2729,7 +3739,6 @@ function PropertiesPageContent() {
       });
     }
 
-    // Sort results
     switch (sortBy) {
       case 'price-low':
         filtered.sort((a, b) => a.price - b.price);
@@ -2759,8 +3768,8 @@ function PropertiesPageContent() {
 
     setFilteredProperties(filtered);
   }, [
-    dataLoaded, allProperties, formState, developer, minSqft, maxSqft, 
-    parking, propertyAge, features, sortBy
+    allProperties, formState, developer, minSqft, maxSqft, 
+    parking, propertyAge, features, sortBy, showOnlyVideos
   ]);
 
   const handleInputChange = (name: string, value: string) => {
@@ -2770,12 +3779,12 @@ function PropertiesPageContent() {
     }));
   };
 
-  // FILTER APPLY - WITHOUT REDIRECT
   const handleFilterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // UPDATED: Reset filters including video filter
   const handleResetFilters = () => {
     setFormState({
       action: 'sale',
@@ -2791,26 +3800,32 @@ function PropertiesPageContent() {
       hasVideo: '',
       search: ''
     });
+    setShowOnlyVideos(false);
+    
+    // Clear URL params
+    const params = new URLSearchParams();
+    router.replace(`/sale`, { scroll: false });
   };
 
   const handleSortChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('sortBy', value);
-    router.replace(`/buy?${params.toString()}`, { scroll: false });
+    router.replace(`/sale?${params.toString()}`, { scroll: false });
   };
 
   const handleViewChange = (view: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('view', view);
-    router.replace(`/buy?${params.toString()}`, { scroll: false });
+    router.replace(`/sale?${params.toString()}`, { scroll: false });
   };
 
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('page', newPage.toString());
-    router.replace(`/buy?${params.toString()}`, { scroll: false });
+    router.replace(`/sale?${params.toString()}`, { scroll: false });
   };
 
+  // UPDATED: Page title with video filter
   const getPageTitle = () => {
     let title = '';
 
@@ -2836,11 +3851,18 @@ function PropertiesPageContent() {
     }
 
     title += ' for Sale';
+    
+    // Add video badge in title
+    if (showOnlyVideos) {
+      title = 'Video Tour ' + title;
+    }
+    
     title += formState.area ? ` in ${formState.area}` : ' in Dubai';
 
     return title;
   };
 
+  // UPDATED: Page description with video filter
   const getPageDescription = () => {
     let desc = '';
 
@@ -2848,6 +3870,10 @@ function PropertiesPageContent() {
       desc += 'Discover exclusive luxury ';
     } else {
       desc += 'Find ';
+    }
+
+    if (showOnlyVideos) {
+      desc = 'Watch video tours of ' + desc.toLowerCase();
     }
 
     if (formState.type) {
@@ -2866,6 +3892,11 @@ function PropertiesPageContent() {
     }
 
     desc += ' for sale';
+    
+    if (showOnlyVideos) {
+      desc += ' with virtual tours';
+    }
+    
     desc += formState.area ? ` in ${formState.area}, Dubai` : ' in Dubai';
     desc += '. Browse our curated selection with detailed information and high-quality images.';
 
@@ -2881,18 +3912,6 @@ function PropertiesPageContent() {
     return new Intl.NumberFormat('en-US').format(price);
   };
 
-  // Show a simple message while loading
-  if (!dataLoaded) {
-    return (
-      <div className="min-h-screen bg-slate-50/50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-slate-600">Loading properties...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-slate-50/50">
       {selectedProperty && (
@@ -2902,7 +3921,6 @@ function PropertiesPageContent() {
         />
       )}
 
-      {/* Gallery Modal from thumbnail */}
       {galleryModal.isOpen && galleryModal.property && (
         <FullScreenGallery 
           property={galleryModal.property} 
@@ -2946,6 +3964,7 @@ function PropertiesPageContent() {
                   📍 {formState.area}
                 </span>
               )}
+              
               <span className="px-6 py-2 bg-green-500/20 backdrop-blur-md text-green-500 rounded-full border border-green-500/30 text-sm font-bold">
                 🏠 For Sale
               </span>
@@ -3182,16 +4201,23 @@ function PropertiesPageContent() {
                   <div className="space-y-3">
                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Property Features</label>
                     <div className="space-y-2">
+                      {/* UPDATED: Video filter checkbox with better UI */}
                       <label className="flex items-center gap-3 cursor-pointer group">
                         <input 
                           type="checkbox" 
                           name="hasVideo" 
-                          checked={formState.hasVideo === 'true'}
-                          onChange={(e) => handleInputChange('hasVideo', e.target.checked ? 'true' : '')}
+                          checked={showOnlyVideos}
+                          onChange={handleVideoFilterChange}
                           className="w-5 h-5 text-primary bg-slate-50 border-slate-300 rounded focus:ring-primary/20 focus:ring-2 cursor-pointer" 
                         />
-                        <span className="text-slate-700 font-medium group-hover:text-slate-900 transition-colors">
+                        <span className="text-slate-700 font-medium group-hover:text-slate-900 transition-colors flex items-center gap-2">
+                          <VideoCameraIcon className={`w-4 h-4 ${showOnlyVideos ? 'text-red-500' : 'text-slate-400'}`} />
                           Properties with Video Tours
+                          {showOnlyVideos && (
+                            <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
+                              Active
+                            </span>
+                          )}
                         </span>
                       </label>
                     </div>
@@ -3228,7 +4254,6 @@ function PropertiesPageContent() {
               </div>
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
-                {/* Sort dropdown can be added here */}
               </div>
             </div>
 
@@ -3264,7 +4289,6 @@ function PropertiesPageContent() {
                           }}
                         />
                         
-                        {/* Gallery Icon Button */}
                         <button
                           onClick={() => handleGalleryOpenFromThumbnail(property)}
                           className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-white/95 backdrop-blur-sm rounded-xl px-3 py-2 shadow-lg hover:shadow-xl hover:bg-white border border-slate-200 flex items-center gap-2 text-slate-700 hover:text-primary font-bold text-xs z-10"
@@ -3273,7 +4297,6 @@ function PropertiesPageContent() {
                           Gallery
                         </button>
                         
-                        {/* View Details Button */}
                         <button
                           onClick={() => handleViewDetails(property)}
                           className="absolute top-10 left-3 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-white/95 backdrop-blur-sm rounded-xl px-3 py-2 shadow-lg hover:shadow-xl hover:bg-white border border-slate-200 flex items-center gap-2 text-slate-700 hover:text-primary font-bold text-xs"
@@ -3283,16 +4306,14 @@ function PropertiesPageContent() {
                         </button>
                       </div>
 
-                      <div className="mt-2 flex gap-2">
+                    <div className="mt-2 flex gap-2">
                         {property.collection === 'agent_properties' && (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             🤝 Agent Property
                             {property.agent_name && ` - ${property.agent_name}`}
                           </span>
                         )}
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          🏠 For Sale
-                        </span>
+                        
                       </div>
                     </div>
                   ))}
@@ -3352,7 +4373,9 @@ function PropertiesPageContent() {
                 <p className="text-slate-500 font-medium max-w-xs mx-auto">
                   {allProperties.length === 0 
                     ? 'No properties available for sale.'
-                    : 'We couldn\'t find any properties matching your current filters.'
+                    : showOnlyVideos 
+                      ? 'No properties with video tours found matching your criteria.'
+                      : 'We couldn\'t find any properties matching your current filters.'
                   }
                 </p>
                 <button
