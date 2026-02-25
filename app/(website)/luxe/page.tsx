@@ -1,9 +1,11 @@
-'use client';
+"use client";
 
-import { useState, useEffect, Suspense, useRef } from 'react';
-import { Database } from '@/lib/database.types'
-import MortgageCalculator from '@/components/shared/MortgageCalculator';
-import PropertyCard, { PropertyCardProperty } from '@/components/property/PropertyCard'
+import { useState, useEffect, Suspense, useRef } from "react";
+import { Database } from "@/lib/database.types";
+import MortgageCalculator from "@/components/shared/MortgageCalculator";
+import PropertyCard, {
+  PropertyCardProperty,
+} from "@/components/property/PropertyCard";
 import {
   ViewColumnsIcon,
   QueueListIcon,
@@ -41,26 +43,23 @@ import {
   PhotoIcon,
   Squares2X2Icon,
   PlayCircleIcon,
-} from '@heroicons/react/24/outline';
+} from "@heroicons/react/24/outline";
 import {
   StarIcon as StarSolidIcon,
   HeartIcon as HeartSolidIcon,
-} from '@heroicons/react/24/solid';
-import { 
-  StarIcon as StarSolid, 
+} from "@heroicons/react/24/solid";
+import {
+  StarIcon as StarSolid,
   BriefcaseIcon,
   CheckBadgeIcon,
-} from '@heroicons/react/24/solid';
-import { 
-  LinkIcon,
-  PaperClipIcon
-} from '@heroicons/react/24/outline';
-import { BathIcon, BedIcon, CarIcon } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+} from "@heroicons/react/24/solid";
+import { LinkIcon, PaperClipIcon } from "@heroicons/react/24/outline";
+import { BathIcon, BedIcon, CarIcon } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 // Firebase imports
-import { db } from '@/lib/firebase'
+import { db } from "@/lib/firebase";
 import {
   collection,
   getDocs,
@@ -71,13 +70,13 @@ import {
   getDoc,
   addDoc,
   serverTimestamp,
-} from 'firebase/firestore';
+} from "firebase/firestore";
 
 // Import jsPDF for PDF generation (fallback only)
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
-type Property = Database['public']['Tables']['properties']['Row']
+type Property = Database["public"]["Tables"]["properties"]["Row"];
 
 // Agent Data Interface
 interface AgentData {
@@ -110,85 +109,85 @@ interface AgentData {
 }
 
 type NormalizedProperty = Property & {
-  image: string
-  price: number
-  priceLabel?: string
-  area?: string | null
-  city?: string | null
-  location: string
-  beds: number
-  baths: number
-  sqft: number
-  type: string
-  featured: boolean
-  developer?: string | null
-  description?: string | null
-  category?: string | null
-  parking?: string | null
-  furnished?: boolean | null
-  propertyAge?: string | null
-  completion?: string | null
-  subtype?: string | null
-  features?: string[] | null
-  video_url?: string | null
-  currency?: string
-  status?: string
-  agent_name?: string
-  review_status?: string
-  submitted_at?: string
-  collection?: string
-  address?: string
-  property_status?: string
-  property_age?: string
-  images?: string[]
-  floorplans?: string[]
-  inquiries_count?: number
+  image: string;
+  price: number;
+  priceLabel?: string;
+  area?: string | null;
+  city?: string | null;
+  location: string;
+  beds: number;
+  baths: number;
+  sqft: number;
+  type: string;
+  featured: boolean;
+  developer?: string | null;
+  description?: string | null;
+  category?: string | null;
+  parking?: string | null;
+  furnished?: boolean | null;
+  propertyAge?: string | null;
+  completion?: string | null;
+  subtype?: string | null;
+  features?: string[] | null;
+  video_url?: string | null;
+  currency?: string;
+  status?: string;
+  agent_name?: string;
+  review_status?: string;
+  submitted_at?: string;
+  collection?: string;
+  address?: string;
+  property_status?: string;
+  property_age?: string;
+  images?: string[];
+  floorplans?: string[];
+  inquiries_count?: number;
   coords?: {
-    lat: number
-    lng: number
-  }
-  agent_id?: string
-  slug?: string
-  created_at?: string
-  updated_at?: string
-  agent_image?: string
-  agent_office?: string
-  agent_experience?: number
-  agent_properties?: number
-  agent_phone?: string
-  agent_whatsapp?: string
-  views?: number
+    lat: number;
+    lng: number;
+  };
+  agent_id?: string;
+  slug?: string;
+  created_at?: string;
+  updated_at?: string;
+  agent_image?: string;
+  agent_office?: string;
+  agent_experience?: number;
+  agent_properties?: number;
+  agent_phone?: string;
+  agent_whatsapp?: string;
+  views?: number;
   // New fields for brochures and documents
-  brochures?: string[]
+  brochures?: string[];
   documents?: {
-    name: string
-    url: string
-    type?: string
-    category?: string
-  }[]
-  videos?: string[]
-}
+    name: string;
+    url: string;
+    type?: string;
+    category?: string;
+  }[];
+  videos?: string[];
+};
 
 // Helper function to convert Google Drive URL to direct download URL
 const getGoogleDriveDirectLink = (url: string) => {
   if (!url) return url;
-  
+
   // Handle different Google Drive URL formats
-  if (url.includes('drive.google.com')) {
+  if (url.includes("drive.google.com")) {
     // Format: https://drive.google.com/file/d/FILE_ID/view
     const match = url.match(/\/d\/(.+?)\//);
     if (match && match[1]) {
       const fileId = match[1];
       return `https://drive.google.com/uc?export=download&id=${fileId}`;
     }
-    
+
     // Format: https://drive.google.com/open?id=FILE_ID
     const idMatch = url.match(/id=([^&]+)/);
     if (idMatch && idMatch[1]) {
       return `https://drive.google.com/uc?export=download&id=${idMatch[1]}`;
     }
   }
-  
+
   return url;
 };
 
@@ -207,44 +206,62 @@ function BrochureForm({
   });
 
   const [submitted, setSubmitted] = useState(false);
-  const [brochures, setBrochures] = useState<{name: string, url: string, directUrl: string}[]>([]);
-  const [selectedBrochure, setSelectedBrochure] = useState<{name: string, url: string, directUrl: string} | null>(null);
+  const [brochures, setBrochures] = useState<
+    { name: string; url: string; directUrl: string }[]
+  >([]);
+  const [selectedBrochure, setSelectedBrochure] = useState<{
+    name: string;
+    url: string;
+    directUrl: string;
+  } | null>(null);
 
   // Fetch brochures from Firebase - NO LOADING STATE
   useEffect(() => {
     async function fetchBrochures() {
       try {
-        const brochureList: {name: string, url: string, directUrl: string}[] = [];
-        
+        const brochureList: { name: string; url: string; directUrl: string }[] =
+          [];
+
         // Check brochures array
         if (property.brochures && Array.isArray(property.brochures)) {
           property.brochures.forEach((url: string, index: number) => {
-            if (url.toLowerCase().includes('.pdf') || url.includes('drive.google.com')) {
+            if (
+              url.toLowerCase().includes(".pdf") ||
+              url.includes("drive.google.com")
+            ) {
               brochureList.push({
                 name: `Brochure ${index + 1}`,
                 url: url,
-                directUrl: getGoogleDriveDirectLink(url)
+                directUrl: getGoogleDriveDirectLink(url),
               });
             }
           });
         }
-        
+
         // Check documents array for brochures
         if (property.documents && Array.isArray(property.documents)) {
           property.documents.forEach((doc: any, index: number) => {
-            const docName = doc.name?.toLowerCase() || '';
-            if (doc.url && (doc.url.toLowerCase().includes('.pdf') || doc.url.includes('drive.google.com'))) {
-              if (docName.includes('brochure') || doc.type === 'brochure' || doc.category === 'brochure') {
+            const docName = doc.name?.toLowerCase() || "";
+            if (
+              doc.url &&
+              (doc.url.toLowerCase().includes(".pdf") ||
+                doc.url.includes("drive.google.com"))
+            ) {
+              if (
+                docName.includes("brochure") ||
+                doc.type === "brochure" ||
+                doc.category === "brochure"
+              ) {
                 brochureList.push({
                   name: doc.name || `Brochure ${index + 1}`,
                   url: doc.url,
-                  directUrl: getGoogleDriveDirectLink(doc.url)
+                  directUrl: getGoogleDriveDirectLink(doc.url),
                 });
               }
             }
           });
         }
-        
+
         setBrochures(brochureList);
         if (brochureList.length > 0) {
           setSelectedBrochure(brochureList[0]);
@@ -253,7 +270,7 @@ function BrochureForm({
         console.error("Error fetching brochures:", error);
       }
     }
-    
+
     if (property) {
       fetchBrochures();
     }
@@ -262,7 +279,7 @@ function BrochureForm({
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -272,21 +289,25 @@ function BrochureForm({
   };
 
   // Function to download real PDF from URL
-  const downloadRealPDF = (brochure: {name: string, url: string, directUrl: string}) => {
+  const downloadRealPDF = (brochure: {
+    name: string;
+    url: string;
+    directUrl: string;
+  }) => {
     try {
       const downloadUrl = brochure.directUrl || brochure.url;
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = downloadUrl;
-      link.download = brochure.name.replace(/[^a-z0-9]/gi, '_') + '.pdf';
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
+      link.download = brochure.name.replace(/[^a-z0-9]/gi, "_") + ".pdf";
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       console.log("✅ Real PDF download triggered:", brochure.url);
     } catch (error) {
       console.error("Error downloading PDF:", error);
-      window.open(brochure.url, '_blank');
+      window.open(brochure.url, "_blank");
     }
   };
 
@@ -303,18 +324,18 @@ function BrochureForm({
         submitted_at: serverTimestamp(),
         download_requested: true,
         status: "pending",
-        type: "brochure"
+        type: "brochure",
       };
 
       await addDoc(collection(db, "brochure_inquiries"), brochureData);
       console.log("✅ Brochure request saved to Firebase");
-      
+
       if (selectedBrochure) {
         downloadRealPDF(selectedBrochure);
       } else if (brochures.length > 0) {
         downloadRealPDF(brochures[0]);
       }
-      
+
       setSubmitted(true);
       setTimeout(() => {
         onClose();
@@ -383,7 +404,7 @@ function BrochureForm({
               <div className="text-right">
                 <div className="text-2xl font-black text-blue-600">
                   AED {formatPrice(property.price || 0)}
-                  {property.status === 'rent' ? '/year' : ''}
+                  {property.status === "rent" ? "/year" : ""}
                 </div>
               </div>
             </div>
@@ -392,24 +413,30 @@ function BrochureForm({
           {/* Available Brochures Section */}
           {brochures.length > 0 && (
             <div className="p-6 bg-gray-50 border-b border-gray-200">
-              <h4 className="text-sm font-bold text-gray-700 mb-3">Available Brochures:</h4>
+              <h4 className="text-sm font-bold text-gray-700 mb-3">
+                Available Brochures:
+              </h4>
               <div className="space-y-2">
                 {brochures.map((brochure, index) => (
-                  <div 
+                  <div
                     key={index}
                     className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
-                      selectedBrochure?.url === brochure.url 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/50'
+                      selectedBrochure?.url === brochure.url
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:border-blue-300 hover:bg-blue-50/50"
                     }`}
                     onClick={() => setSelectedBrochure(brochure)}
                   >
                     <div className="flex items-center gap-3">
                       <DocumentTextIcon className="w-5 h-5 text-blue-600" />
                       <div>
-                        <span className="font-medium text-gray-800">{brochure.name}</span>
-                        {brochure.url.includes('drive.google.com') && (
-                          <span className="ml-2 text-xs text-blue-600">📁 Google Drive</span>
+                        <span className="font-medium text-gray-800">
+                          {brochure.name}
+                        </span>
+                        {brochure.url.includes("drive.google.com") && (
+                          <span className="ml-2 text-xs text-blue-600">
+                            📁 Google Drive
+                          </span>
                         )}
                       </div>
                     </div>
@@ -480,7 +507,8 @@ function BrochureForm({
               {selectedBrochure && (
                 <div className="bg-blue-50 p-4 rounded-xl">
                   <p className="text-sm text-blue-800">
-                    <span className="font-bold">Selected:</span> {selectedBrochure.name}
+                    <span className="font-bold">Selected:</span>{" "}
+                    {selectedBrochure.name}
                   </p>
                 </div>
               )}
@@ -527,83 +555,115 @@ function FloorPlanForm({
   });
 
   const [submitted, setSubmitted] = useState(false);
-  const [floorplans, setFloorplans] = useState<{name: string, url: string, directUrl: string}[]>([]);
-  const [otherDocuments, setOtherDocuments] = useState<{name: string, url: string, directUrl: string}[]>([]);
-  const [selectedFloorplan, setSelectedFloorplan] = useState<{name: string, url: string, directUrl: string} | null>(null);
-  const [selectedDocument, setSelectedDocument] = useState<{name: string, url: string, directUrl: string} | null>(null);
-  const [activeTab, setActiveTab] = useState<'floorplans' | 'documents'>('floorplans');
+  const [floorplans, setFloorplans] = useState<
+    { name: string; url: string; directUrl: string }[]
+  >([]);
+  const [otherDocuments, setOtherDocuments] = useState<
+    { name: string; url: string; directUrl: string }[]
+  >([]);
+  const [selectedFloorplan, setSelectedFloorplan] = useState<{
+    name: string;
+    url: string;
+    directUrl: string;
+  } | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<{
+    name: string;
+    url: string;
+    directUrl: string;
+  } | null>(null);
+  const [activeTab, setActiveTab] = useState<"floorplans" | "documents">(
+    "floorplans",
+  );
 
   // Fetch floorplans and documents from Firebase - NO LOADING STATE
   useEffect(() => {
     async function fetchFiles() {
       try {
-        const allFloorplans: {name: string, url: string, directUrl: string}[] = [];
-        const allDocuments: {name: string, url: string, directUrl: string}[] = [];
-        
+        const allFloorplans: {
+          name: string;
+          url: string;
+          directUrl: string;
+        }[] = [];
+        const allDocuments: { name: string; url: string; directUrl: string }[] =
+          [];
+
         // Check floorplans array
         if (property.floorplans && Array.isArray(property.floorplans)) {
           property.floorplans.forEach((url: string, index: number) => {
-            if (url.toLowerCase().includes('.pdf') || url.includes('drive.google.com')) {
+            if (
+              url.toLowerCase().includes(".pdf") ||
+              url.includes("drive.google.com")
+            ) {
               allFloorplans.push({
                 name: `Floor Plan ${index + 1}`,
                 url: url,
-                directUrl: getGoogleDriveDirectLink(url)
+                directUrl: getGoogleDriveDirectLink(url),
               });
             }
           });
         }
-        
+
         // Check brochures array
         if (property.brochures && Array.isArray(property.brochures)) {
           property.brochures.forEach((url: string, index: number) => {
-            if (url.toLowerCase().includes('.pdf') || url.includes('drive.google.com')) {
+            if (
+              url.toLowerCase().includes(".pdf") ||
+              url.includes("drive.google.com")
+            ) {
               allFloorplans.push({
                 name: `Brochure ${index + 1}`,
                 url: url,
-                directUrl: getGoogleDriveDirectLink(url)
+                directUrl: getGoogleDriveDirectLink(url),
               });
             }
           });
         }
-        
+
         // Check documents array with name and url
         if (property.documents && Array.isArray(property.documents)) {
           property.documents.forEach((doc: any, index: number) => {
-            if (doc.url && (doc.url.toLowerCase().includes('.pdf') || doc.url.includes('drive.google.com'))) {
-              const docName = doc.name?.toLowerCase() || '';
-              if (docName.includes('floor') || docName.includes('plan') || doc.type === 'floorplan') {
+            if (
+              doc.url &&
+              (doc.url.toLowerCase().includes(".pdf") ||
+                doc.url.includes("drive.google.com"))
+            ) {
+              const docName = doc.name?.toLowerCase() || "";
+              if (
+                docName.includes("floor") ||
+                docName.includes("plan") ||
+                doc.type === "floorplan"
+              ) {
                 allFloorplans.push({
                   name: doc.name || `Floor Plan ${index + 1}`,
                   url: doc.url,
-                  directUrl: getGoogleDriveDirectLink(doc.url)
+                  directUrl: getGoogleDriveDirectLink(doc.url),
                 });
               } else {
                 allDocuments.push({
                   name: doc.name || `Document ${index + 1}`,
                   url: doc.url,
-                  directUrl: getGoogleDriveDirectLink(doc.url)
+                  directUrl: getGoogleDriveDirectLink(doc.url),
                 });
               }
             }
           });
         }
-        
+
         setFloorplans(allFloorplans);
         setOtherDocuments(allDocuments);
-        
+
         if (allFloorplans.length > 0) {
           setSelectedFloorplan(allFloorplans[0]);
-          setActiveTab('floorplans');
+          setActiveTab("floorplans");
         } else if (allDocuments.length > 0) {
           setSelectedDocument(allDocuments[0]);
-          setActiveTab('documents');
+          setActiveTab("documents");
         }
-        
       } catch (error) {
         console.error("Error fetching files:", error);
       }
     }
-    
+
     if (property) {
       fetchFiles();
     }
@@ -612,7 +672,7 @@ function FloorPlanForm({
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -622,21 +682,25 @@ function FloorPlanForm({
   };
 
   // Function to download real PDF from URL
-  const downloadRealPDF = (file: {name: string, url: string, directUrl: string}) => {
+  const downloadRealPDF = (file: {
+    name: string;
+    url: string;
+    directUrl: string;
+  }) => {
     try {
       const downloadUrl = file.directUrl || file.url;
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = downloadUrl;
-      link.download = file.name.replace(/[^a-z0-9]/gi, '_') + '.pdf';
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
+      link.download = file.name.replace(/[^a-z0-9]/gi, "_") + ".pdf";
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       console.log("✅ Real PDF download triggered:", file.url);
     } catch (error) {
       console.error("Error downloading PDF:", error);
-      window.open(file.url, '_blank');
+      window.open(file.url, "_blank");
     }
   };
 
@@ -653,22 +717,22 @@ function FloorPlanForm({
         submitted_at: serverTimestamp(),
         download_requested: true,
         status: "pending",
-        type: activeTab === 'floorplans' ? "floorplan" : "document"
+        type: activeTab === "floorplans" ? "floorplan" : "document",
       };
 
       await addDoc(collection(db, "floorplan_inquiries"), floorplanData);
       console.log("✅ Request saved to Firebase");
-      
-      if (activeTab === 'floorplans' && selectedFloorplan) {
+
+      if (activeTab === "floorplans" && selectedFloorplan) {
         downloadRealPDF(selectedFloorplan);
-      } else if (activeTab === 'documents' && selectedDocument) {
+      } else if (activeTab === "documents" && selectedDocument) {
         downloadRealPDF(selectedDocument);
       } else if (floorplans.length > 0) {
         downloadRealPDF(floorplans[0]);
       } else if (otherDocuments.length > 0) {
         downloadRealPDF(otherDocuments[0]);
       }
-      
+
       setSubmitted(true);
       setTimeout(() => {
         onClose();
@@ -692,7 +756,8 @@ function FloorPlanForm({
               <CheckIcon className="h-10 w-10 text-green-600" />
             </div>
             <h3 className="text-3xl font-black text-gray-900 mb-4">
-              {activeTab === 'floorplans' ? 'Floor Plan' : 'Document'} Downloaded Successfully!
+              {activeTab === "floorplans" ? "Floor Plan" : "Document"}{" "}
+              Downloaded Successfully!
             </h3>
             <p className="text-gray-600 text-lg mb-8">
               Your file has been downloaded. Check your downloads folder.
@@ -711,10 +776,11 @@ function FloorPlanForm({
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-2xl font-black text-gray-900">
-                  {activeTab === 'floorplans' ? 'Floor Plan' : 'Documents'}
+                  {activeTab === "floorplans" ? "Floor Plan" : "Documents"}
                 </h3>
                 <p className="text-gray-600">
-                  Fill out the form to access {activeTab === 'floorplans' ? 'floor plans' : 'documents'}
+                  Fill out the form to access{" "}
+                  {activeTab === "floorplans" ? "floor plans" : "documents"}
                 </p>
               </div>
               <button
@@ -737,7 +803,7 @@ function FloorPlanForm({
               <div className="text-right">
                 <div className="text-2xl font-black text-blue-600">
                   AED {formatPrice(property.price || 0)}
-                  {property.status === 'rent' ? '/year' : ''}
+                  {property.status === "rent" ? "/year" : ""}
                 </div>
               </div>
             </div>
@@ -750,14 +816,14 @@ function FloorPlanForm({
                 {floorplans.length > 0 && (
                   <button
                     onClick={() => {
-                      setActiveTab('floorplans');
+                      setActiveTab("floorplans");
                       setSelectedFloorplan(floorplans[0]);
                       setSelectedDocument(null);
                     }}
                     className={`pb-3 px-4 font-bold text-sm transition-all relative ${
-                      activeTab === 'floorplans'
-                        ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
+                      activeTab === "floorplans"
+                        ? "text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600"
+                        : "text-gray-500 hover:text-gray-700"
                     }`}
                   >
                     Floor Plans ({floorplans.length})
@@ -766,14 +832,14 @@ function FloorPlanForm({
                 {otherDocuments.length > 0 && (
                   <button
                     onClick={() => {
-                      setActiveTab('documents');
+                      setActiveTab("documents");
                       setSelectedDocument(otherDocuments[0]);
                       setSelectedFloorplan(null);
                     }}
                     className={`pb-3 px-4 font-bold text-sm transition-all relative ${
-                      activeTab === 'documents'
-                        ? 'text-green-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-green-600'
-                        : 'text-gray-500 hover:text-gray-700'
+                      activeTab === "documents"
+                        ? "text-green-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-green-600"
+                        : "text-gray-500 hover:text-gray-700"
                     }`}
                   >
                     Other Documents ({otherDocuments.length})
@@ -786,7 +852,7 @@ function FloorPlanForm({
           {/* Available Files Section */}
           <div className="p-6 bg-gray-50 border-b border-gray-200 max-h-60 overflow-y-auto">
             {/* Floor Plans Tab Content */}
-            {activeTab === 'floorplans' && floorplans.length > 0 && (
+            {activeTab === "floorplans" && floorplans.length > 0 && (
               <div>
                 <h4 className="text-sm font-bold text-blue-600 mb-3 flex items-center gap-2">
                   <DocumentTextIcon className="w-4 h-4" />
@@ -794,12 +860,12 @@ function FloorPlanForm({
                 </h4>
                 <div className="space-y-2">
                   {floorplans.map((plan, index) => (
-                    <div 
+                    <div
                       key={`floorplan-${index}`}
                       className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
-                        selectedFloorplan?.url === plan.url 
-                          ? 'border-blue-500 bg-blue-50' 
-                          : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/50'
+                        selectedFloorplan?.url === plan.url
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200 hover:border-blue-300 hover:bg-blue-50/50"
                       }`}
                       onClick={() => {
                         setSelectedFloorplan(plan);
@@ -809,9 +875,13 @@ function FloorPlanForm({
                       <div className="flex items-center gap-3">
                         <DocumentTextIcon className="w-5 h-5 text-blue-600" />
                         <div>
-                          <span className="font-medium text-gray-800">{plan.name}</span>
-                          {plan.url.includes('drive.google.com') && (
-                            <span className="ml-2 text-xs text-blue-600">📁 Google Drive</span>
+                          <span className="font-medium text-gray-800">
+                            {plan.name}
+                          </span>
+                          {plan.url.includes("drive.google.com") && (
+                            <span className="ml-2 text-xs text-blue-600">
+                              📁 Google Drive
+                            </span>
                           )}
                         </div>
                       </div>
@@ -823,9 +893,9 @@ function FloorPlanForm({
                 </div>
               </div>
             )}
-            
+
             {/* Other Documents Tab Content */}
-            {activeTab === 'documents' && otherDocuments.length > 0 && (
+            {activeTab === "documents" && otherDocuments.length > 0 && (
               <div>
                 <h4 className="text-sm font-bold text-green-600 mb-3 flex items-center gap-2">
                   <DocumentTextIcon className="w-4 h-4" />
@@ -833,12 +903,12 @@ function FloorPlanForm({
                 </h4>
                 <div className="space-y-2">
                   {otherDocuments.map((doc, index) => (
-                    <div 
+                    <div
                       key={`doc-${index}`}
                       className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
-                        selectedDocument?.url === doc.url 
-                          ? 'border-green-500 bg-green-50' 
-                          : 'border-gray-200 hover:border-green-300 hover:bg-green-50/50'
+                        selectedDocument?.url === doc.url
+                          ? "border-green-500 bg-green-50"
+                          : "border-gray-200 hover:border-green-300 hover:bg-green-50/50"
                       }`}
                       onClick={() => {
                         setSelectedDocument(doc);
@@ -848,9 +918,13 @@ function FloorPlanForm({
                       <div className="flex items-center gap-3">
                         <DocumentTextIcon className="w-5 h-5 text-green-600" />
                         <div>
-                          <span className="font-medium text-gray-800">{doc.name}</span>
-                          {doc.url.includes('drive.google.com') && (
-                            <span className="ml-2 text-xs text-green-600">📁 Google Drive</span>
+                          <span className="font-medium text-gray-800">
+                            {doc.name}
+                          </span>
+                          {doc.url.includes("drive.google.com") && (
+                            <span className="ml-2 text-xs text-green-600">
+                              📁 Google Drive
+                            </span>
                           )}
                         </div>
                       </div>
@@ -864,13 +938,13 @@ function FloorPlanForm({
             )}
 
             {/* No Files Message */}
-            {activeTab === 'floorplans' && floorplans.length === 0 && (
+            {activeTab === "floorplans" && floorplans.length === 0 && (
               <div className="text-center py-8">
                 <DocumentTextIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500">No floor plans available</p>
               </div>
             )}
-            {activeTab === 'documents' && otherDocuments.length === 0 && (
+            {activeTab === "documents" && otherDocuments.length === 0 && (
               <div className="text-center py-8">
                 <DocumentTextIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500">No documents available</p>
@@ -934,17 +1008,19 @@ function FloorPlanForm({
               </div>
 
               {/* Selected File Info */}
-              {activeTab === 'floorplans' && selectedFloorplan && (
+              {activeTab === "floorplans" && selectedFloorplan && (
                 <div className="bg-blue-50 p-4 rounded-xl">
                   <p className="text-sm text-blue-800">
-                    <span className="font-bold">Selected:</span> {selectedFloorplan.name}
+                    <span className="font-bold">Selected:</span>{" "}
+                    {selectedFloorplan.name}
                   </p>
                 </div>
               )}
-              {activeTab === 'documents' && selectedDocument && (
+              {activeTab === "documents" && selectedDocument && (
                 <div className="bg-green-50 p-4 rounded-xl">
                   <p className="text-sm text-green-800">
-                    <span className="font-bold">Selected:</span> {selectedDocument.name}
+                    <span className="font-bold">Selected:</span>{" "}
+                    {selectedDocument.name}
                   </p>
                 </div>
               )}
@@ -960,11 +1036,17 @@ function FloorPlanForm({
                   </button>
                   <button
                     type="submit"
-                    disabled={(activeTab === 'floorplans' ? !selectedFloorplan && floorplans.length === 0 : !selectedDocument && otherDocuments.length === 0)}
+                    disabled={
+                      activeTab === "floorplans"
+                        ? !selectedFloorplan && floorplans.length === 0
+                        : !selectedDocument && otherDocuments.length === 0
+                    }
                     className="flex-1 px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                   >
                     <DocumentTextIcon className="w-5 h-5" />
-                    {activeTab === 'floorplans' ? 'Download Floor Plan' : 'Download Document'}
+                    {activeTab === "floorplans"
+                      ? "Download Floor Plan"
+                      : "Download Document"}
                   </button>
                 </div>
               </div>
@@ -977,15 +1059,17 @@ function FloorPlanForm({
 }
 
 // Video Gallery Component - UPDATED FIXED VERSION
-function VideoGallery({ 
-  property, 
-  onClose 
-}: { 
-  property: NormalizedProperty; 
-  onClose: () => void 
+function VideoGallery({
+  property,
+  onClose,
+}: {
+  property: NormalizedProperty;
+  onClose: () => void;
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [videos, setVideos] = useState<{url: string, type: string, thumbnail?: string}[]>([]);
+  const [videos, setVideos] = useState<
+    { url: string; type: string; thumbnail?: string }[]
+  >([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [videoError, setVideoError] = useState(false);
 
@@ -994,48 +1078,65 @@ function VideoGallery({
     async function fetchVideos() {
       try {
         setVideoError(false);
-        const videoList: {url: string, type: string, thumbnail?: string}[] = [];
-        
+        const videoList: { url: string; type: string; thumbnail?: string }[] =
+          [];
+
         // Check videos array first
-        if (property.videos && Array.isArray(property.videos) && property.videos.length > 0) {
+        if (
+          property.videos &&
+          Array.isArray(property.videos) &&
+          property.videos.length > 0
+        ) {
           property.videos.forEach((videoUrl: string, index: number) => {
-            if (videoUrl && typeof videoUrl === 'string' && videoUrl.trim() !== '') {
+            if (
+              videoUrl &&
+              typeof videoUrl === "string" &&
+              videoUrl.trim() !== ""
+            ) {
               const videoType = getVideoType(videoUrl);
-              if (videoType !== 'none') {
+              if (videoType !== "none") {
                 videoList.push({
                   url: videoUrl,
                   type: videoType,
-                  thumbnail: getVideoThumbnail(videoUrl, videoType, index)
+                  thumbnail: getVideoThumbnail(videoUrl, videoType, index),
                 });
               }
             }
           });
         }
-        
+
         // If no videos in videos array, check video_url
         if (videoList.length === 0 && property.video_url) {
           const videoUrl = property.video_url;
-          if (videoUrl && typeof videoUrl === 'string' && videoUrl.trim() !== '') {
+          if (
+            videoUrl &&
+            typeof videoUrl === "string" &&
+            videoUrl.trim() !== ""
+          ) {
             const videoType = getVideoType(videoUrl);
-            if (videoType !== 'none') {
+            if (videoType !== "none") {
               videoList.push({
                 url: videoUrl,
                 type: videoType,
-                thumbnail: getVideoThumbnail(videoUrl, videoType, 0)
+                thumbnail: getVideoThumbnail(videoUrl, videoType, 0),
               });
             }
           }
         }
-        
+
         // Add fallback video if none found (optional - remove if you don't want fallback)
         if (videoList.length === 0) {
           videoList.push({
-            url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // Sample video
-            type: 'youtube',
-            thumbnail: getVideoThumbnail('https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 0)
+            url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", // Sample video
+            type: "youtube",
+            thumbnail: getVideoThumbnail(
+              "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+              "youtube",
+              0,
+            ),
           });
         }
-        
+
         console.log("📹 Videos loaded:", videoList.length);
         setVideos(videoList);
       } catch (error) {
@@ -1043,88 +1144,96 @@ function VideoGallery({
         setVideoError(true);
       }
     }
-    
+
     if (property) {
       fetchVideos();
     }
   }, [property]);
 
   const getVideoType = (url: string) => {
-    if (!url || typeof url !== 'string') return 'none';
-    if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('youtube.com/embed')) return 'youtube';
-    if (url.includes('vimeo.com')) return 'vimeo';
-    if (url.includes('pexels.com')) return 'pexels';
-    if (/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i.test(url)) return 'direct';
-    return 'external';
+    if (!url || typeof url !== "string") return "none";
+    if (
+      url.includes("youtube.com") ||
+      url.includes("youtu.be") ||
+      url.includes("youtube.com/embed")
+    )
+      return "youtube";
+    if (url.includes("vimeo.com")) return "vimeo";
+    if (url.includes("pexels.com")) return "pexels";
+    if (/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i.test(url))
+      return "direct";
+    return "external";
   };
 
   const getVideoThumbnail = (url: string, type: string, index: number) => {
     try {
-      if (type === 'youtube') {
+      if (type === "youtube") {
         const videoId = extractYouTubeId(url);
         if (videoId) {
           return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
         }
-      } else if (type === 'vimeo') {
-        return 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop';
-      } else if (type === 'pexels') {
-        return 'https://images.pexels.com/videos/7578549/pictures/preview-0.jpg';
+      } else if (type === "vimeo") {
+        return "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop";
+      } else if (type === "pexels") {
+        return "https://images.pexels.com/videos/7578549/pictures/preview-0.jpg";
       }
     } catch (error) {
       console.error("Error getting thumbnail:", error);
     }
-    
+
     // Fallback thumbnail based on index
     const fallbackThumbnails = [
-      'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1579165466741-7f35e4755660?w=800&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1579165466991-d467bfe99277?w=800&auto=format&fit=crop'
+      "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1579165466741-7f35e4755660?w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1579165466991-d467bfe99277?w=800&auto=format&fit=crop",
     ];
     return fallbackThumbnails[index % fallbackThumbnails.length];
   };
 
   const extractYouTubeId = (url: string) => {
     try {
-      let videoId = '';
-      if (url.includes('youtube.com/watch?v=')) {
-        videoId = url.split('v=')[1];
-        const ampersandPosition = videoId.indexOf('&');
+      let videoId = "";
+      if (url.includes("youtube.com/watch?v=")) {
+        videoId = url.split("v=")[1];
+        const ampersandPosition = videoId.indexOf("&");
         if (ampersandPosition !== -1) {
           videoId = videoId.substring(0, ampersandPosition);
         }
-      } else if (url.includes('youtu.be/')) {
-        videoId = url.split('youtu.be/')[1];
-        if (videoId.includes('?')) {
-          videoId = videoId.split('?')[0];
+      } else if (url.includes("youtu.be/")) {
+        videoId = url.split("youtu.be/")[1];
+        if (videoId.includes("?")) {
+          videoId = videoId.split("?")[0];
         }
-      } else if (url.includes('youtube.com/embed/')) {
-        videoId = url.split('embed/')[1];
-        if (videoId.includes('?')) {
-          videoId = videoId.split('?')[0];
+      } else if (url.includes("youtube.com/embed/")) {
+        videoId = url.split("embed/")[1];
+        if (videoId.includes("?")) {
+          videoId = videoId.split("?")[0];
         }
       }
       return videoId;
     } catch (error) {
       console.error("Error extracting YouTube ID:", error);
-      return '';
+      return "";
     }
   };
 
   const handlePrev = () => {
-    setCurrentIndex(prev => (prev === 0 ? videos.length - 1 : prev - 1));
+    setCurrentIndex((prev) => (prev === 0 ? videos.length - 1 : prev - 1));
     setIsPlaying(false);
     setVideoError(false);
   };
 
   const handleNext = () => {
-    setCurrentIndex(prev => (prev === videos.length - 1 ? 0 : prev + 1));
+    setCurrentIndex((prev) => (prev === videos.length - 1 ? 0 : prev + 1));
     setIsPlaying(false);
     setVideoError(false);
   };
 
   const renderVideo = (video: {
-    thumbnail: string;url: string, type: string
-}) => {
+    url: string;
+    type: string;
+    thumbnail?: string;
+  }) => {
     if (videoError) {
       return (
         <div className="relative w-full h-full flex items-center justify-center bg-gray-900">
@@ -1147,11 +1256,15 @@ function VideoGallery({
       return (
         <div className="relative w-full h-full bg-black">
           <img
-            src={video.thumbnail || getVideoThumbnail(video.url, video.type, currentIndex)}
+            src={
+              video.thumbnail ||
+              getVideoThumbnail(video.url, video.type, currentIndex)
+            }
             alt={`Video thumbnail ${currentIndex + 1}`}
             className="w-full h-full object-contain"
             onError={(e) => {
-              e.currentTarget.src = 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop';
+              e.currentTarget.src =
+                "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop";
             }}
           />
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
@@ -1169,7 +1282,7 @@ function VideoGallery({
       );
     }
 
-    if (video.type === 'youtube') {
+    if (video.type === "youtube") {
       const videoId = extractYouTubeId(video.url);
       if (!videoId) {
         return (
@@ -1216,7 +1329,9 @@ function VideoGallery({
         <div className="text-center text-white">
           <VideoCameraIcon className="w-20 h-20 mx-auto mb-4 opacity-50" />
           <h3 className="text-2xl font-bold mb-2">No Videos Available</h3>
-          <p className="text-gray-400">This property doesn't have any videos yet.</p>
+          <p className="text-gray-400">
+            This property doesn't have any videos yet.
+          </p>
           <button
             onClick={onClose}
             className="mt-6 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-bold transition-colors"
@@ -1233,9 +1348,12 @@ function VideoGallery({
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 z-10 p-6 flex justify-between items-center bg-linear-to-b from-black/80 to-transparent">
         <div className="text-white">
-          <h2 className="text-xl font-bold">Property Videos - {property.title}</h2>
+          <h2 className="text-xl font-bold">
+            Property Videos - {property.title}
+          </h2>
           <p className="text-sm text-gray-300">
-            <span className="font-bold text-red-500">{currentIndex + 1}</span> / {videos.length} Videos
+            <span className="font-bold text-red-500">{currentIndex + 1}</span> /{" "}
+            {videos.length} Videos
           </p>
         </div>
         <button
@@ -1245,14 +1363,14 @@ function VideoGallery({
           <XMarkIcon className="w-6 h-6 text-white" />
         </button>
       </div>
-      
+
       {/* Main Video Player */}
       <div className="w-full h-full flex items-center justify-center p-4 pt-20 pb-24">
         <div className="w-full h-full max-w-7xl bg-black rounded-lg overflow-hidden">
           {renderVideo(videos[currentIndex])}
         </div>
       </div>
-      
+
       {/* Navigation Arrows */}
       {videos.length > 1 && (
         <>
@@ -1270,7 +1388,7 @@ function VideoGallery({
           </button>
         </>
       )}
-      
+
       {/* Thumbnails with Numbering */}
       {videos.length > 1 && (
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-black/80 to-transparent">
@@ -1284,35 +1402,43 @@ function VideoGallery({
                   setVideoError(false);
                 }}
                 className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all relative group ${
-                  index === currentIndex 
-                    ? 'border-red-600 scale-110 shadow-lg' 
-                    : 'border-transparent hover:border-gray-400'
+                  index === currentIndex
+                    ? "border-red-600 scale-110 shadow-lg"
+                    : "border-transparent hover:border-gray-400"
                 }`}
               >
                 <div className="w-full h-full bg-gray-800 relative">
                   <img
-                    src={video.thumbnail || getVideoThumbnail(video.url, video.type, index)}
+                    src={
+                      video.thumbnail ||
+                      getVideoThumbnail(video.url, video.type, index)
+                    }
                     alt={`Video thumbnail ${index + 1}`}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      e.currentTarget.src = 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop';
+                      e.currentTarget.src =
+                        "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop";
                     }}
                   />
                   <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
                     <PlayCircleIcon className="w-6 h-6 text-white opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all" />
                   </div>
-                  
+
                   {/* Numbering Badge */}
-                  <div className={`absolute top-1 left-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
-                    index === currentIndex ? 'bg-red-600 text-white' : 'bg-black/70 text-white'
-                  }`}>
+                  <div
+                    className={`absolute top-1 left-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                      index === currentIndex
+                        ? "bg-red-600 text-white"
+                        : "bg-black/70 text-white"
+                    }`}
+                  >
                     {index + 1}
                   </div>
                 </div>
               </button>
             ))}
           </div>
-          
+
           {/* Video Count Indicator */}
           <div className="text-center mt-2 text-white/70 text-sm">
             {currentIndex + 1} of {videos.length} videos
@@ -1324,188 +1450,234 @@ function VideoGallery({
 }
 
 // Full Screen Gallery Component - WITH VIDEOS IN MAIN GALLERY
-const FullScreenGallery = ({ 
-  property, 
-  onClose 
-}: { 
-  property: NormalizedProperty; 
-  onClose: () => void 
+const FullScreenGallery = ({
+  property,
+  onClose,
+}: {
+  property: NormalizedProperty;
+  onClose: () => void;
 }) => {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false)
-  const [isZoomed, setIsZoomed] = useState(false)
-  const [imageLoaded, setImageLoaded] = useState(false)
-  const [videoError, setVideoError] = useState(false)
-  const [mediaItems, setMediaItems] = useState<{type: 'image' | 'video', url: string, thumbnail?: string}[]>([])
-  
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const [mediaItems, setMediaItems] = useState<
+    { type: "image" | "video"; url: string; thumbnail?: string }[]
+  >([]);
+
   // Fetch all media (images and videos combined) - NO LOADING STATE
   useEffect(() => {
     async function fetchAllMedia() {
       try {
-        const items: {type: 'image' | 'video', url: string, thumbnail?: string}[] = [];
-        
+        const items: {
+          type: "image" | "video";
+          url: string;
+          thumbnail?: string;
+        }[] = [];
+
         // Add images first
-        if (property.images && Array.isArray(property.images) && property.images.length > 0) {
+        if (
+          property.images &&
+          Array.isArray(property.images) &&
+          property.images.length > 0
+        ) {
           property.images.forEach((img: string) => {
-            if (img && typeof img === 'string' && img.trim() !== '') {
+            if (img && typeof img === "string" && img.trim() !== "") {
               items.push({
-                type: 'image',
+                type: "image",
                 url: img,
-                thumbnail: img
+                thumbnail: img,
               });
             }
           });
         } else if (property.image) {
           items.push({
-            type: 'image',
+            type: "image",
             url: property.image,
-            thumbnail: property.image
+            thumbnail: property.image,
           });
         }
-        
+
         // Add videos from videos array
-        if (property.videos && Array.isArray(property.videos) && property.videos.length > 0) {
+        if (
+          property.videos &&
+          Array.isArray(property.videos) &&
+          property.videos.length > 0
+        ) {
           property.videos.forEach((videoUrl: string, index: number) => {
-            if (videoUrl && typeof videoUrl === 'string' && videoUrl.trim() !== '') {
+            if (
+              videoUrl &&
+              typeof videoUrl === "string" &&
+              videoUrl.trim() !== ""
+            ) {
               const videoType = getVideoType(videoUrl);
-              if (videoType !== 'none') {
+              if (videoType !== "none") {
                 items.push({
-                  type: 'video',
+                  type: "video",
                   url: videoUrl,
-                  thumbnail: getVideoThumbnail(videoUrl, videoType, index + items.length)
+                  thumbnail: getVideoThumbnail(
+                    videoUrl,
+                    videoType,
+                    index + items.length,
+                  ),
                 });
               }
             }
           });
         }
-        
+
         // Add video from video_url if no videos in array
         if (property.video_url && !property.videos?.length) {
           const videoUrl = property.video_url;
-          if (videoUrl && typeof videoUrl === 'string' && videoUrl.trim() !== '') {
+          if (
+            videoUrl &&
+            typeof videoUrl === "string" &&
+            videoUrl.trim() !== ""
+          ) {
             const videoType = getVideoType(videoUrl);
-            if (videoType !== 'none') {
+            if (videoType !== "none") {
               items.push({
-                type: 'video',
+                type: "video",
                 url: videoUrl,
-                thumbnail: getVideoThumbnail(videoUrl, videoType, items.length)
+                thumbnail: getVideoThumbnail(videoUrl, videoType, items.length),
               });
             }
           }
         }
-        
+
         // Add fallback image if no media found
         if (items.length === 0) {
           items.push({
-            type: 'image',
-            url: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop',
-            thumbnail: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop'
+            type: "image",
+            url: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop",
+            thumbnail:
+              "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop",
           });
         }
-        
-        console.log("📸 Gallery loaded:", items.length, "items", 
-          items.filter(i => i.type === 'image').length, "images,", 
-          items.filter(i => i.type === 'video').length, "videos");
+
+        console.log(
+          "📸 Gallery loaded:",
+          items.length,
+          "items",
+          items.filter((i) => i.type === "image").length,
+          "images,",
+          items.filter((i) => i.type === "video").length,
+          "videos",
+        );
         setMediaItems(items);
       } catch (error) {
         console.error("Error fetching media:", error);
-        setMediaItems([{
-          type: 'image',
-          url: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop',
-          thumbnail: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop'
-        }]);
+        setMediaItems([
+          {
+            type: "image",
+            url: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop",
+            thumbnail:
+              "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop",
+          },
+        ]);
       }
     }
-    
+
     fetchAllMedia();
   }, [property]);
-  
+
   const getVideoType = (url: string) => {
-    if (!url || typeof url !== 'string') return 'none';
-    if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('youtube.com/embed')) return 'youtube';
-    if (url.includes('vimeo.com')) return 'vimeo';
-    if (url.includes('pexels.com')) return 'pexels';
-    if (/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i.test(url)) return 'direct';
-    return 'external';
-  }
+    if (!url || typeof url !== "string") return "none";
+    if (
+      url.includes("youtube.com") ||
+      url.includes("youtu.be") ||
+      url.includes("youtube.com/embed")
+    )
+      return "youtube";
+    if (url.includes("vimeo.com")) return "vimeo";
+    if (url.includes("pexels.com")) return "pexels";
+    if (/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i.test(url))
+      return "direct";
+    return "external";
+  };
 
   const getVideoThumbnail = (url: string, type: string, index: number) => {
     try {
-      if (type === 'youtube') {
+      if (type === "youtube") {
         const videoId = extractYouTubeId(url);
         if (videoId) {
           return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
         }
-      } else if (type === 'vimeo') {
-        return 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop';
-      } else if (type === 'pexels') {
-        return 'https://images.pexels.com/videos/7578549/pictures/preview-0.jpg';
+      } else if (type === "vimeo") {
+        return "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop";
+      } else if (type === "pexels") {
+        return "https://images.pexels.com/videos/7578549/pictures/preview-0.jpg";
       }
     } catch (error) {
       console.error("Error getting thumbnail:", error);
     }
-    
+
     const fallbackThumbnails = [
-      'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1579165466741-7f35e4755660?w=800&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1579165466991-d467bfe99277?w=800&auto=format&fit=crop'
+      "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1579165466741-7f35e4755660?w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1579165466991-d467bfe99277?w=800&auto=format&fit=crop",
     ];
     return fallbackThumbnails[index % fallbackThumbnails.length];
   };
 
   const extractYouTubeId = (url: string) => {
     try {
-      let videoId = '';
-      if (url.includes('youtube.com/watch?v=')) {
-        videoId = url.split('v=')[1];
-        const ampersandPosition = videoId.indexOf('&');
+      let videoId = "";
+      if (url.includes("youtube.com/watch?v=")) {
+        videoId = url.split("v=")[1];
+        const ampersandPosition = videoId.indexOf("&");
         if (ampersandPosition !== -1) {
           videoId = videoId.substring(0, ampersandPosition);
         }
-      } else if (url.includes('youtu.be/')) {
-        videoId = url.split('youtu.be/')[1];
-        if (videoId.includes('?')) {
-          videoId = videoId.split('?')[0];
+      } else if (url.includes("youtu.be/")) {
+        videoId = url.split("youtu.be/")[1];
+        if (videoId.includes("?")) {
+          videoId = videoId.split("?")[0];
         }
-      } else if (url.includes('youtube.com/embed/')) {
-        videoId = url.split('embed/')[1];
-        if (videoId.includes('?')) {
-          videoId = videoId.split('?')[0];
+      } else if (url.includes("youtube.com/embed/")) {
+        videoId = url.split("embed/")[1];
+        if (videoId.includes("?")) {
+          videoId = videoId.split("?")[0];
         }
       }
       return videoId;
     } catch (error) {
       console.error("Error extracting YouTube ID:", error);
-      return '';
+      return "";
     }
-  }
-  
+  };
+
   const handlePrev = () => {
     if (mediaItems.length > 0) {
-      setCurrentIndex(prev => prev === 0 ? mediaItems.length - 1 : prev - 1);
+      setCurrentIndex((prev) =>
+        prev === 0 ? mediaItems.length - 1 : prev - 1,
+      );
       setIsVideoPlaying(false);
       setIsZoomed(false);
       setImageLoaded(false);
       setVideoError(false);
     }
-  }
-  
+  };
+
   const handleNext = () => {
     if (mediaItems.length > 0) {
-      setCurrentIndex(prev => prev === mediaItems.length - 1 ? 0 : prev + 1);
+      setCurrentIndex((prev) =>
+        prev === mediaItems.length - 1 ? 0 : prev + 1,
+      );
       setIsVideoPlaying(false);
       setIsZoomed(false);
       setImageLoaded(false);
       setVideoError(false);
     }
-  }
+  };
 
   const toggleZoom = () => {
-    if (mediaItems[currentIndex]?.type === 'image') {
+    if (mediaItems[currentIndex]?.type === "image") {
       setIsZoomed(!isZoomed);
     }
-  }
-  
+  };
+
   const renderMedia = () => {
     if (!mediaItems || mediaItems.length === 0 || !mediaItems[currentIndex]) {
       return (
@@ -1514,12 +1686,12 @@ const FullScreenGallery = ({
         </div>
       );
     }
-    
+
     const media = mediaItems[currentIndex];
-    
-    if (media.type === 'video') {
+
+    if (media.type === "video") {
       const videoType = getVideoType(media.url);
-      
+
       if (videoError) {
         return (
           <div className="relative w-full h-full flex items-center justify-center bg-gray-900">
@@ -1537,16 +1709,20 @@ const FullScreenGallery = ({
           </div>
         );
       }
-      
+
       if (!isVideoPlaying) {
         return (
           <div className="relative w-full h-full bg-black">
             <img
-              src={media.thumbnail || getVideoThumbnail(media.url, videoType, currentIndex)}
+              src={
+                media.thumbnail ||
+                getVideoThumbnail(media.url, videoType, currentIndex)
+              }
               alt={`Video thumbnail ${currentIndex + 1}`}
               className="w-full h-full object-contain"
               onError={(e) => {
-                e.currentTarget.src = 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop';
+                e.currentTarget.src =
+                  "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop";
               }}
             />
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
@@ -1563,8 +1739,8 @@ const FullScreenGallery = ({
           </div>
         );
       }
-      
-      if (videoType === 'youtube') {
+
+      if (videoType === "youtube") {
         const videoId = extractYouTubeId(media.url);
         if (!videoId) {
           return (
@@ -1604,7 +1780,7 @@ const FullScreenGallery = ({
         );
       }
     }
-    
+
     // Image rendering
     return (
       <div className="w-full h-full flex items-center justify-center">
@@ -1617,50 +1793,53 @@ const FullScreenGallery = ({
           src={media.url}
           alt={`${property.title} - Image ${currentIndex + 1}`}
           className={`transition-all duration-300 ${
-            isZoomed 
-              ? 'object-contain w-auto h-auto max-w-[2000px] max-h-[2000px] cursor-zoom-out' 
-              : 'object-contain w-full h-full max-w-full max-h-full cursor-zoom-in'
-          } ${!imageLoaded ? 'opacity-0' : 'opacity-100'}`}
+            isZoomed
+              ? "object-contain w-auto h-auto max-w-[2000px] max-h-[2000px] cursor-zoom-out"
+              : "object-contain w-full h-full max-w-full max-h-full cursor-zoom-in"
+          } ${!imageLoaded ? "opacity-0" : "opacity-100"}`}
           onClick={toggleZoom}
           onLoad={() => setImageLoaded(true)}
           onError={(e) => {
-            e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop';
+            e.currentTarget.src =
+              "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop";
             setImageLoaded(true);
           }}
         />
       </div>
     );
-  }
-  
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         if (isZoomed) {
           setIsZoomed(false);
         } else {
           onClose();
         }
       }
-      if (e.key === 'ArrowLeft') handlePrev();
-      if (e.key === 'ArrowRight') handleNext();
+      if (e.key === "ArrowLeft") handlePrev();
+      if (e.key === "ArrowRight") handleNext();
     };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    document.body.style.overflow = 'hidden';
-    
+
+    window.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
+
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'auto';
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "auto";
     };
   }, [isZoomed, mediaItems.length, onClose]);
-  
+
   if (mediaItems.length === 0) {
     return (
       <div className="fixed inset-0 z-2000 bg-black flex items-center justify-center">
         <div className="text-center text-white">
           <PhotoIcon className="w-20 h-20 mx-auto mb-4 opacity-50" />
           <h3 className="text-2xl font-bold mb-2">No Media Available</h3>
-          <p className="text-gray-400">This property doesn't have any images or videos.</p>
+          <p className="text-gray-400">
+            This property doesn't have any images or videos.
+          </p>
           <button
             onClick={onClose}
             className="mt-6 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-bold transition-colors"
@@ -1671,9 +1850,9 @@ const FullScreenGallery = ({
       </div>
     );
   }
-  
-  const imageCount = mediaItems.filter(m => m.type === 'image').length;
-  const videoCount = mediaItems.filter(m => m.type === 'video').length;
+
+  const imageCount = mediaItems.filter((m) => m.type === "image").length;
+  const videoCount = mediaItems.filter((m) => m.type === "video").length;
 
   return (
     <div className="fixed inset-0 z-2000 bg-black">
@@ -1682,24 +1861,46 @@ const FullScreenGallery = ({
         <div className="text-white">
           <h2 className="text-xl font-bold">{property.title}</h2>
           <p className="text-sm text-gray-300">
-            <span className="font-bold text-red-500">{currentIndex + 1}</span> / {mediaItems.length} 
-            ({imageCount} {imageCount === 1 ? 'image' : 'images'}, {videoCount} {videoCount === 1 ? 'video' : 'videos'})
+            <span className="font-bold text-red-500">{currentIndex + 1}</span> /{" "}
+            {mediaItems.length}({imageCount}{" "}
+            {imageCount === 1 ? "image" : "images"}, {videoCount}{" "}
+            {videoCount === 1 ? "video" : "videos"})
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {mediaItems[currentIndex]?.type === 'image' && (
+          {mediaItems[currentIndex]?.type === "image" && (
             <button
               onClick={toggleZoom}
               className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white"
               title={isZoomed ? "Zoom Out" : "Zoom In"}
             >
               {isZoomed ? (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"
+                  />
                 </svg>
               ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7m6 0V7m0 3v3" />
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7m6 0V7m0 3v3"
+                  />
                 </svg>
               )}
             </button>
@@ -1712,14 +1913,14 @@ const FullScreenGallery = ({
           </button>
         </div>
       </div>
-      
+
       {/* Main Media Display */}
       <div className="w-full h-full flex items-center justify-center p-4 pt-20 pb-24">
         <div className="w-full h-full max-w-7xl bg-black rounded-lg overflow-hidden">
           {renderMedia()}
         </div>
       </div>
-      
+
       {/* Navigation Arrows */}
       {mediaItems.length > 1 && !isZoomed && (
         <>
@@ -1737,7 +1938,7 @@ const FullScreenGallery = ({
           </button>
         </>
       )}
-      
+
       {/* Thumbnails with Numbering - Images and Videos Together */}
       {mediaItems.length > 1 && !isZoomed && (
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-black/80 to-transparent">
@@ -1753,20 +1954,26 @@ const FullScreenGallery = ({
                   setVideoError(false);
                 }}
                 className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all relative group ${
-                  index === currentIndex 
-                    ? media.type === 'video' ? 'border-red-600 scale-110 shadow-lg' : 'border-blue-600 scale-110 shadow-lg'
-                    : 'border-transparent hover:border-gray-400'
+                  index === currentIndex
+                    ? media.type === "video"
+                      ? "border-red-600 scale-110 shadow-lg"
+                      : "border-blue-600 scale-110 shadow-lg"
+                    : "border-transparent hover:border-gray-400"
                 }`}
               >
                 <div className="w-full h-full bg-gray-800 relative">
-                  {media.type === 'video' ? (
+                  {media.type === "video" ? (
                     <>
                       <img
-                        src={media.thumbnail || getVideoThumbnail(media.url, 'youtube', index)}
+                        src={
+                          media.thumbnail ||
+                          getVideoThumbnail(media.url, "youtube", index)
+                        }
                         alt={`Video thumbnail ${index + 1}`}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          e.currentTarget.src = 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop';
+                          e.currentTarget.src =
+                            "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop";
                         }}
                       />
                       <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
@@ -1779,23 +1986,28 @@ const FullScreenGallery = ({
                       alt={`Image thumbnail ${index + 1}`}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop';
+                        e.currentTarget.src =
+                          "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop";
                       }}
                     />
                   )}
-                  
+
                   {/* Numbering Badge */}
-                  <div className={`absolute top-1 left-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
-                    index === currentIndex 
-                      ? media.type === 'video' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'
-                      : 'bg-black/70 text-white'
-                  }`}>
+                  <div
+                    className={`absolute top-1 left-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                      index === currentIndex
+                        ? media.type === "video"
+                          ? "bg-red-600 text-white"
+                          : "bg-blue-600 text-white"
+                        : "bg-black/70 text-white"
+                    }`}
+                  >
                     {index + 1}
                   </div>
-                  
+
                   {/* Media Type Indicator */}
                   <div className="absolute bottom-1 right-1">
-                    {media.type === 'video' ? (
+                    {media.type === "video" ? (
                       <VideoCameraIcon className="w-3 h-3 text-white drop-shadow-lg" />
                     ) : (
                       <PhotoIcon className="w-3 h-3 text-white drop-shadow-lg" />
@@ -1805,16 +2017,17 @@ const FullScreenGallery = ({
               </button>
             ))}
           </div>
-          
+
           {/* Media Count Indicator */}
           <div className="text-center mt-2 text-white/70 text-sm">
-            {currentIndex + 1} of {mediaItems.length} • {imageCount} images, {videoCount} videos
+            {currentIndex + 1} of {mediaItems.length} • {imageCount} images,{" "}
+            {videoCount} videos
           </div>
         </div>
       )}
     </div>
   );
-}
+};
 
 // Agent Popup Modal Component
 function AgentPopupModal({
@@ -1829,22 +2042,24 @@ function AgentPopupModal({
   if (!isOpen || !agentData) return null;
 
   const getWhatsAppUrl = (whatsapp: string | null): string => {
-    if (!whatsapp) return '#';
-    const cleanedNumber = whatsapp.replace(/\D/g, '');
-    const finalNumber = cleanedNumber.startsWith('0') ? cleanedNumber.substring(1) : cleanedNumber;
+    if (!whatsapp) return "#";
+    const cleanedNumber = whatsapp.replace(/\D/g, "");
+    const finalNumber = cleanedNumber.startsWith("0")
+      ? cleanedNumber.substring(1)
+      : cleanedNumber;
     return `https://wa.me/971${finalNumber}`;
   };
 
   const formatAgentDate = (dateString: string): string => {
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       });
     } catch {
-      return 'N/A';
+      return "N/A";
     }
   };
 
@@ -1869,19 +2084,23 @@ function AgentPopupModal({
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-primary/10 to-primary/5">
                 <div className="text-6xl font-bold text-primary opacity-50">
-                  {agentData?.title ? agentData.title.substring(0, 2).toUpperCase() : 'AG'}
+                  {agentData?.title
+                    ? agentData.title.substring(0, 2).toUpperCase()
+                    : "AG"}
                 </div>
               </div>
             )}
             <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
-            
+
             <div className="absolute bottom-0 left-0 right-0 p-6">
               <div className="flex flex-col md:flex-row md:items-end justify-between">
                 <div>
                   <h2 className="text-3xl md:text-4xl font-serif text-white mb-2">
                     {agentData?.title || "Real Estate Agent"}
                   </h2>
-                  <p className="text-white/80 text-lg">{agentData?.brokerage || "Luxury Property Specialist"}</p>
+                  <p className="text-white/80 text-lg">
+                    {agentData?.brokerage || "Luxury Property Specialist"}
+                  </p>
                 </div>
                 <div className="flex items-center gap-3 mt-4 md:mt-0">
                   {agentData?.verified && (
@@ -1907,7 +2126,7 @@ function AgentPopupModal({
                     <PhoneIcon className="w-5 h-5 text-primary" />
                     Contact Information
                   </h3>
-                  
+
                   <div className="space-y-4">
                     {agentData?.whatsapp && (
                       <a
@@ -1928,7 +2147,7 @@ function AgentPopupModal({
 
                     {agentData?.telegram && (
                       <a
-                        href={`https://t.me/${agentData.telegram.replace('@', '')}`}
+                        href={`https://t.me/${agentData.telegram.replace("@", "")}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-3 p-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
@@ -1979,19 +2198,25 @@ function AgentPopupModal({
 
                     {agentData?.instagram_handle && (
                       <a
-                        href={`https://instagram.com/${agentData.instagram_handle.replace('@', '')}`}
+                        href={`https://instagram.com/${agentData.instagram_handle.replace("@", "")}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-3 p-3 bg-pink-50 text-pink-700 rounded-lg hover:bg-pink-100 transition-colors"
                       >
                         <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                          <svg
+                            className="w-5 h-5"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
                           </svg>
                         </div>
                         <div>
                           <div className="font-semibold">Instagram</div>
-                          <div className="text-sm">@{agentData.instagram_handle.replace('@', '')}</div>
+                          <div className="text-sm">
+                            @{agentData.instagram_handle.replace("@", "")}
+                          </div>
                         </div>
                       </a>
                     )}
@@ -2003,28 +2228,36 @@ function AgentPopupModal({
                     <UserIcon className="w-5 h-5 text-primary" />
                     Basic Information
                   </h3>
-                  
+
                   <div className="space-y-3">
                     <div className="flex justify-between items-center py-2 border-b border-slate-200">
                       <span className="text-slate-600">License No:</span>
-                      <span className="font-semibold text-secondary">{agentData?.license_no || 'N/A'}</span>
+                      <span className="font-semibold text-secondary">
+                        {agentData?.license_no || "N/A"}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-slate-200">
                       <span className="text-slate-600">Office:</span>
-                      <span className="font-semibold text-secondary">{agentData?.office || 'Dubai'}</span>
+                      <span className="font-semibold text-secondary">
+                        {agentData?.office || "Dubai"}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-slate-200">
                       <span className="text-slate-600">Location:</span>
-                      <span className="font-semibold text-secondary">{agentData?.location || 'Dubai'}</span>
+                      <span className="font-semibold text-secondary">
+                        {agentData?.location || "Dubai"}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-slate-200">
                       <span className="text-slate-600">Commission:</span>
-                      <span className="font-semibold text-secondary">{agentData?.commission_rate || 2.5}%</span>
+                      <span className="font-semibold text-secondary">
+                        {agentData?.commission_rate || 2.5}%
+                      </span>
                     </div>
                     <div className="flex justify-between items-center py-2">
                       <span className="text-slate-600">Total Sales:</span>
                       <span className="font-semibold text-secondary">
-                        {agentData?.total_sales?.toLocaleString() || '0'}
+                        {agentData?.total_sales?.toLocaleString() || "0"}
                       </span>
                     </div>
                   </div>
@@ -2035,13 +2268,15 @@ function AgentPopupModal({
                 <div className="bg-linear-to-r from-primary/5 to-secondary/5 rounded-xl p-6">
                   <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
                     <div>
-                      <h3 className="text-xl font-bold text-secondary mb-2">Agent Rating</h3>
+                      <h3 className="text-xl font-bold text-secondary mb-2">
+                        Agent Rating
+                      </h3>
                       <div className="flex items-center gap-2">
                         <div className="flex gap-0.5">
                           {[...Array(5)].map((_, i) => (
-                            <StarSolid 
-                              key={i} 
-                              className={`w-5 h-5 ${i < Math.floor(agentData?.rating || 0) ? 'text-yellow-500' : 'text-slate-300'}`} 
+                            <StarSolid
+                              key={i}
+                              className={`w-5 h-5 ${i < Math.floor(agentData?.rating || 0) ? "text-yellow-500" : "text-slate-300"}`}
                             />
                           ))}
                         </div>
@@ -2057,7 +2292,9 @@ function AgentPopupModal({
                       <span className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm">
                         <ShieldCheckIcon className="w-5 h-5 text-green-500" />
                         <span className="font-semibold">
-                          {agentData?.approved ? 'Verified Agent' : 'Pending Verification'}
+                          {agentData?.approved
+                            ? "Verified Agent"
+                            : "Pending Verification"}
                         </span>
                       </span>
                     </div>
@@ -2065,8 +2302,12 @@ function AgentPopupModal({
 
                   {agentData?.bio && (
                     <div className="mt-6">
-                      <h4 className="font-semibold text-secondary mb-2">About Me</h4>
-                      <p className="text-slate-600 leading-relaxed">{agentData.bio}</p>
+                      <h4 className="font-semibold text-secondary mb-2">
+                        About Me
+                      </h4>
+                      <p className="text-slate-600 leading-relaxed">
+                        {agentData.bio}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -2078,9 +2319,15 @@ function AgentPopupModal({
                       Specializations
                     </h3>
                     <div className="flex flex-wrap gap-2">
-                      {(agentData?.specializations || ['Luxury Properties', 'Residential', 'Commercial']).map((spec: string, idx: number) => (
-                        <span 
-                          key={idx} 
+                      {(
+                        agentData?.specializations || [
+                          "Luxury Properties",
+                          "Residential",
+                          "Commercial",
+                        ]
+                      ).map((spec: string, idx: number) => (
+                        <span
+                          key={idx}
                           className="px-3 py-1.5 bg-primary/10 text-primary text-sm font-semibold rounded-full"
                         >
                           {spec}
@@ -2095,14 +2342,16 @@ function AgentPopupModal({
                       Areas Covered
                     </h3>
                     <div className="flex flex-wrap gap-2">
-                      {(agentData?.areas || ['Dubai', 'Abu Dhabi']).map((area: string, idx: number) => (
-                        <span 
-                          key={idx} 
-                          className="px-3 py-1.5 bg-secondary/10 text-secondary text-sm font-semibold rounded-full"
-                        >
-                          {area}
-                        </span>
-                      ))}
+                      {(agentData?.areas || ["Dubai", "Abu Dhabi"]).map(
+                        (area: string, idx: number) => (
+                          <span
+                            key={idx}
+                            className="px-3 py-1.5 bg-secondary/10 text-secondary text-sm font-semibold rounded-full"
+                          >
+                            {area}
+                          </span>
+                        ),
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2114,12 +2363,19 @@ function AgentPopupModal({
                       Languages
                     </h3>
                     <div className="space-y-2">
-                      {(agentData?.languages || ['English', 'Arabic']).map((lang: string, idx: number) => (
-                        <div key={idx} className="flex items-center justify-between py-2 border-b border-slate-100">
-                          <span className="text-slate-700">{lang}</span>
-                          <span className="text-sm text-slate-500">Fluent</span>
-                        </div>
-                      ))}
+                      {(agentData?.languages || ["English", "Arabic"]).map(
+                        (lang: string, idx: number) => (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between py-2 border-b border-slate-100"
+                          >
+                            <span className="text-slate-700">{lang}</span>
+                            <span className="text-sm text-slate-500">
+                              Fluent
+                            </span>
+                          </div>
+                        ),
+                      )}
                     </div>
                   </div>
 
@@ -2129,12 +2385,19 @@ function AgentPopupModal({
                       Certifications
                     </h3>
                     <div className="space-y-3">
-                      {(agentData?.certifications || ['RERA Certified', 'Luxury Property Specialist']).map((cert: string, idx: number) => (
+                      {(
+                        agentData?.certifications || [
+                          "RERA Certified",
+                          "Luxury Property Specialist",
+                        ]
+                      ).map((cert: string, idx: number) => (
                         <div key={idx} className="flex items-center gap-3">
                           <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                             <CheckBadgeIcon className="w-4 h-4 text-green-600" />
                           </div>
-                          <span className="text-slate-700 font-medium">{cert}</span>
+                          <span className="text-slate-700 font-medium">
+                            {cert}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -2142,28 +2405,36 @@ function AgentPopupModal({
                 </div>
 
                 <div className="bg-slate-50 rounded-xl p-6">
-                  <h3 className="text-lg font-bold text-secondary mb-4">Additional Information</h3>
+                  <h3 className="text-lg font-bold text-secondary mb-4">
+                    Additional Information
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-slate-500">Agent ID</p>
-                      <p className="font-mono text-sm text-secondary">{agentData?.id || 'N/A'}</p>
+                      <p className="font-mono text-sm text-secondary">
+                        {agentData?.id || "N/A"}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-slate-500">Member Since</p>
                       <p className="font-semibold text-secondary">
-                        {agentData?.created_at ? formatAgentDate(agentData.created_at) : 'N/A'}
+                        {agentData?.created_at
+                          ? formatAgentDate(agentData.created_at)
+                          : "N/A"}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-slate-500">Last Updated</p>
                       <p className="font-semibold text-secondary">
-                        {agentData?.updated_at ? formatAgentDate(agentData.updated_at) : 'N/A'}
+                        {agentData?.updated_at
+                          ? formatAgentDate(agentData.updated_at)
+                          : "N/A"}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-slate-500">Status</p>
                       <p className="font-semibold text-green-600">
-                        {agentData?.approved ? 'Active' : 'Pending'}
+                        {agentData?.approved ? "Active" : "Pending"}
                       </p>
                     </div>
                   </div>
@@ -2183,7 +2454,7 @@ function AgentPopupModal({
                   Chat on WhatsApp
                 </a>
                 <a
-                  href={`tel:${agentData?.whatsapp || ''}`}
+                  href={`tel:${agentData?.whatsapp || ""}`}
                   className="flex-1 bg-primary text-secondary py-3 px-6 rounded-xl font-bold text-center hover:bg-primary/90 transition-colors flex items-center justify-center gap-3"
                 >
                   <PhoneIcon className="w-5 h-5" />
@@ -2205,12 +2476,12 @@ function AgentPopupModal({
 }
 
 // MAIN VIEW DETAILS MODAL - UPDATED WITH VIDEOS IN MAIN GALLERY
-function ViewDetailsModal({ 
-  property, 
-  onClose 
-}: { 
-  property: NormalizedProperty | null; 
-  onClose: () => void 
+function ViewDetailsModal({
+  property,
+  onClose,
+}: {
+  property: NormalizedProperty | null;
+  onClose: () => void;
 }) {
   if (!property) return null;
 
@@ -2228,126 +2499,151 @@ function ViewDetailsModal({
   const [agentPopupData, setAgentPopupData] = useState<AgentData | null>(null);
   const [showFullScreenGallery, setShowFullScreenGallery] = useState(false);
   const [hasVideos, setHasVideos] = useState(false);
-  const [mediaItems, setMediaItems] = useState<{type: 'image' | 'video', url: string, thumbnail?: string}[]>([]);
+  const [mediaItems, setMediaItems] = useState<
+    { type: "image" | "video"; url: string; thumbnail?: string }[]
+  >([]);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
   // Combine images and videos
   useEffect(() => {
-    const items: {type: 'image' | 'video', url: string, thumbnail?: string}[] = [];
-    
+    const items: {
+      type: "image" | "video";
+      url: string;
+      thumbnail?: string;
+    }[] = [];
+
     // Add images
     if (property.images && property.images.length > 0) {
-      property.images.forEach(img => {
-        if (img && typeof img === 'string' && img.trim() !== '') {
-          items.push({ type: 'image', url: img, thumbnail: img });
+      property.images.forEach((img) => {
+        if (img && typeof img === "string" && img.trim() !== "") {
+          items.push({ type: "image", url: img, thumbnail: img });
         }
       });
     } else if (property.image) {
-      items.push({ type: 'image', url: property.image, thumbnail: property.image });
+      items.push({
+        type: "image",
+        url: property.image,
+        thumbnail: property.image,
+      });
     }
-    
+
     // Add videos
     if (property.videos && property.videos.length > 0) {
       property.videos.forEach((videoUrl, index) => {
-        if (videoUrl && typeof videoUrl === 'string' && videoUrl.trim() !== '') {
+        if (
+          videoUrl &&
+          typeof videoUrl === "string" &&
+          videoUrl.trim() !== ""
+        ) {
           const videoType = getVideoType(videoUrl);
-          if (videoType !== 'none') {
-            items.push({ 
-              type: 'video', 
+          if (videoType !== "none") {
+            items.push({
+              type: "video",
               url: videoUrl,
-              thumbnail: getVideoThumbnail(videoUrl, videoType, index + items.length)
+              thumbnail: getVideoThumbnail(
+                videoUrl,
+                videoType,
+                index + items.length,
+              ),
             });
           }
         }
       });
     } else if (property.video_url) {
       const videoUrl = property.video_url;
-      if (videoUrl && typeof videoUrl === 'string' && videoUrl.trim() !== '') {
+      if (videoUrl && typeof videoUrl === "string" && videoUrl.trim() !== "") {
         const videoType = getVideoType(videoUrl);
-        if (videoType !== 'none') {
-          items.push({ 
-            type: 'video', 
+        if (videoType !== "none") {
+          items.push({
+            type: "video",
             url: videoUrl,
-            thumbnail: getVideoThumbnail(videoUrl, videoType, items.length)
+            thumbnail: getVideoThumbnail(videoUrl, videoType, items.length),
           });
         }
       }
     }
-    
+
     // Add fallback if no items
     if (items.length === 0) {
       items.push({
-        type: 'image',
-        url: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop',
-        thumbnail: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop'
+        type: "image",
+        url: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop",
+        thumbnail:
+          "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop",
       });
     }
-    
+
     setMediaItems(items);
-    
+
     // Check if has videos
-    if (items.some(item => item.type === 'video')) {
+    if (items.some((item) => item.type === "video")) {
       setHasVideos(true);
     }
   }, [property]);
 
   const getVideoType = (url: string) => {
-    if (!url || typeof url !== 'string') return 'none';
-    if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('youtube.com/embed')) return 'youtube';
-    if (url.includes('vimeo.com')) return 'vimeo';
-    if (url.includes('pexels.com')) return 'pexels';
-    if (/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i.test(url)) return 'direct';
-    return 'external';
+    if (!url || typeof url !== "string") return "none";
+    if (
+      url.includes("youtube.com") ||
+      url.includes("youtu.be") ||
+      url.includes("youtube.com/embed")
+    )
+      return "youtube";
+    if (url.includes("vimeo.com")) return "vimeo";
+    if (url.includes("pexels.com")) return "pexels";
+    if (/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i.test(url))
+      return "direct";
+    return "external";
   };
 
   const getVideoThumbnail = (url: string, type: string, index: number) => {
     try {
-      if (type === 'youtube') {
+      if (type === "youtube") {
         const videoId = extractYouTubeId(url);
         if (videoId) {
           return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
         }
-      } else if (type === 'vimeo') {
-        return 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop';
-      } else if (type === 'pexels') {
-        return 'https://images.pexels.com/videos/7578549/pictures/preview-0.jpg';
+      } else if (type === "vimeo") {
+        return "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop";
+      } else if (type === "pexels") {
+        return "https://images.pexels.com/videos/7578549/pictures/preview-0.jpg";
       }
     } catch (error) {
       console.error("Error getting thumbnail:", error);
     }
-    
+
     const fallbackThumbnails = [
-      'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1579165466741-7f35e4755660?w=800&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1579165466991-d467bfe99277?w=800&auto=format&fit=crop'
+      "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1579165466741-7f35e4755660?w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1579165466991-d467bfe99277?w=800&auto=format&fit=crop",
     ];
     return fallbackThumbnails[index % fallbackThumbnails.length];
   };
 
   const extractYouTubeId = (url: string) => {
     try {
-      let videoId = '';
-      if (url.includes('youtube.com/watch?v=')) {
-        videoId = url.split('v=')[1];
-        const ampersandPosition = videoId.indexOf('&');
+      let videoId = "";
+      if (url.includes("youtube.com/watch?v=")) {
+        videoId = url.split("v=")[1];
+        const ampersandPosition = videoId.indexOf("&");
         if (ampersandPosition !== -1) {
           videoId = videoId.substring(0, ampersandPosition);
         }
-      } else if (url.includes('youtu.be/')) {
-        videoId = url.split('youtu.be/')[1];
-        if (videoId.includes('?')) {
-          videoId = videoId.split('?')[0];
+      } else if (url.includes("youtu.be/")) {
+        videoId = url.split("youtu.be/")[1];
+        if (videoId.includes("?")) {
+          videoId = videoId.split("?")[0];
         }
-      } else if (url.includes('youtube.com/embed/')) {
-        videoId = url.split('embed/')[1];
-        if (videoId.includes('?')) {
-          videoId = videoId.split('?')[0];
+      } else if (url.includes("youtube.com/embed/")) {
+        videoId = url.split("embed/")[1];
+        if (videoId.includes("?")) {
+          videoId = videoId.split("?")[0];
         }
       }
       return videoId;
     } catch (error) {
       console.error("Error extracting YouTube ID:", error);
-      return '';
+      return "";
     }
   };
 
@@ -2433,58 +2729,58 @@ function ViewDetailsModal({
       if (property.agent_id) {
         const agentDocRef = doc(db, "agents", property.agent_id);
         const agentDoc = await getDoc(agentDocRef);
-        
+
         if (agentDoc.exists()) {
           const data = agentDoc.data() as AgentData;
           setAgentPopupData({
             id: agentDoc.id,
-            ...data
+            ...data,
           });
           setShowAgentPopup(true);
-          document.body.style.overflow = 'hidden';
+          document.body.style.overflow = "hidden";
           return;
         }
       }
-      
+
       if (property.agent_name) {
         const agentsRef = collection(db, "agents");
         const q = query(agentsRef, where("title", "==", property.agent_name));
         const querySnapshot = await getDocs(q);
-        
+
         if (!querySnapshot.empty) {
           const doc = querySnapshot.docs[0];
           const data = doc.data() as AgentData;
           setAgentPopupData({
             id: doc.id,
-            ...data
+            ...data,
           });
           setShowAgentPopup(true);
-          document.body.style.overflow = 'hidden';
+          document.body.style.overflow = "hidden";
           return;
         }
       }
-      
+
       if (agentData) {
         setAgentPopupData(agentData);
         setShowAgentPopup(true);
-        document.body.style.overflow = 'hidden';
+        document.body.style.overflow = "hidden";
         return;
       }
-      
+
       setAgentPopupData({
         title: property.agent_name || "Agent",
         office: "dubai",
         experience_years: 5,
         total_sales: 11,
-        profile_image: "https://img.freepik.com/free-photo/blond-businessman-happy-expression_1194-3866.jpg",
+        profile_image:
+          "https://img.freepik.com/free-photo/blond-businessman-happy-expression_1194-3866.jpg",
         whatsapp: "03291082882",
         verified: true,
         rating: 4.5,
         review_count: 0,
       });
       setShowAgentPopup(true);
-      document.body.style.overflow = 'hidden';
-      
+      document.body.style.overflow = "hidden";
     } catch (error) {
       console.error("Error fetching agent data:", error);
       setAgentPopupData({
@@ -2492,29 +2788,30 @@ function ViewDetailsModal({
         office: "dubai",
         experience_years: 5,
         total_sales: 11,
-        profile_image: "https://img.freepik.com/free-photo/blond-businessman-happy-expression_1194-3866.jpg",
+        profile_image:
+          "https://img.freepik.com/free-photo/blond-businessman-happy-expression_1194-3866.jpg",
         whatsapp: "03291082882",
         verified: true,
         rating: 4.5,
         review_count: 0,
       });
       setShowAgentPopup(true);
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     }
   };
 
   const closeAgentPopup = () => {
     setShowAgentPopup(false);
     setAgentPopupData(null);
-    document.body.style.overflow = 'auto';
+    document.body.style.overflow = "auto";
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US').format(price);
+    return new Intl.NumberFormat("en-US").format(price);
   };
 
   const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('en-US').format(num);
+    return new Intl.NumberFormat("en-US").format(num);
   };
 
   const calculateMortgage = () => {
@@ -2544,34 +2841,38 @@ function ViewDetailsModal({
   const mortgage = calculateMortgage();
 
   const handlePrevMedia = () => {
-    setCurrentIndex(prev => prev === 0 ? mediaItems.length - 1 : prev - 1);
+    setCurrentIndex((prev) => (prev === 0 ? mediaItems.length - 1 : prev - 1));
     setIsVideoPlaying(false);
   };
 
   const handleNextMedia = () => {
-    setCurrentIndex(prev => prev === mediaItems.length - 1 ? 0 : prev + 1);
+    setCurrentIndex((prev) => (prev === mediaItems.length - 1 ? 0 : prev + 1));
     setIsVideoPlaying(false);
   };
 
-  const imageCount = mediaItems.filter(m => m.type === 'image').length;
-  const videoCount = mediaItems.filter(m => m.type === 'video').length;
+  const imageCount = mediaItems.filter((m) => m.type === "image").length;
+  const videoCount = mediaItems.filter((m) => m.type === "video").length;
   const currentMedia = mediaItems[currentIndex];
 
   const renderMainMedia = () => {
     if (!currentMedia) return null;
 
-    if (currentMedia.type === 'video') {
+    if (currentMedia.type === "video") {
       const videoType = getVideoType(currentMedia.url);
-      
+
       if (!isVideoPlaying) {
         return (
           <div className="relative w-full h-full bg-black">
             <img
-              src={currentMedia.thumbnail || getVideoThumbnail(currentMedia.url, videoType, currentIndex)}
+              src={
+                currentMedia.thumbnail ||
+                getVideoThumbnail(currentMedia.url, videoType, currentIndex)
+              }
               alt={`Video thumbnail ${currentIndex + 1}`}
               className="w-full h-full object-cover"
               onError={(e) => {
-                e.currentTarget.src = "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop";
+                e.currentTarget.src =
+                  "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop";
               }}
             />
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
@@ -2583,13 +2884,17 @@ function ViewDetailsModal({
               </button>
             </div>
             <div className="absolute top-4 left-4 px-3 py-1 bg-red-600 text-white text-sm font-bold rounded-full">
-              VIDEO {mediaItems.filter(m => m.type === 'video').findIndex(v => v.url === currentMedia.url) + 1} / {videoCount}
+              VIDEO{" "}
+              {mediaItems
+                .filter((m) => m.type === "video")
+                .findIndex((v) => v.url === currentMedia.url) + 1}{" "}
+              / {videoCount}
             </div>
           </div>
         );
       }
 
-      if (videoType === 'youtube') {
+      if (videoType === "youtube") {
         const videoId = extractYouTubeId(currentMedia.url);
         if (!videoId) {
           return (
@@ -2634,7 +2939,8 @@ function ViewDetailsModal({
         className="w-full h-full object-cover cursor-pointer"
         onClick={() => setShowFullScreenGallery(true)}
         onError={(e) => {
-          e.currentTarget.src = "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop";
+          e.currentTarget.src =
+            "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop";
         }}
       />
     );
@@ -2672,9 +2978,9 @@ function ViewDetailsModal({
       )}
 
       {showFullScreenGallery && (
-        <FullScreenGallery 
-          property={property} 
-          onClose={() => setShowFullScreenGallery(false)} 
+        <FullScreenGallery
+          property={property}
+          onClose={() => setShowFullScreenGallery(false)}
         />
       )}
 
@@ -2716,7 +3022,9 @@ function ViewDetailsModal({
                 <ArrowLeftIcon className="h-5 w-5" />
               </button>
             </div>
-            <p className="text-xl mb-2 font-bold text-slate-500">Luxury Properties in Dubai</p>
+            <p className="text-xl mb-2 font-bold text-slate-500">
+              Luxury Properties in Dubai
+            </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
@@ -2749,7 +3057,7 @@ function ViewDetailsModal({
                     </div>
 
                     <div className="absolute top-2 right-4 px-3 py-1 bg-black/50 text-white text-sm rounded-full flex items-center gap-1 z-20">
-                      {currentMedia?.type === 'video' ? (
+                      {currentMedia?.type === "video" ? (
                         <VideoCameraIcon className="w-4 h-4" />
                       ) : (
                         <PhotoIcon className="w-4 h-4" />
@@ -2792,25 +3100,39 @@ function ViewDetailsModal({
                           }}
                           className={`shrink-0 w-24 h-20 rounded-xl overflow-hidden border-4 transition-all relative ${
                             idx === currentIndex
-                              ? media.type === 'video' ? 'border-red-600' : 'border-primary'
-                              : 'border-transparent hover:border-slate-300'
+                              ? media.type === "video"
+                                ? "border-red-600"
+                                : "border-primary"
+                              : "border-transparent hover:border-slate-300"
                           }`}
                         >
                           <img
-                            src={media.type === 'video' ? (media.thumbnail || getVideoThumbnail(media.url, getVideoType(media.url), idx)) : media.url}
+                            src={
+                              media.type === "video"
+                                ? media.thumbnail ||
+                                  getVideoThumbnail(
+                                    media.url,
+                                    getVideoType(media.url),
+                                    idx,
+                                  )
+                                : media.url
+                            }
                             alt={`Thumbnail ${idx + 1}`}
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              e.currentTarget.src = "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop";
+                              e.currentTarget.src =
+                                "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop";
                             }}
                           />
-                          {media.type === 'video' && (
+                          {media.type === "video" && (
                             <>
                               <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
                                 <PlayCircleIcon className="w-6 h-6 text-white opacity-80" />
                               </div>
                               <div className="absolute top-1 left-1 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center text-[10px] font-bold text-white">
-                                {mediaItems.filter(m => m.type === 'video').findIndex(v => v.url === media.url) + 1}
+                                {mediaItems
+                                  .filter((m) => m.type === "video")
+                                  .findIndex((v) => v.url === media.url) + 1}
                               </div>
                             </>
                           )}
@@ -3026,7 +3348,7 @@ function ViewDetailsModal({
                               <div className="text-slate-600 text-sm">
                                 {property.coords
                                   ? `Lat: ${property.coords.lat.toFixed(
-                                      6
+                                      6,
                                     )}, Lng: ${property.coords.lng.toFixed(6)}`
                                   : "Dubai, United Arab Emirates"}
                               </div>
@@ -3086,7 +3408,6 @@ function ViewDetailsModal({
                           </div>
                         </div>
                       </button>
-
                     </div>
                   </div>
                 </div>
@@ -3180,8 +3501,7 @@ function ViewDetailsModal({
                       </button>
                       <button
                         onClick={() => {
-                          const phone =
-                            agentData?.whatsapp || "03291082882";
+                          const phone = agentData?.whatsapp || "03291082882";
                           window.open(`https://wa.me/${phone}`, "_blank");
                         }}
                         className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-lg shadow-green-500/20"
@@ -3248,7 +3568,7 @@ function ViewDetailsModal({
 // Function to fetch property details
 async function fetchPropertyDetails(
   propertyId: string,
-  collectionName: string
+  collectionName: string,
 ): Promise<Record<string, any> | null> {
   try {
     const docRef = doc(db, collectionName, propertyId);
@@ -3273,27 +3593,26 @@ async function fetchPropertyDetails(
 // Function to fetch ALL properties from 'properties' collection (NO FILTERS)
 async function fetchAllPropertiesFromMainCollection() {
   try {
-    const propertiesRef = collection(db, 'properties');
-    
+    const propertiesRef = collection(db, "properties");
+
     // NO WHERE CLAUSE - fetch ALL properties
     const q = query(propertiesRef);
-    
+
     const querySnapshot = await getDocs(q);
-    
+
     const properties: any[] = [];
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       properties.push({
         id: doc.id,
-        collection: 'properties',
-        ...data
+        collection: "properties",
+        ...data,
       });
     });
-    
+
     return properties;
-    
   } catch (error: any) {
-    console.error('Error fetching from main collection:', error.message);
+    console.error("Error fetching from main collection:", error.message);
     return [];
   }
 }
@@ -3301,27 +3620,26 @@ async function fetchAllPropertiesFromMainCollection() {
 // Function to fetch ALL properties from 'agent_properties' collection
 async function fetchAllPropertiesFromAgentCollection() {
   try {
-    const agentPropertiesRef = collection(db, 'agent_properties');
-    
+    const agentPropertiesRef = collection(db, "agent_properties");
+
     // NO WHERE CLAUSE - fetch ALL published properties
     const q = query(agentPropertiesRef);
-    
+
     const querySnapshot = await getDocs(q);
-    
+
     const properties: any[] = [];
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       properties.push({
         id: doc.id,
-        collection: 'agent_properties',
-        ...data
+        collection: "agent_properties",
+        ...data,
       });
     });
-    
+
     return properties;
-    
   } catch (error: any) {
-    console.error('Error fetching from agent collection:', error.message);
+    console.error("Error fetching from agent collection:", error.message);
     return [];
   }
 }
@@ -3331,22 +3649,23 @@ async function fetchAllProperties() {
   try {
     const [mainProperties, agentProperties] = await Promise.all([
       fetchAllPropertiesFromMainCollection(),
-      fetchAllPropertiesFromAgentCollection()
+      fetchAllPropertiesFromAgentCollection(),
     ]);
-    
+
     const allProperties = [...mainProperties, ...agentProperties];
-    
+
     console.log(`📊 Total properties fetched: ${allProperties.length}`);
-    console.log('📊 Status breakdown:', {
-      sale: allProperties.filter(p => p.status === 'sale').length,
-      rent: allProperties.filter(p => p.status === 'rent').length,
-      other: allProperties.filter(p => p.status !== 'sale' && p.status !== 'rent').length
+    console.log("📊 Status breakdown:", {
+      sale: allProperties.filter((p) => p.status === "sale").length,
+      rent: allProperties.filter((p) => p.status === "rent").length,
+      other: allProperties.filter(
+        (p) => p.status !== "sale" && p.status !== "rent",
+      ).length,
     });
-    
+
     return allProperties;
-    
   } catch (error) {
-    console.error('Error in fetchAllProperties:', error);
+    console.error("Error in fetchAllProperties:", error);
     return [];
   }
 }
@@ -3354,37 +3673,43 @@ async function fetchAllProperties() {
 function PropertiesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   const [allProperties, setAllProperties] = useState<NormalizedProperty[]>([]);
-  const [filteredProperties, setFilteredProperties] = useState<NormalizedProperty[]>([]);
-  const [selectedProperty, setSelectedProperty] = useState<NormalizedProperty | null>(null);
-  const [galleryModal, setGalleryModal] = useState<{ isOpen: boolean; property: NormalizedProperty | null }>({ isOpen: false, property: null });
+  const [filteredProperties, setFilteredProperties] = useState<
+    NormalizedProperty[]
+  >([]);
+  const [selectedProperty, setSelectedProperty] =
+    useState<NormalizedProperty | null>(null);
+  const [galleryModal, setGalleryModal] = useState<{
+    isOpen: boolean;
+    property: NormalizedProperty | null;
+  }>({ isOpen: false, property: null });
   const [showFullScreenGallery, setShowFullScreenGallery] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
-  
-  const viewMode = searchParams.get('view') === 'list' ? 'list' : 'grid';
-  const sortBy = searchParams.get('sortBy') || 'featured';
-  const action = searchParams.get('action') || 'all';
-  const category = searchParams.get('category') || '';
-  const type = searchParams.get('type') || '';
-  const area = searchParams.get('area') || '';
-  const developer = searchParams.get('developer') || '';
-  const minPrice = searchParams.get('minPrice') || '';
-  const maxPrice = searchParams.get('maxPrice') || '';
-  const beds = searchParams.get('beds') || '';
-  const baths = searchParams.get('baths') || '';
-  const minSqft = searchParams.get('minSqft') || '';
-  const maxSqft = searchParams.get('maxSqft') || '';
-  const furnished = searchParams.get('furnished') || '';
-  const parking = searchParams.get('parking') || '';
-  const propertyAge = searchParams.get('propertyAge') || '';
-  const completion = searchParams.get('completion') || '';
-  const features = searchParams.get('features') || '';
-  const subtype = searchParams.get('subtype') || '';
-  const page = parseInt(searchParams.get('page') || '1', 10);
+
+  const viewMode = searchParams.get("view") === "list" ? "list" : "grid";
+  const sortBy = searchParams.get("sortBy") || "featured";
+  const action = searchParams.get("action") || "all";
+  const category = searchParams.get("category") || "";
+  const type = searchParams.get("type") || "";
+  const area = searchParams.get("area") || "";
+  const developer = searchParams.get("developer") || "";
+  const minPrice = searchParams.get("minPrice") || "";
+  const maxPrice = searchParams.get("maxPrice") || "";
+  const beds = searchParams.get("beds") || "";
+  const baths = searchParams.get("baths") || "";
+  const minSqft = searchParams.get("minSqft") || "";
+  const maxSqft = searchParams.get("maxSqft") || "";
+  const furnished = searchParams.get("furnished") || "";
+  const parking = searchParams.get("parking") || "";
+  const propertyAge = searchParams.get("propertyAge") || "";
+  const completion = searchParams.get("completion") || "";
+  const features = searchParams.get("features") || "";
+  const subtype = searchParams.get("subtype") || "";
+  const page = parseInt(searchParams.get("page") || "1", 10);
   const limit = 20;
-  const search = searchParams.get('search') || '';
-  const hasVideo = searchParams.get('hasVideo') || '';
+  const search = searchParams.get("search") || "";
+  const hasVideo = searchParams.get("hasVideo") || "";
 
   const [formState, setFormState] = useState({
     action: action,
@@ -3398,7 +3723,7 @@ function PropertiesPageContent() {
     furnished: furnished,
     completion: completion,
     hasVideo: hasVideo,
-    search: search
+    search: search,
   });
 
   // NEW: State for video filter
@@ -3408,86 +3733,109 @@ function PropertiesPageContent() {
   const handleVideoFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const checked = e.target.checked;
     setShowOnlyVideos(checked);
-    
+
     // Update formState
-    setFormState(prev => ({
+    setFormState((prev) => ({
       ...prev,
-      hasVideo: checked ? 'true' : ''
+      hasVideo: checked ? "true" : "",
     }));
-    
+
     // Update URL params
     const params = new URLSearchParams(searchParams.toString());
     if (checked) {
-      params.set('hasVideo', 'true');
+      params.set("hasVideo", "true");
     } else {
-      params.delete('hasVideo');
+      params.delete("hasVideo");
     }
     router.replace(`/luxe?${params.toString()}`, { scroll: false });
   };
 
   useEffect(() => {
-    console.log('🔍 URL Params:', {
-      action: searchParams.get('action'),
-      area: searchParams.get('area'),
-      type: searchParams.get('type'),
-      hasVideo: searchParams.get('hasVideo')
+    console.log("🔍 URL Params:", {
+      action: searchParams.get("action"),
+      area: searchParams.get("area"),
+      type: searchParams.get("type"),
+      hasVideo: searchParams.get("hasVideo"),
     });
-    
+
     setFormState({
-      action: searchParams.get('action') || 'all',
-      category: searchParams.get('category') || '',
-      type: searchParams.get('type') || '',
-      area: searchParams.get('area') || '',
-      minPrice: searchParams.get('minPrice') || '',
-      maxPrice: searchParams.get('maxPrice') || '',
-      beds: searchParams.get('beds') || '',
-      baths: searchParams.get('baths') || '',
-      furnished: searchParams.get('furnished') || '',
-      completion: searchParams.get('completion') || '',
-      hasVideo: searchParams.get('hasVideo') || '',
-      search: searchParams.get('search') || ''
+      action: searchParams.get("action") || "all",
+      category: searchParams.get("category") || "",
+      type: searchParams.get("type") || "",
+      area: searchParams.get("area") || "",
+      minPrice: searchParams.get("minPrice") || "",
+      maxPrice: searchParams.get("maxPrice") || "",
+      beds: searchParams.get("beds") || "",
+      baths: searchParams.get("baths") || "",
+      furnished: searchParams.get("furnished") || "",
+      completion: searchParams.get("completion") || "",
+      hasVideo: searchParams.get("hasVideo") || "",
+      search: searchParams.get("search") || "",
     });
-    
+
     // Set showOnlyVideos from URL
-    setShowOnlyVideos(searchParams.get('hasVideo') === 'true');
+    setShowOnlyVideos(searchParams.get("hasVideo") === "true");
   }, [searchParams]);
 
   const handleViewDetails = async (property: NormalizedProperty) => {
     try {
       const detailedProperty = await fetchPropertyDetails(
         property.id,
-        property.collection || 'properties'
+        property.collection || "properties",
       );
-      
+
       if (detailedProperty) {
         const normalized = {
           ...detailedProperty,
-          image: property.image || detailedProperty.images?.[0] || detailedProperty.image_url || '',
+          image:
+            property.image ||
+            detailedProperty.images?.[0] ||
+            detailedProperty.image_url ||
+            "",
           price: detailedProperty.price || 0,
-          priceLabel: detailedProperty.status === 'rent' ? 'yearly' : 'total',
-          area: detailedProperty.area || detailedProperty.location || detailedProperty.address || 'Dubai',
-          city: detailedProperty.city || 'Dubai',
-          location: detailedProperty.address || detailedProperty.area || detailedProperty.city || 'Dubai',
+          priceLabel: detailedProperty.status === "rent" ? "yearly" : "total",
+          area:
+            detailedProperty.area ||
+            detailedProperty.location ||
+            detailedProperty.address ||
+            "Dubai",
+          city: detailedProperty.city || "Dubai",
+          location:
+            detailedProperty.address ||
+            detailedProperty.area ||
+            detailedProperty.city ||
+            "Dubai",
           beds: detailedProperty.beds || 0,
           baths: detailedProperty.baths || 0,
           sqft: detailedProperty.sqft || 0,
-          type: detailedProperty.type || detailedProperty.subtype || 'Luxury Property',
+          type:
+            detailedProperty.type ||
+            detailedProperty.subtype ||
+            "Luxury Property",
           developer: detailedProperty.developer || null,
           featured: Boolean(detailedProperty.featured),
           category: detailedProperty.category || null,
           parking: detailedProperty.parking || null,
-          propertyAge: detailedProperty.property_age || detailedProperty.propertyAge || null,
-          completion: detailedProperty.completion || detailedProperty.property_status || 'ready',
+          propertyAge:
+            detailedProperty.property_age ||
+            detailedProperty.propertyAge ||
+            null,
+          completion:
+            detailedProperty.completion ||
+            detailedProperty.property_status ||
+            "ready",
           subtype: detailedProperty.subtype || null,
           description: detailedProperty.description || null,
-          features: Array.isArray(detailedProperty.features) ? detailedProperty.features : [],
+          features: Array.isArray(detailedProperty.features)
+            ? detailedProperty.features
+            : [],
           video_url: detailedProperty.video_url || null,
-          currency: detailedProperty.currency || 'AED',
-          status: detailedProperty.status || 'sale',
+          currency: detailedProperty.currency || "AED",
+          status: detailedProperty.status || "sale",
           agent_name: detailedProperty.agent_name || null,
           review_status: detailedProperty.review_status || null,
           submitted_at: detailedProperty.submitted_at || null,
-          collection: detailedProperty.collection || 'properties',
+          collection: detailedProperty.collection || "properties",
           address: detailedProperty.address,
           property_status: detailedProperty.property_status,
           property_age: detailedProperty.property_age,
@@ -3499,7 +3847,8 @@ function PropertiesPageContent() {
           slug: detailedProperty.slug,
           created_at: detailedProperty.created_at,
           updated_at: detailedProperty.updated_at,
-          agent_image: detailedProperty.profile_image ||
+          agent_image:
+            detailedProperty.profile_image ||
             "https://img.freepik.com/free-photo/blond-businessman-happy-expression_1194-3866.jpg",
           agent_office: detailedProperty.office || "DUBAI OFFICE",
           agent_experience: detailedProperty.experience_years || 8,
@@ -3511,13 +3860,13 @@ function PropertiesPageContent() {
           documents: detailedProperty.documents || [],
           videos: detailedProperty.videos || [],
         };
-        
+
         setSelectedProperty(normalized as NormalizedProperty);
       } else {
         setSelectedProperty(property);
       }
     } catch (error) {
-      console.error('Error loading property details:', error);
+      console.error("Error loading property details:", error);
       setSelectedProperty(property);
     }
   };
@@ -3535,10 +3884,11 @@ function PropertiesPageContent() {
   useEffect(() => {
     async function loadProperties() {
       const properties = await fetchAllProperties();
-      
+
       const normalized = properties.map((p: any) => {
-        let imageUrl = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop';
-        
+        let imageUrl =
+          "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop";
+
         if (p.images && Array.isArray(p.images) && p.images.length > 0) {
           imageUrl = p.images[0];
         } else if (p.image) {
@@ -3546,32 +3896,43 @@ function PropertiesPageContent() {
         } else if (p.image_url) {
           imageUrl = p.image_url;
         }
-        
-        const price = typeof p.price === 'string' ? parseFloat(p.price) : (p.price ?? 0);
-        const location = p.location || p.address || p.area || p.city || 'Dubai';
-        const completionStatus = p.completion || p.property_status || 'ready';
-        const propertyArea = p.area || p.location || p.address || p.neighborhood || p.district || 'Dubai';
-        
+
+        const price =
+          typeof p.price === "string" ? parseFloat(p.price) : (p.price ?? 0);
+        const location = p.location || p.address || p.area || p.city || "Dubai";
+        const completionStatus = p.completion || p.property_status || "ready";
+        const propertyArea =
+          p.area ||
+          p.location ||
+          p.address ||
+          p.neighborhood ||
+          p.district ||
+          "Dubai";
+
         let featuresArray: string[] = [];
         if (Array.isArray(p.features)) {
           featuresArray = p.features;
-        } else if (typeof p.features === 'string') {
-          featuresArray = p.features.split(',').map((f: string) => f.trim());
+        } else if (typeof p.features === "string") {
+          featuresArray = p.features.split(",").map((f: string) => f.trim());
         }
-        
+
         return {
           ...p,
           image: imageUrl,
           price: price,
-          priceLabel: p.status === 'rent' ? 'yearly' : 'total',
+          priceLabel: p.status === "rent" ? "yearly" : "total",
           area: propertyArea,
-          city: p.city || 'Dubai',
+          city: p.city || "Dubai",
           location: location,
           beds: p.beds ?? 0,
           baths: p.baths ?? 0,
           sqft: p.sqft ?? 0,
-          type: p.type || p.subtype || 'Luxury Property',
-          developer: p.developer || (p.developers?.name ? p.developers.name : null) || p.developer_id || null,
+          type: p.type || p.subtype || "Luxury Property",
+          developer:
+            p.developer ||
+            (p.developers?.name ? p.developers.name : null) ||
+            p.developer_id ||
+            null,
           featured: Boolean(p.featured),
           category: p.category || null,
           parking: p.parking || null,
@@ -3581,13 +3942,14 @@ function PropertiesPageContent() {
           description: p.description || null,
           features: featuresArray,
           video_url: p.video_url || null,
-          currency: p.currency || 'AED',
-          status: p.status || 'sale',
+          currency: p.currency || "AED",
+          status: p.status || "sale",
           agent_name: p.agent_name || null,
           review_status: p.review_status || null,
           submitted_at: p.submitted_at || null,
-          collection: p.collection || 'properties',
-          agent_image: p.profile_image ||
+          collection: p.collection || "properties",
+          agent_image:
+            p.profile_image ||
             "https://img.freepik.com/free-photo/blond-businessman-happy-expression_1194-3866.jpg",
           agent_office: p.office || "DUBAI OFFICE",
           agent_experience: p.experience_years || 8,
@@ -3600,11 +3962,11 @@ function PropertiesPageContent() {
           videos: p.videos || [],
         };
       });
-      
+
       setAllProperties(normalized);
       setDataLoaded(true);
     }
-    
+
     loadProperties();
   }, []);
 
@@ -3614,224 +3976,269 @@ function PropertiesPageContent() {
       setFilteredProperties([]);
       return;
     }
-    
+
     let filtered = [...allProperties];
-    
-    console.log('🔍 Before any filter:', filtered.length);
-    
+
+    console.log("🔍 Before any filter:", filtered.length);
+
     // Filter by action (rent/buy/all) - BUT ALL shows everything
-    if (formState.action === 'rent') {
-      filtered = filtered.filter(p => p.status === 'rent');
-      console.log('🔍 After rent filter:', filtered.length);
-    } else if (formState.action === 'buy' || formState.action === 'sale') {
-      filtered = filtered.filter(p => p.status === 'sale');
-      console.log('🔍 After sale filter:', filtered.length);
+    if (formState.action === "rent") {
+      filtered = filtered.filter((p) => p.status === "rent");
+      console.log("🔍 After rent filter:", filtered.length);
+    } else if (formState.action === "buy" || formState.action === "sale") {
+      filtered = filtered.filter((p) => p.status === "sale");
+      console.log("🔍 After sale filter:", filtered.length);
     }
     // 'all' shows everything - no filter
 
     // Filter by category (but category filter is OPTIONAL)
     if (formState.category) {
-      filtered = filtered.filter(p => p.category === formState.category);
-      console.log('🔍 After category filter:', filtered.length);
+      filtered = filtered.filter((p) => p.category === formState.category);
+      console.log("🔍 After category filter:", filtered.length);
     }
 
     // Filter by property type
     if (formState.type) {
-      filtered = filtered.filter(p => p.type?.toLowerCase() === formState.type.toLowerCase());
-      console.log('🔍 After type filter:', filtered.length);
+      filtered = filtered.filter(
+        (p) => p.type?.toLowerCase() === formState.type.toLowerCase(),
+      );
+      console.log("🔍 After type filter:", filtered.length);
     }
 
     // Filter by area/location
     if (formState.area) {
-      const searchPhrase = formState.area.replace(/-/g, ' ').toLowerCase();
-      const searchTerms = searchPhrase.split(' ').filter(term => term.length > 0);
-      
-      filtered = filtered.filter(p => {
+      const searchPhrase = formState.area.replace(/-/g, " ").toLowerCase();
+      const searchTerms = searchPhrase
+        .split(" ")
+        .filter((term) => term.length > 0);
+
+      filtered = filtered.filter((p) => {
         const locationFields = [
           p.area,
           p.city,
           p.location,
           p.address,
           p.neighborhood,
-          p.district
+          p.district,
         ];
-        
+
         const locationText = locationFields
           .filter(Boolean)
-          .join(' ')
+          .join(" ")
           .toLowerCase();
-        
+
         const exactMatch = locationText.includes(searchPhrase);
-        const allTermsMatch = searchTerms.every(term => locationText.includes(term));
-        
+        const allTermsMatch = searchTerms.every((term) =>
+          locationText.includes(term),
+        );
+
         return exactMatch || allTermsMatch;
       });
-      console.log('🔍 After area filter:', filtered.length);
+      console.log("🔍 After area filter:", filtered.length);
     }
 
     // Filter by developer
     if (developer) {
-      filtered = filtered.filter(p => p.developer?.toLowerCase().includes(developer.toLowerCase()));
+      filtered = filtered.filter((p) =>
+        p.developer?.toLowerCase().includes(developer.toLowerCase()),
+      );
     }
 
     // Filter by price range
     if (formState.minPrice) {
-      filtered = filtered.filter(p => p.price >= parseInt(formState.minPrice));
+      filtered = filtered.filter(
+        (p) => p.price >= parseInt(formState.minPrice),
+      );
     }
     if (formState.maxPrice) {
-      filtered = filtered.filter(p => p.price <= parseInt(formState.maxPrice));
+      filtered = filtered.filter(
+        (p) => p.price <= parseInt(formState.maxPrice),
+      );
     }
 
     // Filter by bedrooms
     if (formState.beds) {
       const bedNum = parseInt(formState.beds);
-      if (formState.beds === '5') {
-        filtered = filtered.filter(p => p.beds >= 5);
+      if (formState.beds === "5") {
+        filtered = filtered.filter((p) => p.beds >= 5);
       } else {
-        filtered = filtered.filter(p => p.beds === bedNum);
+        filtered = filtered.filter((p) => p.beds === bedNum);
       }
     }
 
     // Filter by bathrooms
     if (formState.baths) {
       const bathNum = parseInt(formState.baths);
-      if (formState.baths === '5') {
-        filtered = filtered.filter(p => p.baths >= 5);
+      if (formState.baths === "5") {
+        filtered = filtered.filter((p) => p.baths >= 5);
       } else {
-        filtered = filtered.filter(p => p.baths === bathNum);
+        filtered = filtered.filter((p) => p.baths === bathNum);
       }
     }
 
     // Filter by size range
     if (minSqft) {
-      filtered = filtered.filter(p => p.sqft >= parseInt(minSqft));
+      filtered = filtered.filter((p) => p.sqft >= parseInt(minSqft));
     }
     if (maxSqft) {
-      filtered = filtered.filter(p => p.sqft <= parseInt(maxSqft));
+      filtered = filtered.filter((p) => p.sqft <= parseInt(maxSqft));
     }
 
     // Filter by furnished
-    if (formState.furnished === 'true') {
-      filtered = filtered.filter(p => p.furnished === true);
-    } else if (formState.furnished === 'false') {
-      filtered = filtered.filter(p => p.furnished === false || p.furnished === null);
+    if (formState.furnished === "true") {
+      filtered = filtered.filter((p) => p.furnished === true);
+    } else if (formState.furnished === "false") {
+      filtered = filtered.filter(
+        (p) => p.furnished === false || p.furnished === null,
+      );
     }
 
     // Filter by parking
     if (parking) {
-      filtered = filtered.filter(p => p.parking?.toLowerCase() === parking.toLowerCase());
+      filtered = filtered.filter(
+        (p) => p.parking?.toLowerCase() === parking.toLowerCase(),
+      );
     }
 
     // Filter by property age
     if (propertyAge) {
-      filtered = filtered.filter(p => p.propertyAge === propertyAge);
+      filtered = filtered.filter((p) => p.propertyAge === propertyAge);
     }
 
     // Filter by completion status
     if (formState.completion) {
-      filtered = filtered.filter(p => p.completion === formState.completion);
+      filtered = filtered.filter((p) => p.completion === formState.completion);
     }
 
     // UPDATED: Video filter - check both videos array and video_url
-    if (formState.hasVideo === 'true' || showOnlyVideos) {
-      filtered = filtered.filter(p => {
+    if (formState.hasVideo === "true" || showOnlyVideos) {
+      filtered = filtered.filter((p) => {
         // Check if property has videos in videos array
-        const hasVideosArray = p.videos && Array.isArray(p.videos) && p.videos.length > 0;
+        const hasVideosArray =
+          p.videos && Array.isArray(p.videos) && p.videos.length > 0;
         // Check if property has video_url
-        const hasVideoUrl = p.video_url && typeof p.video_url === 'string' && p.video_url.trim() !== '';
-        
+        const hasVideoUrl =
+          p.video_url &&
+          typeof p.video_url === "string" &&
+          p.video_url.trim() !== "";
+
         return hasVideosArray || hasVideoUrl;
       });
     }
 
     // Filter by features
-    const featuresList = features ? features.split(',').map(f => f.trim()).filter(Boolean) : [];
+    const featuresList = features
+      ? features
+          .split(",")
+          .map((f) => f.trim())
+          .filter(Boolean)
+      : [];
     if (featuresList.length > 0) {
       filtered = filtered.filter((p: NormalizedProperty) => {
         if (!p.features || !Array.isArray(p.features)) return false;
-        return featuresList.every(f => (p.features || []).includes(f));
+        return featuresList.every((f) => (p.features || []).includes(f));
       });
     }
 
     // Keywords search - Property name search
-    if (formState.search && formState.search.trim() !== '') {
+    if (formState.search && formState.search.trim() !== "") {
       const sLower = formState.search.toLowerCase();
-      filtered = filtered.filter(p => {
+      filtered = filtered.filter((p) => {
         const inTitle = p.title?.toLowerCase().includes(sLower);
         const inLocation = p.location?.toLowerCase().includes(sLower);
-        const inArea = (p.area || '').toLowerCase().includes(sLower);
-        const inDesc = (p.description || '').toLowerCase().includes(sLower);
-        const inDeveloper = ((p.developer || '') as string).toLowerCase().includes(sLower);
-        const inAgentName = ((p.agent_name || '') as string).toLowerCase().includes(sLower);
-        return inTitle || inLocation || inArea || inDesc || inDeveloper || inAgentName;
+        const inArea = (p.area || "").toLowerCase().includes(sLower);
+        const inDesc = (p.description || "").toLowerCase().includes(sLower);
+        const inDeveloper = ((p.developer || "") as string)
+          .toLowerCase()
+          .includes(sLower);
+        const inAgentName = ((p.agent_name || "") as string)
+          .toLowerCase()
+          .includes(sLower);
+        return (
+          inTitle ||
+          inLocation ||
+          inArea ||
+          inDesc ||
+          inDeveloper ||
+          inAgentName
+        );
       });
     }
 
     // Sort results
     switch (sortBy) {
-      case 'price-low':
+      case "price-low":
         filtered.sort((a, b) => a.price - b.price);
         break;
-      case 'price-high':
+      case "price-high":
         filtered.sort((a, b) => b.price - a.price);
         break;
-      case 'newest':
+      case "newest":
         filtered.sort((a, b) => {
-          const dateA = a.submitted_at || a.created_at || '0';
-          const dateB = b.submitted_at || b.created_at || '0';
+          const dateA = a.submitted_at || a.created_at || "0";
+          const dateB = b.submitted_at || b.created_at || "0";
           return new Date(dateB).getTime() - new Date(dateA).getTime();
         });
         break;
-      case 'featured':
+      case "featured":
       default:
         filtered.sort((a, b) => {
           if (Boolean(b.featured) !== Boolean(a.featured)) {
             return Number(b.featured) - Number(a.featured);
           }
-          const dateA = a.submitted_at || a.created_at || '0';
-          const dateB = b.submitted_at || b.created_at || '0';
+          const dateA = a.submitted_at || a.created_at || "0";
+          const dateB = b.submitted_at || b.created_at || "0";
           return new Date(dateB).getTime() - new Date(dateA).getTime();
         });
         break;
     }
 
-    console.log('🔍 Final filtered count:', filtered.length);
+    console.log("🔍 Final filtered count:", filtered.length);
     setFilteredProperties(filtered);
   }, [
-    dataLoaded, allProperties, formState, developer, minSqft, maxSqft, 
-    parking, propertyAge, features, sortBy, showOnlyVideos
+    dataLoaded,
+    allProperties,
+    formState,
+    developer,
+    minSqft,
+    maxSqft,
+    parking,
+    propertyAge,
+    features,
+    sortBy,
+    showOnlyVideos,
   ]);
 
   const handleInputChange = (name: string, value: string) => {
-    setFormState(prev => ({
+    setFormState((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   // FILTER APPLY - WITHOUT REDIRECT
   const handleFilterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleResetFilters = () => {
     setFormState({
-      action: 'all',
-      category: '',
-      type: '',
-      area: '',
-      minPrice: '',
-      maxPrice: '',
-      beds: '',
-      baths: '',
-      furnished: '',
-      completion: '',
-      hasVideo: '',
-      search: ''
+      action: "all",
+      category: "",
+      type: "",
+      area: "",
+      minPrice: "",
+      maxPrice: "",
+      beds: "",
+      baths: "",
+      furnished: "",
+      completion: "",
+      hasVideo: "",
+      search: "",
     });
     setShowOnlyVideos(false);
-    
+
     // Clear URL params
     const params = new URLSearchParams();
     router.replace(`/luxe`, { scroll: false });
@@ -3839,92 +4246,95 @@ function PropertiesPageContent() {
 
   const handleSortChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set('sortBy', value);
+    params.set("sortBy", value);
     router.replace(`/luxe?${params.toString()}`, { scroll: false });
   };
 
   const handleViewChange = (view: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set('view', view);
+    params.set("view", view);
     router.replace(`/luxe?${params.toString()}`, { scroll: false });
   };
 
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set('page', newPage.toString());
+    params.set("page", newPage.toString());
     router.replace(`/luxe?${params.toString()}`, { scroll: false });
   };
 
   const getPageTitle = () => {
-    let title = 'Luxury ';
+    let title = "Luxury ";
 
-    if (formState.action === 'rent') {
-      title += 'Rentals';
-    } else if (formState.action === 'buy' || formState.action === 'sale') {
-      title += 'Properties for Sale';
+    if (formState.action === "rent") {
+      title += "Rentals";
+    } else if (formState.action === "buy" || formState.action === "sale") {
+      title += "Properties for Sale";
     } else {
-      title += 'Properties';
+      title += "Properties";
     }
 
     // Add video badge in title
     if (showOnlyVideos) {
-      title = 'Video Tour ' + title;
+      title = "Video Tour " + title;
     }
 
     if (formState.type) {
       const typeLabels: Record<string, string> = {
-        apartment: 'Apartments',
-        villa: 'Villas',
-        townhouse: 'Townhouses',
-        penthouse: 'Penthouses',
-        studio: 'Studios',
-        plot: 'Plots',
-        commercial: 'Commercial Properties'
+        apartment: "Apartments",
+        villa: "Villas",
+        townhouse: "Townhouses",
+        penthouse: "Penthouses",
+        studio: "Studios",
+        plot: "Plots",
+        commercial: "Commercial Properties",
       };
-      title = typeLabels[formState.type] || formState.type.charAt(0).toUpperCase() + formState.type.slice(1) + 's';
+      title =
+        typeLabels[formState.type] ||
+        formState.type.charAt(0).toUpperCase() + formState.type.slice(1) + "s";
     }
 
-    title += formState.area ? ` in ${formState.area}` : ' in Dubai';
+    title += formState.area ? ` in ${formState.area}` : " in Dubai";
 
     return title;
   };
 
   const getPageDescription = () => {
-    let desc = '';
+    let desc = "";
 
     if (showOnlyVideos) {
-      desc = 'Watch video tours of exclusive luxury ';
+      desc = "Watch video tours of exclusive luxury ";
     } else {
-      desc = 'Discover exclusive luxury ';
+      desc = "Discover exclusive luxury ";
     }
 
     if (formState.type) {
       const typeLabels: Record<string, string> = {
-        apartment: 'apartments',
-        villa: 'villas',
-        townhouse: 'townhouses',
-        penthouse: 'penthouses',
-        studio: 'studios',
-        plot: 'plots',
-        commercial: 'commercial properties'
+        apartment: "apartments",
+        villa: "villas",
+        townhouse: "townhouses",
+        penthouse: "penthouses",
+        studio: "studios",
+        plot: "plots",
+        commercial: "commercial properties",
       };
-      desc += typeLabels[formState.type] || formState.type + 's';
+      desc += typeLabels[formState.type] || formState.type + "s";
     } else {
-      desc += 'properties';
+      desc += "properties";
     }
 
-    if (formState.action === 'rent') {
-      desc += ' for rent';
-    } else if (formState.action === 'buy' || formState.action === 'sale') {
-      desc += ' for sale';
+    if (formState.action === "rent") {
+      desc += " for rent";
+    } else if (formState.action === "buy" || formState.action === "sale") {
+      desc += " for sale";
     }
 
     if (showOnlyVideos) {
-      desc += ' with virtual tours';
+      desc += " with virtual tours";
     }
 
-    desc += formState.area ? ` in ${formState.area}, Dubai` : ' in Dubai';
-    desc += '. Browse our curated selection of prestigious residences with detailed information and high-quality images.';
+    desc += formState.area ? ` in ${formState.area}, Dubai` : " in Dubai";
+    desc +=
+      ". Browse our curated selection of prestigious residences with detailed information and high-quality images.";
 
     return desc;
   };
@@ -3935,40 +4345,44 @@ function PropertiesPageContent() {
   const paginatedProperties = filteredProperties.slice(offset, offset + limit);
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US').format(price);
+    return new Intl.NumberFormat("en-US").format(price);
   };
 
   return (
     <div className="min-h-screen bg-slate-50/50">
       {selectedProperty && (
-        <ViewDetailsModal 
-          property={selectedProperty} 
-          onClose={closeDetailsModal} 
+        <ViewDetailsModal
+          property={selectedProperty}
+          onClose={closeDetailsModal}
         />
       )}
 
       {/* Gallery Modal from thumbnail */}
       {galleryModal.isOpen && galleryModal.property && (
-        <FullScreenGallery 
-          property={galleryModal.property} 
-          onClose={() => setGalleryModal({ isOpen: false, property: null })} 
+        <FullScreenGallery
+          property={galleryModal.property}
+          onClose={() => setGalleryModal({ isOpen: false, property: null })}
         />
       )}
 
       <section className="relative pt-32 pb-20 overflow-hidden bg-slate-900">
         <div className="absolute inset-0 opacity-20">
-          <img 
-            src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1600&q=80" 
-            alt="Dubai Skyline" 
+          <img
+            src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1600&q=80"
+            alt="Dubai Skyline"
             className="w-full h-full object-cover"
           />
         </div>
         <div className="absolute inset-0 bg-linear-to-b from-slate-900 via-slate-900/80 to-slate-900" />
-        
+
         <div className="container-custom relative z-10">
           <div className="max-w-4xl mx-auto text-center space-y-6">
             <h2 className="text-primary font-bold tracking-[0.3em] uppercase text-sm animate-slide-up">
-              {formState.action === 'rent' ? 'LUXURY RENTALS' : formState.action === 'buy' ? 'LUXURY SALES' : 'LUXURY COLLECTION'}
+              {formState.action === "rent"
+                ? "LUXURY RENTALS"
+                : formState.action === "buy"
+                  ? "LUXURY SALES"
+                  : "LUXURY COLLECTION"}
             </h2>
             <h1 className="text-4xl md:text-7xl font-black text-white tracking-tight animate-slide-up [animation-delay:100ms]">
               {getPageTitle()}
@@ -3991,17 +4405,17 @@ function PropertiesPageContent() {
                   📍 {formState.area}
                 </span>
               )}
-              {formState.action === 'rent' && (
+              {formState.action === "rent" && (
                 <span className="px-6 py-2 bg-green-500/20 backdrop-blur-md text-green-500 rounded-full border border-green-500/30 text-sm font-bold">
                   🏠 For Rent
                 </span>
               )}
-              {formState.action === 'buy' && (
+              {formState.action === "buy" && (
                 <span className="px-6 py-2 bg-blue-500/20 backdrop-blur-md text-blue-500 rounded-full border border-blue-500/30 text-sm font-bold">
                   🏠 For Sale
                 </span>
               )}
-              {formState.category === 'luxe' && (
+              {formState.category === "luxe" && (
                 <span className="px-6 py-2 bg-purple-500/20 backdrop-blur-md text-purple-500 rounded-full border border-purple-500/30 text-sm font-bold">
                   👑 Ultra Luxury
                 </span>
@@ -4017,9 +4431,11 @@ function PropertiesPageContent() {
             <div className="sticky top-24 space-y-6 lg:space-y-8">
               <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-slate-200/50 p-4 sm:p-8 border border-slate-100">
                 <div className="flex items-center justify-between mb-6 sm:mb-8">
-                  <h3 className="text-lg sm:text-xl font-black text-slate-900">Filters</h3>
-                  <button 
-                    type="button" 
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900">
+                    Filters
+                  </h3>
+                  <button
+                    type="button"
                     onClick={handleResetFilters}
                     className="text-xs font-bold text-primary uppercase tracking-widest hover:text-primary/80 transition-colors"
                   >
@@ -4029,57 +4445,69 @@ function PropertiesPageContent() {
 
                 <form onSubmit={handleFilterSubmit} className="space-y-8">
                   <div className="space-y-3">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Keywords</label>
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                      Keywords
+                    </label>
                     <div className="relative">
                       <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                      <input 
-                        name="search" 
-                        type="text" 
+                      <input
+                        name="search"
+                        type="text"
                         value={formState.search}
-                        onChange={(e) => handleInputChange('search', e.target.value)}
-                        placeholder="Search luxury properties..." 
-                        className="w-full bg-slate-50 border-none rounded-2xl pl-12 pr-4 py-4 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 transition-all font-medium" 
+                        onChange={(e) =>
+                          handleInputChange("search", e.target.value)
+                        }
+                        placeholder="Search luxury properties..."
+                        className="w-full bg-slate-50 border-none rounded-2xl pl-12 pr-4 py-4 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Action</label>
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                      Action
+                    </label>
                     <div className="grid grid-cols-3 gap-2">
                       <label className="relative cursor-pointer group">
-                        <input 
-                          type="radio" 
-                          name="action" 
-                          value="all" 
-                          checked={formState.action === 'all'}
-                          onChange={(e) => handleInputChange('action', e.target.value)}
-                          className="peer sr-only" 
+                        <input
+                          type="radio"
+                          name="action"
+                          value="all"
+                          checked={formState.action === "all"}
+                          onChange={(e) =>
+                            handleInputChange("action", e.target.value)
+                          }
+                          className="peer sr-only"
                         />
                         <div className="flex items-center justify-center py-3 rounded-xl bg-slate-50 text-slate-600 font-bold text-sm peer-checked:bg-primary peer-checked:text-white group-hover:bg-slate-100 transition-all">
                           All
                         </div>
                       </label>
                       <label className="relative cursor-pointer group">
-                        <input 
-                          type="radio" 
-                          name="action" 
-                          value="rent" 
-                          checked={formState.action === 'rent'}
-                          onChange={(e) => handleInputChange('action', e.target.value)}
-                          className="peer sr-only" 
+                        <input
+                          type="radio"
+                          name="action"
+                          value="rent"
+                          checked={formState.action === "rent"}
+                          onChange={(e) =>
+                            handleInputChange("action", e.target.value)
+                          }
+                          className="peer sr-only"
                         />
                         <div className="flex items-center justify-center py-3 rounded-xl bg-slate-50 text-slate-600 font-bold text-sm peer-checked:bg-primary peer-checked:text-white group-hover:bg-slate-100 transition-all">
                           Rent
                         </div>
                       </label>
                       <label className="relative cursor-pointer group">
-                        <input 
-                          type="radio" 
-                          name="action" 
-                          value="buy" 
-                          checked={formState.action === 'buy'}
-                          onChange={(e) => handleInputChange('action', e.target.value)}
-                          className="peer sr-only" 
+                        <input
+                          type="radio"
+                          name="action"
+                          value="buy"
+                          checked={formState.action === "buy"}
+                          onChange={(e) =>
+                            handleInputChange("action", e.target.value)
+                          }
+                          className="peer sr-only"
                         />
                         <div className="flex items-center justify-center py-3 rounded-xl bg-slate-50 text-slate-600 font-bold text-sm peer-checked:bg-primary peer-checked:text-white group-hover:bg-slate-100 transition-all">
                           Buy
@@ -4089,24 +4517,31 @@ function PropertiesPageContent() {
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Category</label>
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                      Category
+                    </label>
                     <div className="space-y-2">
                       {[
-                        { value: '', label: 'All Luxury' },
-                        { value: 'luxe', label: 'Luxury' },
-                        { value: 'ultra-luxe', label: 'Ultra Luxury' },
-                        { value: 'branded', label: 'Branded Residences' },
-                        { value: 'penthouse', label: 'Penthouses' },
-                        { value: 'villa', label: 'Luxury Villas' }
+                        { value: "", label: "All Luxury" },
+                        { value: "luxe", label: "Luxury" },
+                        { value: "ultra-luxe", label: "Ultra Luxury" },
+                        { value: "branded", label: "Branded Residences" },
+                        { value: "penthouse", label: "Penthouses" },
+                        { value: "villa", label: "Luxury Villas" },
                       ].map((cat) => (
-                        <label key={cat.value} className="flex items-center gap-3 cursor-pointer group">
-                          <input 
-                            type="radio" 
-                            name="category" 
+                        <label
+                          key={cat.value}
+                          className="flex items-center gap-3 cursor-pointer group"
+                        >
+                          <input
+                            type="radio"
+                            name="category"
                             value={cat.value}
                             checked={formState.category === cat.value}
-                            onChange={(e) => handleInputChange('category', e.target.value)}
-                            className="w-4 h-4 text-primary bg-slate-50 border-slate-300 rounded focus:ring-primary/20 focus:ring-2 cursor-pointer" 
+                            onChange={(e) =>
+                              handleInputChange("category", e.target.value)
+                            }
+                            className="w-4 h-4 text-primary bg-slate-50 border-slate-300 rounded focus:ring-primary/20 focus:ring-2 cursor-pointer"
                           />
                           <span className="text-slate-700 font-medium group-hover:text-slate-900 transition-colors">
                             {cat.label}
@@ -4117,11 +4552,15 @@ function PropertiesPageContent() {
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Property Type</label>
-                    <select 
-                      name="type" 
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                      Property Type
+                    </label>
+                    <select
+                      name="type"
                       value={formState.type}
-                      onChange={(e) => handleInputChange('type', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("type", e.target.value)
+                      }
                       className="w-full bg-slate-50 border-none rounded-2xl px-4 py-4 text-slate-900 focus:ring-2 focus:ring-primary/20 transition-all font-medium appearance-none cursor-pointer"
                     >
                       <option value="">All Types</option>
@@ -4135,16 +4574,22 @@ function PropertiesPageContent() {
                       <option value="shop">Shops</option>
                       <option value="warehouse">Warehouses</option>
                       <option value="building">Commercial Buildings</option>
-                      <option value="furnished-studio">Furnished Studios</option>
+                      <option value="furnished-studio">
+                        Furnished Studios
+                      </option>
                     </select>
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Location</label>
-                    <select 
-                      name="area" 
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                      Location
+                    </label>
+                    <select
+                      name="area"
                       value={formState.area}
-                      onChange={(e) => handleInputChange('area', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("area", e.target.value)
+                      }
                       className="w-full bg-slate-50 border-none rounded-2xl px-4 py-4 text-slate-900 focus:ring-2 focus:ring-primary/20 transition-all font-medium appearance-none cursor-pointer"
                     >
                       <option value="">All Areas</option>
@@ -4153,15 +4598,23 @@ function PropertiesPageContent() {
                       <option value="Palm Jumeirah">Palm Jumeirah</option>
                       <option value="Business Bay">Business Bay</option>
                       <option value="Jumeirah">Jumeirah</option>
-                      <option value="Dubai Hills Estate">Dubai Hills Estate</option>
-                      <option value="Dubai Creek Harbour">Dubai Creek Harbour</option>
+                      <option value="Dubai Hills Estate">
+                        Dubai Hills Estate
+                      </option>
+                      <option value="Dubai Creek Harbour">
+                        Dubai Creek Harbour
+                      </option>
                       <option value="Emirates Hills">Emirates Hills</option>
                       <option value="Arabian Ranches">Arabian Ranches</option>
                       <option value="Dubai South">Dubai South</option>
                       <option value="Al Barsha">Al Barsha</option>
-                      <option value="Dubai Silicon Oasis">Dubai Silicon Oasis</option>
+                      <option value="Dubai Silicon Oasis">
+                        Dubai Silicon Oasis
+                      </option>
                       <option value="Deira">Deira</option>
-                      <option value="Jumeirah Beach Residence">Jumeirah Beach Residence</option>
+                      <option value="Jumeirah Beach Residence">
+                        Jumeirah Beach Residence
+                      </option>
                       <option value="Dubai Islands">Dubai Islands</option>
                       <option value="Za'abeel">Za'abeel</option>
                       <option value="Al Kifaf">Al Kifaf</option>
@@ -4170,14 +4623,18 @@ function PropertiesPageContent() {
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Price Range (AED)</label>
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                      Price Range (AED)
+                    </label>
                     <div className="grid grid-cols-2 gap-3">
                       <input
                         name="minPrice"
                         type="number"
                         placeholder="Min"
                         value={formState.minPrice}
-                        onChange={(e) => handleInputChange('minPrice', e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("minPrice", e.target.value)
+                        }
                         className="w-full bg-slate-50 border-none rounded-2xl px-4 py-4 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
                       />
                       <input
@@ -4185,27 +4642,36 @@ function PropertiesPageContent() {
                         type="number"
                         placeholder="Max"
                         value={formState.maxPrice}
-                        onChange={(e) => handleInputChange('maxPrice', e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("maxPrice", e.target.value)
+                        }
                         className="w-full bg-slate-50 border-none rounded-2xl px-4 py-4 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Bedrooms</label>
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                      Bedrooms
+                    </label>
                     <div className="grid grid-cols-4 gap-2">
-                      {['', '1', '2', '3', '4', '5'].map((val) => (
-                        <label key={val} className="relative cursor-pointer group">
-                          <input 
-                            type="radio" 
-                            name="beds" 
+                      {["", "1", "2", "3", "4", "5"].map((val) => (
+                        <label
+                          key={val}
+                          className="relative cursor-pointer group"
+                        >
+                          <input
+                            type="radio"
+                            name="beds"
                             value={val}
                             checked={formState.beds === val}
-                            onChange={(e) => handleInputChange('beds', e.target.value)}
-                            className="peer sr-only" 
+                            onChange={(e) =>
+                              handleInputChange("beds", e.target.value)
+                            }
+                            className="peer sr-only"
                           />
                           <div className="flex items-center justify-center py-3 rounded-xl bg-slate-50 text-slate-600 font-bold text-sm peer-checked:bg-primary peer-checked:text-white group-hover:bg-slate-100 transition-all">
-                            {val === '' ? 'Any' : val === '5' ? '5+' : val}
+                            {val === "" ? "Any" : val === "5" ? "5+" : val}
                           </div>
                         </label>
                       ))}
@@ -4213,20 +4679,27 @@ function PropertiesPageContent() {
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Bathrooms</label>
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                      Bathrooms
+                    </label>
                     <div className="grid grid-cols-4 gap-2">
-                      {['', '1', '2', '3', '4', '5'].map((val) => (
-                        <label key={val} className="relative cursor-pointer group">
-                          <input 
-                            type="radio" 
-                            name="baths" 
+                      {["", "1", "2", "3", "4", "5"].map((val) => (
+                        <label
+                          key={val}
+                          className="relative cursor-pointer group"
+                        >
+                          <input
+                            type="radio"
+                            name="baths"
                             value={val}
                             checked={formState.baths === val}
-                            onChange={(e) => handleInputChange('baths', e.target.value)}
-                            className="peer sr-only" 
+                            onChange={(e) =>
+                              handleInputChange("baths", e.target.value)
+                            }
+                            className="peer sr-only"
                           />
                           <div className="flex items-center justify-center py-3 rounded-xl bg-slate-50 text-slate-600 font-bold text-sm peer-checked:bg-primary peer-checked:text-white group-hover:bg-slate-100 transition-all">
-                            {val === '' ? 'Any' : val === '5' ? '5+' : val}
+                            {val === "" ? "Any" : val === "5" ? "5+" : val}
                           </div>
                         </label>
                       ))}
@@ -4234,21 +4707,28 @@ function PropertiesPageContent() {
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Furnished</label>
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                      Furnished
+                    </label>
                     <div className="space-y-2">
                       {[
-                        { value: '', label: 'Any' },
-                        { value: 'true', label: 'Furnished' },
-                        { value: 'false', label: 'Unfurnished' }
+                        { value: "", label: "Any" },
+                        { value: "true", label: "Furnished" },
+                        { value: "false", label: "Unfurnished" },
                       ].map((furnish) => (
-                        <label key={furnish.value} className="flex items-center gap-3 cursor-pointer group">
-                          <input 
-                            type="radio" 
-                            name="furnished" 
+                        <label
+                          key={furnish.value}
+                          className="flex items-center gap-3 cursor-pointer group"
+                        >
+                          <input
+                            type="radio"
+                            name="furnished"
                             value={furnish.value}
                             checked={formState.furnished === furnish.value}
-                            onChange={(e) => handleInputChange('furnished', e.target.value)}
-                            className="w-4 h-4 text-primary bg-slate-50 border-slate-300 rounded focus:ring-primary/20 focus:ring-2 cursor-pointer" 
+                            onChange={(e) =>
+                              handleInputChange("furnished", e.target.value)
+                            }
+                            className="w-4 h-4 text-primary bg-slate-50 border-slate-300 rounded focus:ring-primary/20 focus:ring-2 cursor-pointer"
                           />
                           <span className="text-slate-700 font-medium group-hover:text-slate-900 transition-colors">
                             {furnish.label}
@@ -4259,21 +4739,28 @@ function PropertiesPageContent() {
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Completion Status</label>
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                      Completion Status
+                    </label>
                     <div className="space-y-2">
                       {[
-                        { value: '', label: 'All Properties' },
-                        { value: 'ready', label: 'Ready to Move' },
-                        { value: 'off-plan', label: 'Off-Plan' }
+                        { value: "", label: "All Properties" },
+                        { value: "ready", label: "Ready to Move" },
+                        { value: "off-plan", label: "Off-Plan" },
                       ].map((status) => (
-                        <label key={status.value} className="flex items-center gap-3 cursor-pointer group">
-                          <input 
-                            type="radio" 
-                            name="completion" 
+                        <label
+                          key={status.value}
+                          className="flex items-center gap-3 cursor-pointer group"
+                        >
+                          <input
+                            type="radio"
+                            name="completion"
                             value={status.value}
                             checked={formState.completion === status.value}
-                            onChange={(e) => handleInputChange('completion', e.target.value)}
-                            className="w-4 h-4 text-primary bg-slate-50 border-slate-300 rounded focus:ring-primary/20 focus:ring-2 cursor-pointer" 
+                            onChange={(e) =>
+                              handleInputChange("completion", e.target.value)
+                            }
+                            className="w-4 h-4 text-primary bg-slate-50 border-slate-300 rounded focus:ring-primary/20 focus:ring-2 cursor-pointer"
                           />
                           <span className="text-slate-700 font-medium group-hover:text-slate-900 transition-colors">
                             {status.label}
@@ -4284,19 +4771,23 @@ function PropertiesPageContent() {
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Property Features</label>
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                      Property Features
+                    </label>
                     <div className="space-y-2">
                       {/* UPDATED: Video filter checkbox with better UI */}
                       <label className="flex items-center gap-3 cursor-pointer group">
-                        <input 
-                          type="checkbox" 
-                          name="hasVideo" 
+                        <input
+                          type="checkbox"
+                          name="hasVideo"
                           checked={showOnlyVideos}
                           onChange={handleVideoFilterChange}
-                          className="w-5 h-5 text-primary bg-slate-50 border-slate-300 rounded focus:ring-primary/20 focus:ring-2 cursor-pointer" 
+                          className="w-5 h-5 text-primary bg-slate-50 border-slate-300 rounded focus:ring-primary/20 focus:ring-2 cursor-pointer"
                         />
                         <span className="text-slate-700 font-medium group-hover:text-slate-900 transition-colors flex items-center gap-2">
-                          <VideoCameraIcon className={`w-4 h-4 ${showOnlyVideos ? 'text-red-500' : 'text-slate-400'}`} />
+                          <VideoCameraIcon
+                            className={`w-4 h-4 ${showOnlyVideos ? "text-red-500" : "text-slate-400"}`}
+                          />
                           Properties with Video Tours
                           {showOnlyVideos && (
                             <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
@@ -4308,7 +4799,10 @@ function PropertiesPageContent() {
                     </div>
                   </div>
 
-                  <button type="submit" className="w-full bg-primary text-white py-4 rounded-2xl font-bold hover:bg-primary/90 transition-colors shadow-xl shadow-primary/20">
+                  <button
+                    type="submit"
+                    className="w-full bg-primary text-white py-4 rounded-2xl font-bold hover:bg-primary/90 transition-colors shadow-xl shadow-primary/20"
+                  >
                     Apply Filters
                   </button>
                 </form>
@@ -4319,11 +4813,17 @@ function PropertiesPageContent() {
                 <div className="relative z-10">
                   <h4 className="text-xl font-black mb-4">Luxury Concierge</h4>
                   <p className="text-slate-400 text-sm font-medium mb-6 leading-relaxed">
-                    Our luxury property specialists are ready to assist you with exclusive listings.
+                    Our luxury property specialists are ready to assist you with
+                    exclusive listings.
                   </p>
-                  <Link href={"/contact"} className="text-primary font-bold text-sm uppercase tracking-widest flex items-center gap-2 group/btn">
+                  <Link
+                    href={"/contact"}
+                    className="text-primary font-bold text-sm uppercase tracking-widest flex items-center gap-2 group/btn"
+                  >
                     Contact Us
-                    <span className="group-hover/btn:translate-x-1 transition-transform">→</span>
+                    <span className="group-hover/btn:translate-x-1 transition-transform">
+                      →
+                    </span>
                   </Link>
                 </div>
               </div>
@@ -4345,45 +4845,56 @@ function PropertiesPageContent() {
 
             {filteredProperties.length > 0 ? (
               <>
-                <div className={`grid gap-8 ${
-                  viewMode === 'grid'
-                    ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'
-                    : 'grid-cols-1'
-                }`}>
+                <div
+                  className={`grid gap-8 ${
+                    viewMode === "grid"
+                      ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
+                      : "grid-cols-1"
+                  }`}
+                >
                   {paginatedProperties.map((property, i) => (
-                    <div key={`${property.collection}-${property.id}`} className="animate-slide-up" style={{ animationDelay: `${i * 50}ms` }}>
+                    <div
+                      key={`${property.collection}-${property.id}`}
+                      className="animate-slide-up"
+                      style={{ animationDelay: `${i * 50}ms` }}
+                    >
                       <div className="relative group">
                         <PropertyCard
                           property={{
                             id: String(property.id),
-                            title: property.title || 'Luxury Property',
+                            title: property.title || "Luxury Property",
                             price: property.price ?? 0,
-                            priceLabel: property.status === 'rent' ? 'yearly' : 'total',
-                            image: property.image || '',
-                            location: property.location || `${property.area || ''}${property.city ? ', ' + property.city : ''}`,
+                            priceLabel:
+                              property.status === "rent" ? "yearly" : "total",
+                            image: property.image || "",
+                            location:
+                              property.location ||
+                              `${property.area || ""}${property.city ? ", " + property.city : ""}`,
                             beds: property.beds ?? 0,
                             baths: property.baths ?? 0,
                             sqft: property.sqft ?? 0,
-                            type: property.type || 'Luxury Property',
+                            type: property.type || "Luxury Property",
                             featured: Boolean(property.featured),
-                            currency: property.currency || 'AED',
-                            status: property.status || 'sale',
+                            currency: property.currency || "AED",
+                            status: property.status || "sale",
                             area: property.area || undefined,
                             city: property.city || undefined,
                             video_url: property.video_url || undefined,
                             agent_name: property.agent_name || undefined,
                           }}
                         />
-                        
+
                         {/* Gallery Icon Button */}
                         <button
-                          onClick={() => handleGalleryOpenFromThumbnail(property)}
+                          onClick={() =>
+                            handleGalleryOpenFromThumbnail(property)
+                          }
                           className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-white/95 backdrop-blur-sm rounded-xl px-3 py-2 shadow-lg hover:shadow-xl hover:bg-white border border-slate-200 flex items-center gap-2 text-slate-700 hover:text-primary font-bold text-xs z-10"
                         >
                           <Squares2X2Icon className="h-4 w-4" />
                           Gallery
                         </button>
-                        
+
                         {/* View Details Button */}
                         <button
                           onClick={() => handleViewDetails(property)}
@@ -4395,13 +4906,12 @@ function PropertiesPageContent() {
                       </div>
 
                       <div className="mt-2 flex gap-2">
-                        {property.collection === 'agent_properties' && (
+                        {property.collection === "agent_properties" && (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             🤝 Agent Property
                             {property.agent_name && ` - ${property.agent_name}`}
                           </span>
                         )}
-                       
                       </div>
                     </div>
                   ))}
@@ -4420,15 +4930,19 @@ function PropertiesPageContent() {
 
                     {[...Array(totalPages)].map((_, i) => {
                       const p = i + 1;
-                      if (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) {
+                      if (
+                        p === 1 ||
+                        p === totalPages ||
+                        (p >= page - 1 && p <= page + 1)
+                      ) {
                         return (
                           <button
                             key={p}
                             onClick={() => handlePageChange(p)}
                             className={`h-12 w-12 flex items-center justify-center rounded-xl font-bold transition-all shadow-sm ${
-                              page === p 
-                                ? 'bg-primary text-white shadow-primary/20' 
-                                : 'bg-white border border-slate-100 text-slate-600 hover:bg-slate-50'
+                              page === p
+                                ? "bg-primary text-white shadow-primary/20"
+                                : "bg-white border border-slate-100 text-slate-600 hover:bg-slate-50"
                             }`}
                           >
                             {p}
@@ -4436,7 +4950,11 @@ function PropertiesPageContent() {
                         );
                       }
                       if (p === page - 2 || p === page + 2) {
-                        return <span key={p} className="text-slate-300">...</span>;
+                        return (
+                          <span key={p} className="text-slate-300">
+                            ...
+                          </span>
+                        );
                       }
                       return null;
                     })}
@@ -4457,14 +4975,15 @@ function PropertiesPageContent() {
                 <div className="h-24 w-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
                   <HomeIcon className="h-12 w-12 text-slate-300" />
                 </div>
-                <h3 className="text-2xl font-black text-slate-900 mb-2">No luxury properties found</h3>
+                <h3 className="text-2xl font-black text-slate-900 mb-2">
+                  No luxury properties found
+                </h3>
                 <p className="text-slate-500 font-medium max-w-xs mx-auto">
-                  {allProperties.length === 0 
-                    ? 'No luxury properties available.'
-                    : showOnlyVideos 
-                      ? 'No luxury properties with video tours found matching your criteria.'
-                      : 'We couldn\'t find any luxury properties matching your current filters.'
-                  }
+                  {allProperties.length === 0
+                    ? "No luxury properties available."
+                    : showOnlyVideos
+                      ? "No luxury properties with video tours found matching your criteria."
+                      : "We couldn't find any luxury properties matching your current filters."}
                 </p>
                 <button
                   onClick={handleResetFilters}
@@ -4483,13 +5002,13 @@ function PropertiesPageContent() {
 
 export default function LuxuryPropertiesPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-slate-50/50 flex items-center justify-center">
-        <div className="text-center">
-         
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-50/50 flex items-center justify-center">
+          <div className="text-center"></div>
         </div>
-      </div>
-    }>
+      }
+    >
       <PropertiesPageContent />
     </Suspense>
   );
