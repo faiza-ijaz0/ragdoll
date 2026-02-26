@@ -1434,6 +1434,7 @@
 // }
 
 // new code
+
 "use client";
 
 import Link from "next/link";
@@ -1960,8 +1961,8 @@ export default function Header() {
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-100 transition-all duration-500",
-        "bg-white/95 backdrop-blur-lg py-4"
+        "fixed top-0 left-0 right-0 z-[100] transition-all duration-500",
+        "bg-white shadow-md py-4"
       )}
     >
       {/* Backdrop Overlay for Mega Menu */}
@@ -1972,7 +1973,7 @@ export default function Header() {
         isServicesOpen ||
         isTrendsOpen ||
         isMoreOpen) && (
-        <div className="fixed inset-0 bg-secondary/20 backdrop-blur-sm z-[-1]" />
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90]" />
       )}
       <div className="container-custom flex items-center justify-between px-4 sm:px-6 lg:px-8">
         
@@ -2014,7 +2015,7 @@ export default function Header() {
                   }}
                 >
                   <button
-                    className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide transition-all hover:text-primary hover:bg-slate-50 cursor-pointer text-secondary"
+                    className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-semibold tracking-wide transition-all hover:text-primary hover:bg-slate-100 cursor-pointer text-gray-800"
                     onClick={() => {
                       if (item.label === "Buy") setIsBuyOpen(!isBuyOpen);
                       else if (item.label === "Rent")
@@ -2050,7 +2051,7 @@ export default function Header() {
                   {/* Dropdown Menu */}
                   <div
                     className={cn(
-                      "bg-white shadow-2xl transition-all duration-300 z-50 top-full",
+                      "bg-white shadow-2xl transition-all duration-300 z-[100] top-full",
                       // Compact dropdown only for Services
                       item.label === "Services"
                         ? "absolute right-0 w-64 py-4 rounded-xl mt-2"
@@ -2063,7 +2064,7 @@ export default function Header() {
                         (item.label === "Trends" && isTrendsOpen) ||
                         (item.label === "More" && isMoreOpen)
                         ? "opacity-100 scale-100 translate-y-0 visible"
-                        : "opacity-0 scale-95 -translate-y-2 invisible"
+                        : "opacity-0 scale-95 -translate-y-2 invisible pointer-events-none"
                     )}
                   >
                     <div
@@ -2080,7 +2081,7 @@ export default function Header() {
                             <Link
                               key={navItem.label}
                               href={navItem.href}
-                              className="block px-4 py-2.5 text-sm font-medium text-secondary hover:text-primary hover:bg-slate-50 rounded-lg transition-all"
+                              className="block px-4 py-2.5 text-sm font-medium text-gray-700 hover:text-primary hover:bg-slate-50 rounded-lg transition-all"
                               onClick={() => {
                                 setIsServicesOpen(false);
                               }}
@@ -2105,7 +2106,7 @@ export default function Header() {
                             >
                               <Link
                                 href={navItem.href}
-                                className="block text-lg font-bold text-secondary hover:text-primary transition-all border-b border-slate-100 pb-3 mb-6"
+                                className="block text-lg font-bold text-gray-800 hover:text-primary transition-all border-b border-gray-200 pb-3 mb-6"
                                 onClick={() => {
                                   if (item.label === "Buy") setIsBuyOpen(false);
                                   else if (item.label === "Rent")
@@ -2151,7 +2152,7 @@ export default function Header() {
                                         }}
                                       >
                                         {areaInfo && isAreaList && (
-                                          <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-slate-100 shadow-sm">
+                                          <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-gray-200 shadow-sm">
                                             <img
                                               src={areaInfo.image}
                                               alt={subItem.label}
@@ -2162,8 +2163,8 @@ export default function Header() {
                                         <span
                                           className={cn(
                                             isAreaList
-                                              ? "text-xs font-bold text-secondary group-hover:text-primary leading-tight"
-                                              : "text-sm text-slate-600 hover:text-primary font-medium"
+                                              ? "text-xs font-bold text-gray-700 group-hover:text-primary leading-tight"
+                                              : "text-sm text-gray-600 hover:text-primary font-medium"
                                           )}
                                         >
                                           {subItem.label}
@@ -2183,14 +2184,14 @@ export default function Header() {
               ) : item.isValuation ? (
                 <button
                   onClick={() => setIsValuationModalOpen(true)}
-                  className="px-2 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide transition-all hover:text-primary hover:bg-slate-50 relative group text-secondary"
+                  className="px-3 py-2 rounded-lg text-sm font-semibold tracking-wide transition-all hover:text-primary hover:bg-slate-100 relative group text-gray-800"
                 >
                   {item.label}
                 </button>
               ) : (
                 <Link
                   href={item.href!}
-                  className="px-2 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide transition-all hover:text-primary hover:bg-slate-50 relative group text-secondary"
+                  className="px-3 py-2 rounded-lg text-sm font-semibold tracking-wide transition-all hover:text-primary hover:bg-slate-100 relative group text-gray-800"
                 >
                   {item.label}
                 </Link>
@@ -2216,7 +2217,7 @@ export default function Header() {
             <div className="relative" data-profile-dropdown>
               <button
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg font-bold text-xs transition-all bg-secondary text-white hover:bg-primary group"
+                className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg font-bold text-xs transition-all bg-gray-800 text-white hover:bg-primary group"
                 title={profile.full_name || profile.email}
               >
                 <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center group-hover:bg-white/30">
@@ -2231,10 +2232,10 @@ export default function Header() {
 
               {/* Dropdown Menu */}
               {isProfileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl z-50 border border-slate-100 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-slate-100">
-                    <p className="text-sm font-semibold text-secondary">{profile.full_name || 'User'}</p>
-                    <p className="text-xs text-slate-500">{profile.email}</p>
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl z-[110] border border-gray-200 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-200">
+                    <p className="text-sm font-semibold text-gray-800">{profile.full_name || 'User'}</p>
+                    <p className="text-xs text-gray-500">{profile.email}</p>
                   </div>
                   <nav className="py-2">
                     <Link
@@ -2246,7 +2247,7 @@ export default function Header() {
                           : '/customer/dashboard'
                       }
                       onClick={() => setIsProfileDropdownOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-secondary hover:bg-primary/10 hover:text-primary transition-all"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary/10 hover:text-primary transition-all"
                     >
                       <UserIcon className="h-4 w-4" />
                       View Dashboard
@@ -2266,7 +2267,7 @@ export default function Header() {
             // Sign In Button
             <Link
               href="/customer/login"
-              className="h-10 w-10 rounded-full font-bold text-sm transition-all bg-primary text-white hover:bg-secondary hover:scale-110 flex items-center justify-center shadow-lg hover:shadow-xl"
+              className="h-10 w-10 rounded-full font-bold text-sm transition-all bg-primary text-white hover:bg-gray-800 hover:scale-110 flex items-center justify-center shadow-lg hover:shadow-xl"
             >
               <UserIcon className="h-5 w-5" />
             </Link>
@@ -2275,7 +2276,7 @@ export default function Header() {
           {/* Mobile Menu Toggle */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden p-2 rounded-lg transition-colors text-secondary hover:bg-slate-50"
+            className="lg:hidden p-2 rounded-lg transition-colors text-gray-800 hover:bg-gray-100"
           >
             {isMobileMenuOpen ? (
               <XMarkIcon className="h-7 w-7" />
@@ -2286,322 +2287,88 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile Menu - FULLY RESPONSIVE */}
+      {/* Mobile Menu - FIXED VERSION */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 top-[88px] bg-white z-50 animate-slideDown overflow-y-auto">
-          <nav className="flex flex-col p-4 gap-4 max-h-full">
-            {/* Main Navigation Items - All Pages */}
-            <div className="space-y-3">
-              {/* New Projects */}
-              <Link
-                href="/projects"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block w-full py-3 px-4 rounded-xl bg-slate-50 hover:bg-primary hover:text-white transition-all font-semibold text-secondary"
-              >
-                {t("header.navigation.newProjects")}
-              </Link>
-
-              {/* Buy */}
-              <div className="space-y-2">
-                <div className="text-xs font-black text-slate-400 uppercase tracking-wider px-4 pt-2">
-                  {t("header.navigation.buy")}
-                </div>
-                <div className="grid grid-cols-2 gap-2 px-2">
-                  <Link
-                    href="/sale?action=buy"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    All Properties
-                  </Link>
-                  <Link
-                    href="/sale?action=buy&type=apartment"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Apartments
-                  </Link>
-                  <Link
-                    href="/sale?action=buy&type=villa"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Villas
-                  </Link>
-                  <Link
-                    href="/sale?action=buy&type=townhouse"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Townhouses
-                  </Link>
-                  <Link
-                    href="/sale?action=buy&type=plot"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Plots
-                  </Link>
-                  <Link
-                    href="/sale?action=buy&type=commercial"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Commercial
-                  </Link>
-                </div>
-                
-                <div className="text-xs font-bold text-slate-500 px-4 mt-2">Popular Areas</div>
-                <div className="grid grid-cols-2 gap-2 px-2">
-                  {dubaiAreas.slice(0, 6).map((area) => (
-                    <Link
-                      key={area.name}
-                      href={`/sale?action=buy&area=${area.name.toLowerCase().replace(/\s+/g, "-")}`}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="block py-2 px-3 text-xs bg-white border border-slate-200 rounded-xl text-center text-secondary hover:bg-primary hover:text-white hover:border-primary transition-all"
+        <div className="lg:hidden fixed inset-0 top-[88px] bg-white z-[110] animate-slideDown overflow-y-auto">
+          <nav className="flex flex-col p-6 gap-8 max-h-full">
+            {/* Main Navigation Items - Dynamically Rendered */}
+            <div className="space-y-6">
+              {navigation.map((item) => {
+                // Handle Valuation button
+                if (item.isValuation) {
+                  return (
+                    <button
+                      key={item.label}
+                      onClick={() => {
+                        setIsValuationModalOpen(true);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center justify-between py-4 px-4 rounded-2xl bg-primary text-white font-bold hover:bg-primary/90 transition-all shadow-lg w-full"
                     >
-                      {area.name}
+                      <span>{item.label}</span>
+                      <CalculatorIcon className="h-5 w-5" />
+                    </button>
+                  );
+                }
+
+                // Handle simple links (no dropdown)
+                if (!item.hasDropdown) {
+                  return (
+                    <Link
+                      key={item.label}
+                      href={item.href!}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-4 px-4 rounded-2xl bg-gray-50 hover:bg-primary hover:text-white transition-all group"
+                    >
+                      <span className="text-lg font-bold text-gray-800 group-hover:text-white">
+                        {item.label}
+                      </span>
+                      <ChevronDownIcon className="h-5 w-5 text-gray-400 group-hover:text-white -rotate-90" />
                     </Link>
-                  ))}
-                </div>
-              </div>
+                  );
+                }
 
-              {/* Rent */}
-              <div className="space-y-2 mt-4">
-                <div className="text-xs font-black text-slate-400 uppercase tracking-wider px-4">
-                  {t("header.navigation.rent")}
-                </div>
-                <div className="grid grid-cols-2 gap-2 px-2">
-                  <Link
-                    href="/rent?action=rent"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    All Properties
-                  </Link>
-                  <Link
-                    href="/rent?action=rent&type=apartment"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Apartments
-                  </Link>
-                  <Link
-                    href="/rent?action=rent&type=villa"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Villas
-                  </Link>
-                  <Link
-                    href="/rent?action=rent&type=townhouse"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Townhouses
-                  </Link>
-                </div>
-              </div>
-
-              {/* Luxe */}
-              <div className="space-y-2 mt-4">
-                <div className="text-xs font-black text-slate-400 uppercase tracking-wider px-4">
-                  Luxe
-                </div>
-                <div className="grid grid-cols-2 gap-2 px-2">
-                  <Link
-                    href="/luxe"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    All Luxury
-                  </Link>
-                  <Link
-                    href="/luxe?type=apartment"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Apartments
-                  </Link>
-                  <Link
-                    href="/luxe?type=villa"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Villas
-                  </Link>
-                  <Link
-                    href="/luxe?type=penthouse"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Penthouses
-                  </Link>
-                </div>
-              </div>
-
-              {/* Commercial */}
-              <div className="space-y-2 mt-4">
-                <div className="text-xs font-black text-slate-400 uppercase tracking-wider px-4">
-                  {t("header.navigation.commercial")}
-                </div>
-                <div className="grid grid-cols-2 gap-2 px-2">
-                  <Link
-                    href="/commercial"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    All Commercial
-                  </Link>
-                  <Link
-                    href="/commercial?type=office"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Offices
-                  </Link>
-                  <Link
-                    href="/commercial?type=shop"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Retail
-                  </Link>
-                  <Link
-                    href="/commercial?type=warehouse"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Warehouses
-                  </Link>
-                </div>
-              </div>
-
-              {/* Simple Links */}
-              <div className="grid grid-cols-3 gap-2 px-2 mt-4">
-                <Link
-                  href="/sell"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block py-3 px-2 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                >
-                  Sell
-                </Link>
-                <Link
-                  href="/agents"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block py-3 px-2 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                >
-                  Agents
-                </Link>
-                <Link
-                  href="/services"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block py-3 px-2 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                >
-                  Services
-                </Link>
-              </div>
-
-              {/* Trends */}
-              <div className="space-y-2 mt-4">
-                <div className="text-xs font-black text-slate-400 uppercase tracking-wider px-4">
-                  Trends
-                </div>
-                <div className="grid grid-cols-2 gap-2 px-2">
-                  <Link
-                    href="/trends/market-insights"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Market Insights
-                  </Link>
-                  <Link
-                    href="/trends/market-data"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Market Data
-                  </Link>
-                  <Link
-                    href="/trends/calculator"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Calculator
-                  </Link>
-                  <Link
-                    href="/trends/projects"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Projects
-                  </Link>
-                </div>
-              </div>
-
-              {/* More */}
-              <div className="space-y-2 mt-4">
-                <div className="text-xs font-black text-slate-400 uppercase tracking-wider px-4">
-                  {t("header.navigation.more")}
-                </div>
-                <div className="grid grid-cols-2 gap-2 px-2">
-                  <Link
-                    href="/guides"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Guides
-                  </Link>
-                  <Link
-                    href="/news"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    News
-                  </Link>
-                  <Link
-                    href="/about"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    About
-                  </Link>
-                  <Link
-                    href="/contact"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Contact
-                  </Link>
-                  <Link
-                    href="/faqs"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    FAQs
-                  </Link>
-                  <Link
-                    href="/blog"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Blog
-                  </Link>
-                </div>
-              </div>
+                // Handle dropdown items (Buy, Rent, Luxe, Commercial, Services, Trends, More)
+                return (
+                  <div key={item.label} className="space-y-4">
+                    <div className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] px-4">
+                      {item.label}
+                    </div>
+                    <div className="space-y-2">
+                      {item.items?.map((navItem) => (
+                        <div key={navItem.label} className="space-y-2">
+                          <div className="text-xs font-bold text-gray-600 px-4 mt-3">
+                            {navItem.label}
+                          </div>
+                          {navItem.subItems?.map((subItem) => (
+                            <Link
+                              key={subItem.label}
+                              href={subItem.href}
+                              onClick={() => setIsMobileMenuOpen(false)}
+                              className="block py-2 px-6 text-sm text-gray-600 hover:text-primary transition-colors rounded-lg hover:bg-gray-50"
+                            >
+                              {subItem.label}
+                            </Link>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-3 pt-4 mt-2 border-t border-slate-200">
+            <div className="space-y-4 pt-6 border-t border-gray-200">
               <button
                 onClick={() => {
                   setIsValuationModalOpen(true);
                   setIsMobileMenuOpen(false);
                 }}
-                className="w-full py-3.5 bg-primary text-white text-center font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-md"
+                className="w-full py-4 bg-primary text-white text-center font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-primary/90 transition-all shadow-lg"
               >
                 <CalculatorIcon className="h-5 w-5" />
-                {t("header.navigation.valuation")}
+                Valuation
               </button>
 
               {user && profile ? (
@@ -2615,14 +2382,14 @@ export default function Header() {
                         : '/customer/dashboard'
                     }
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-full py-3.5 bg-secondary text-white text-center font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-primary transition-all shadow-md"
+                    className="w-full py-4 bg-gray-800 text-white text-center font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-primary hover:text-white transition-all shadow-lg"
                   >
                     <UserIcon className="h-5 w-5" />
                     Dashboard
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className="w-full py-3.5 bg-red-600 text-white text-center font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-red-700 transition-all shadow-md"
+                    className="w-full py-4 bg-red-600 text-white text-center font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-red-700 transition-all shadow-lg"
                   >
                     <ArrowRightOnRectangleIcon className="h-5 w-5" />
                     Logout
@@ -2632,7 +2399,7 @@ export default function Header() {
                 <Link
                   href="/customer/login"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-full py-3.5 bg-secondary text-white text-center font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-primary transition-all shadow-md"
+                  className="w-full py-4 bg-gray-800 text-white text-center font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-primary hover:text-white transition-all shadow-lg"
                 >
                   <UserIcon className="h-5 w-5" />
                   Sign In
