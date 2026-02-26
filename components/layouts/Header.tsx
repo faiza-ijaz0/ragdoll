@@ -1433,8 +1433,9 @@
 //   );
 // }
 
-// new code
 
+
+// new code
 "use client";
 
 import Link from "next/link";
@@ -1578,6 +1579,22 @@ export default function Header() {
     router.push("/");
   };
 
+
+
+
+
+  useEffect(() => {
+  if (isMobileMenuOpen) {
+    document.body.style.overflow = "hidden";
+  } else {
+    document.body.style.overflow = "auto";
+  }
+
+  return () => {
+    document.body.style.overflow = "auto";
+  };
+}, [isMobileMenuOpen]);
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -1657,6 +1674,9 @@ export default function Header() {
     },
   ],
 },
+
+
+
 
     {
       label: t("header.navigation.rent"),
@@ -1959,12 +1979,25 @@ export default function Header() {
   };
 
   return (
-    <header
-      className={cn(
-        "fixed top-0 left-0 right-0 z-[100] transition-all duration-500",
-        "bg-white shadow-md py-4"
-      )}
-    >
+<header
+  className={cn(
+    "fixed top-0 left-0 right-0 z-[100] transition-all duration-500",
+    "bg-white/95 backdrop-blur-lg py-4"
+  )}
+>
+
+
+
+
+
+
+
+
+
+
+
+
+      
       {/* Backdrop Overlay for Mega Menu */}
       {(isBuyOpen ||
         isRentOpen ||
@@ -1973,7 +2006,7 @@ export default function Header() {
         isServicesOpen ||
         isTrendsOpen ||
         isMoreOpen) && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90]" />
+        <div className="fixed inset-0 bg-secondary/20 backdrop-blur-sm z-[-1]" />
       )}
       <div className="container-custom flex items-center justify-between px-4 sm:px-6 lg:px-8">
         
@@ -2015,7 +2048,7 @@ export default function Header() {
                   }}
                 >
                   <button
-                    className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-semibold tracking-wide transition-all hover:text-primary hover:bg-slate-100 cursor-pointer text-gray-800"
+                    className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide transition-all hover:text-primary hover:bg-slate-50 cursor-pointer text-secondary"
                     onClick={() => {
                       if (item.label === "Buy") setIsBuyOpen(!isBuyOpen);
                       else if (item.label === "Rent")
@@ -2051,7 +2084,7 @@ export default function Header() {
                   {/* Dropdown Menu */}
                   <div
                     className={cn(
-                      "bg-white shadow-2xl transition-all duration-300 z-[100] top-full",
+                      "bg-white shadow-2xl transition-all duration-300 z-50 top-full",
                       // Compact dropdown only for Services
                       item.label === "Services"
                         ? "absolute right-0 w-64 py-4 rounded-xl mt-2"
@@ -2064,7 +2097,7 @@ export default function Header() {
                         (item.label === "Trends" && isTrendsOpen) ||
                         (item.label === "More" && isMoreOpen)
                         ? "opacity-100 scale-100 translate-y-0 visible"
-                        : "opacity-0 scale-95 -translate-y-2 invisible pointer-events-none"
+                        : "opacity-0 scale-95 -translate-y-2 invisible"
                     )}
                   >
                     <div
@@ -2081,7 +2114,7 @@ export default function Header() {
                             <Link
                               key={navItem.label}
                               href={navItem.href}
-                              className="block px-4 py-2.5 text-sm font-medium text-gray-700 hover:text-primary hover:bg-slate-50 rounded-lg transition-all"
+                              className="block px-4 py-2.5 text-sm font-medium text-secondary hover:text-primary hover:bg-slate-50 rounded-lg transition-all"
                               onClick={() => {
                                 setIsServicesOpen(false);
                               }}
@@ -2106,7 +2139,7 @@ export default function Header() {
                             >
                               <Link
                                 href={navItem.href}
-                                className="block text-lg font-bold text-gray-800 hover:text-primary transition-all border-b border-gray-200 pb-3 mb-6"
+                                className="block text-lg font-bold text-secondary hover:text-primary transition-all border-b border-slate-100 pb-3 mb-6"
                                 onClick={() => {
                                   if (item.label === "Buy") setIsBuyOpen(false);
                                   else if (item.label === "Rent")
@@ -2152,7 +2185,7 @@ export default function Header() {
                                         }}
                                       >
                                         {areaInfo && isAreaList && (
-                                          <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-gray-200 shadow-sm">
+                                          <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-slate-100 shadow-sm">
                                             <img
                                               src={areaInfo.image}
                                               alt={subItem.label}
@@ -2163,8 +2196,8 @@ export default function Header() {
                                         <span
                                           className={cn(
                                             isAreaList
-                                              ? "text-xs font-bold text-gray-700 group-hover:text-primary leading-tight"
-                                              : "text-sm text-gray-600 hover:text-primary font-medium"
+                                              ? "text-xs font-bold text-secondary group-hover:text-primary leading-tight"
+                                              : "text-sm text-slate-600 hover:text-primary font-medium"
                                           )}
                                         >
                                           {subItem.label}
@@ -2184,14 +2217,14 @@ export default function Header() {
               ) : item.isValuation ? (
                 <button
                   onClick={() => setIsValuationModalOpen(true)}
-                  className="px-3 py-2 rounded-lg text-sm font-semibold tracking-wide transition-all hover:text-primary hover:bg-slate-100 relative group text-gray-800"
+                  className="px-2 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide transition-all hover:text-primary hover:bg-slate-50 relative group text-secondary"
                 >
                   {item.label}
                 </button>
               ) : (
                 <Link
                   href={item.href!}
-                  className="px-3 py-2 rounded-lg text-sm font-semibold tracking-wide transition-all hover:text-primary hover:bg-slate-100 relative group text-gray-800"
+                  className="px-2 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide transition-all hover:text-primary hover:bg-slate-50 relative group text-secondary"
                 >
                   {item.label}
                 </Link>
@@ -2217,7 +2250,7 @@ export default function Header() {
             <div className="relative" data-profile-dropdown>
               <button
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg font-bold text-xs transition-all bg-gray-800 text-white hover:bg-primary group"
+                className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg font-bold text-xs transition-all bg-secondary text-white hover:bg-primary group"
                 title={profile.full_name || profile.email}
               >
                 <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center group-hover:bg-white/30">
@@ -2232,10 +2265,10 @@ export default function Header() {
 
               {/* Dropdown Menu */}
               {isProfileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl z-[110] border border-gray-200 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-gray-200">
-                    <p className="text-sm font-semibold text-gray-800">{profile.full_name || 'User'}</p>
-                    <p className="text-xs text-gray-500">{profile.email}</p>
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl z-50 border border-slate-100 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-slate-100">
+                    <p className="text-sm font-semibold text-secondary">{profile.full_name || 'User'}</p>
+                    <p className="text-xs text-slate-500">{profile.email}</p>
                   </div>
                   <nav className="py-2">
                     <Link
@@ -2247,7 +2280,7 @@ export default function Header() {
                           : '/customer/dashboard'
                       }
                       onClick={() => setIsProfileDropdownOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary/10 hover:text-primary transition-all"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-secondary hover:bg-primary/10 hover:text-primary transition-all"
                     >
                       <UserIcon className="h-4 w-4" />
                       View Dashboard
@@ -2267,7 +2300,7 @@ export default function Header() {
             // Sign In Button
             <Link
               href="/customer/login"
-              className="h-10 w-10 rounded-full font-bold text-sm transition-all bg-primary text-white hover:bg-gray-800 hover:scale-110 flex items-center justify-center shadow-lg hover:shadow-xl"
+              className="h-10 w-10 rounded-full font-bold text-sm transition-all bg-primary text-white hover:bg-secondary hover:scale-110 flex items-center justify-center shadow-lg hover:shadow-xl"
             >
               <UserIcon className="h-5 w-5" />
             </Link>
@@ -2276,7 +2309,7 @@ export default function Header() {
           {/* Mobile Menu Toggle */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden p-2 rounded-lg transition-colors text-gray-800 hover:bg-gray-100"
+            className="lg:hidden p-2 rounded-lg transition-colors text-secondary hover:bg-slate-50"
           >
             {isMobileMenuOpen ? (
               <XMarkIcon className="h-7 w-7" />
@@ -2287,79 +2320,514 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile Menu - FIXED VERSION */}
-      {isMobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 top-[88px] bg-white z-[110] animate-slideDown overflow-y-auto">
+      {/* Mobile Menu */}
+     {isMobileMenuOpen && (
+  <div className="lg:hidden fixed left-0 right-0 top-full bg-white z-[99] shadow-2xl animate-slideDown">
+    <div className="max-h-[calc(100vh-88px)] overflow-y-auto">
           <nav className="flex flex-col p-6 gap-8 max-h-full">
-            {/* Main Navigation Items - Dynamically Rendered */}
+            {/* Main Navigation Items */}
             <div className="space-y-6">
-              {navigation.map((item) => {
-                // Handle Valuation button
-                if (item.isValuation) {
-                  return (
-                    <button
-                      key={item.label}
-                      onClick={() => {
-                        setIsValuationModalOpen(true);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="flex items-center justify-between py-4 px-4 rounded-2xl bg-primary text-white font-bold hover:bg-primary/90 transition-all shadow-lg w-full"
-                    >
-                      <span>{item.label}</span>
-                      <CalculatorIcon className="h-5 w-5" />
-                    </button>
-                  );
-                }
+              {/* New Projects - Simple Link */}
+              <Link
+                href="/projects"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-between py-4 px-4 rounded-2xl bg-slate-50 hover:bg-primary hover:text-white transition-all group"
+              >
+                <span className="text-lg font-bold text-secondary group-hover:text-white">
+                  {t("header.navigation.newProjects")}
+                </span>
+                <ChevronDownIcon className="h-5 w-5 text-slate-400 group-hover:text-white -rotate-90" />
+              </Link>
 
-                // Handle simple links (no dropdown)
-                if (!item.hasDropdown) {
-                  return (
-                    <Link
-                      key={item.label}
-                      href={item.href!}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-4 px-4 rounded-2xl bg-gray-50 hover:bg-primary hover:text-white transition-all group"
-                    >
-                      <span className="text-lg font-bold text-gray-800 group-hover:text-white">
-                        {item.label}
-                      </span>
-                      <ChevronDownIcon className="h-5 w-5 text-gray-400 group-hover:text-white -rotate-90" />
-                    </Link>
-                  );
-                }
-
-                // Handle dropdown items (Buy, Rent, Luxe, Commercial, Services, Trends, More)
-                return (
-                  <div key={item.label} className="space-y-4">
-                    <div className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] px-4">
-                      {item.label}
-                    </div>
-                    <div className="space-y-2">
-                      {item.items?.map((navItem) => (
-                        <div key={navItem.label} className="space-y-2">
-                          <div className="text-xs font-bold text-gray-600 px-4 mt-3">
-                            {navItem.label}
-                          </div>
-                          {navItem.subItems?.map((subItem) => (
-                            <Link
-                              key={subItem.label}
-                              href={subItem.href}
-                              onClick={() => setIsMobileMenuOpen(false)}
-                              className="block py-2 px-6 text-sm text-gray-600 hover:text-primary transition-colors rounded-lg hover:bg-gray-50"
-                            >
-                              {subItem.label}
-                            </Link>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
+              {/* Buy Section */}
+              <div className="space-y-4">
+                <div className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-4">
+                  {t("header.navigation.buy")}
+                </div>
+                <div className="space-y-2">
+                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
+                    Property Types
                   </div>
-                );
-              })}
+                  <Link
+                    href="/properties?action=buy"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    All Properties
+                  </Link>
+                  <Link
+                    href="/properties?action=buy&type=apartment"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Apartments
+                  </Link>
+                  <Link
+                    href="/properties?action=buy&type=villa"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Villas
+                  </Link>
+                  <Link
+                    href="/properties?action=buy&type=townhouse"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Townhouses
+                  </Link>
+                  <Link
+                    href="/properties?action=buy&type=penthouse"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Penthouses
+                  </Link>
+                  <Link
+                    href="/properties?action=buy&type=studio"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Studios
+                  </Link>
+                  <Link
+                    href="/properties?action=buy&feature=landmark"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Landmarks
+                  </Link>
+
+                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
+                    Popular Areas
+                  </div>
+                  {dubaiAreas.slice(0, 8).map((area) => (
+                    <Link
+                      key={area.name}
+                      href={`/properties?action=buy&area=${area.name
+                        .toLowerCase()
+                        .replace(/\s+/g, "-")}`}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    >
+                      {area.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              {/* Rent Section */}
+              <div className="space-y-4">
+                <div className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-4">
+                  {t("header.navigation.rent")}
+                </div>
+                <div className="space-y-2">
+                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
+                    Property Types
+                  </div>
+                  <Link
+                    href="/properties?action=rent"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    All Properties
+                  </Link>
+                  <Link
+                    href="/properties?action=rent&type=apartment"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Apartments
+                  </Link>
+                  <Link
+                    href="/properties?action=rent&type=villa"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Villas
+                  </Link>
+                  <Link
+                    href="/properties?action=rent&type=townhouse"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Townhouses
+                  </Link>
+                  <Link
+                    href="/properties?action=rent&type=penthouse"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Penthouses
+                  </Link>
+                  <Link
+                    href="/properties?action=rent&type=studio"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Studios
+                  </Link>
+
+                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
+                    Popular Areas
+                  </div>
+                  {dubaiAreas.slice(0, 8).map((area) => (
+                    <Link
+                      key={area.name}
+                      href={`/properties?action=rent&area=${area.name
+                        .toLowerCase()
+                        .replace(/\s+/g, "-")}`}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    >
+                      {area.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              {/* Luxe Section */}
+              <div className="space-y-4">
+                <div className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-4">
+                  Luxe
+                </div>
+                <div className="space-y-2">
+                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
+                    Luxury Collections
+                  </div>
+                  <Link
+                    href="/properties?category=luxe"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    All Luxury
+                  </Link>
+                  <Link
+                    href="/properties?category=luxe&feature=beachfront"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Beachfront
+                  </Link>
+                  <Link
+                    href="/properties?category=luxe&feature=pool"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Private Pools
+                  </Link>
+                  <Link
+                    href="/properties?category=luxe&feature=smart-home"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Smart Homes
+                  </Link>
+                  <Link
+                    href="/properties?category=luxe&feature=golf"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Golf Communities
+                  </Link>
+
+                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
+                    Premium Areas
+                  </div>
+                  <Link
+                    href="/properties?category=luxe&area=dubai-marina"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Dubai Marina
+                  </Link>
+                  <Link
+                    href="/properties?category=luxe&area=palm-jumeirah"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Palm Jumeirah
+                  </Link>
+                  <Link
+                    href="/properties?category=luxe&area=downtown-dubai"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Downtown Dubai
+                  </Link>
+                  <Link
+                    href="/properties?category=luxe&area=emirates-hills"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Emirates Hills
+                  </Link>
+                </div>
+              </div>
+
+              {/* Commercial Section */}
+              <div className="space-y-4">
+                <div className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-4">
+                  {t("header.navigation.commercial")}
+                </div>
+                <div className="space-y-2">
+                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
+                    Commercial Types
+                  </div>
+                  <Link
+                    href="/properties?action=buy&type=commercial"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    All Commercial
+                  </Link>
+                  <Link
+                    href="/properties?action=buy&type=commercial&subtype=office"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Office Spaces
+                  </Link>
+                  <Link
+                    href="/properties?action=buy&type=commercial&subtype=retail"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Retail Shops
+                  </Link>
+                  <Link
+                    href="/properties?action=buy&type=commercial&subtype=warehouse"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Warehouses
+                  </Link>
+                  <Link
+                    href="/properties?action=buy&type=commercial&subtype=coworking"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Co-working
+                  </Link>
+
+                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
+                    Business Districts
+                  </div>
+                  <Link
+                    href="/properties?action=buy&type=commercial&area=business-bay"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Business Bay
+                  </Link>
+                  <Link
+                    href="/properties?action=buy&type=commercial&area=difc"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    DIFC
+                  </Link>
+                  <Link
+                    href="/properties?action=buy&type=commercial&area=dubai-silicon-oasis"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Dubai Silicon Oasis
+                  </Link>
+                  <Link
+                    href="/properties?action=buy&type=commercial&area=deira"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Deira
+                  </Link>
+                </div>
+              </div>
+
+              {/* Services Section */}
+              <div className="space-y-4">
+                <div className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-4">
+                  {t("header.navigation.services")}
+                </div>
+                <div className="space-y-2">
+                  <Link
+                    href="/services/property-management"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-between py-3 px-4 rounded-xl hover:bg-slate-50 transition-all"
+                  >
+                    <span className="text-base font-bold text-secondary">
+                      {t("header.navigation.propertyManagement")}
+                    </span>
+                    <ChevronDownIcon className="h-4 w-4 text-slate-400 -rotate-90" />
+                  </Link>
+                  <Link
+                    href="/services/consultation"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-between py-3 px-4 rounded-xl hover:bg-slate-50 transition-all"
+                  >
+                    <span className="text-base font-bold text-secondary">
+                      {t("header.navigation.consultation")}
+                    </span>
+                    <ChevronDownIcon className="h-4 w-4 text-slate-400 -rotate-90" />
+                  </Link>
+                  <Link
+                    href="/services/investment"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-between py-3 px-4 rounded-xl hover:bg-slate-50 transition-all"
+                  >
+                    <span className="text-base font-bold text-secondary">
+                      {t("header.navigation.investment")}
+                    </span>
+                    <ChevronDownIcon className="h-4 w-4 text-slate-400 -rotate-90" />
+                  </Link>
+                </div>
+              </div>
+
+              {/* More Section */}
+              <div className="space-y-4">
+                <div className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-4">
+                  {t("header.navigation.more")}
+                </div>
+                <div className="space-y-2">
+                  {/* Market Insights */}
+                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
+                    Market Insights
+                  </div>
+                  <Link
+                    href="/market/investments-map"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Investments Map
+                  </Link>
+                  <Link
+                    href="/market/projects-sales"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Projects Sales Transactions
+                  </Link>
+                  <Link
+                    href="/market/performance-2024"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Market Performance 2024
+                  </Link>
+                  <Link
+                    href="/market/prices-2024"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Dubai Properties Prices 2024
+                  </Link>
+                  <Link
+                    href="/market/property-supply"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Dubai Property Supply
+                  </Link>
+                  <Link
+                    href="/market/prices-index"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Properties Prices Index
+                  </Link>
+                  <Link
+                    href="/market/dubai-numbers"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Dubai In Numbers
+                  </Link>
+                  <Link
+                    href="/market/best-investments"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Best Property Investments In Dubai
+                  </Link>
+
+                  {/* Resources & Information */}
+                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
+                    Resources & Information
+                  </div>
+                  <Link
+                    href="/guides"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    {t("header.navigation.guides")}
+                  </Link>
+                  <Link
+                    href="/news"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    {t("header.navigation.news")}
+                  </Link>
+                  <Link
+                    href="/why-invest-dubai"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    {t("header.navigation.whyInvestInDubai")}
+                  </Link>
+                  <Link
+                    href="/faqs"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    FAQs
+                  </Link>
+                  <Link
+                    href="/blog"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Blog
+                  </Link>
+
+                  {/* Company */}
+                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
+                    Company
+                  </div>
+                  <Link
+                    href="/partners"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Partner
+                  </Link>
+                  <Link
+                    href="/clients"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    Clients
+                  </Link>
+                  <Link
+                    href="/about"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    {t("header.navigation.about")}
+                  </Link>
+                  <Link
+                    href="/contact"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                  >
+                    {t("header.navigation.contact")}
+                  </Link>
+                </div>
+              </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-4 pt-6 border-t border-gray-200">
+            <div className="space-y-4 pt-6 border-t border-slate-100">
               <button
                 onClick={() => {
                   setIsValuationModalOpen(true);
@@ -2368,7 +2836,7 @@ export default function Header() {
                 className="w-full py-4 bg-primary text-white text-center font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-primary/90 transition-all shadow-lg"
               >
                 <CalculatorIcon className="h-5 w-5" />
-                Valuation
+                {t("header.navigation.valuation")}
               </button>
 
               {user && profile ? (
@@ -2382,7 +2850,7 @@ export default function Header() {
                         : '/customer/dashboard'
                     }
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-full py-4 bg-gray-800 text-white text-center font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-primary hover:text-white transition-all shadow-lg"
+                    className="w-full py-4 bg-secondary text-white text-center font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-primary hover:text-secondary transition-all shadow-lg"
                   >
                     <UserIcon className="h-5 w-5" />
                     Dashboard
@@ -2399,7 +2867,7 @@ export default function Header() {
                 <Link
                   href="/customer/login"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-full py-4 bg-gray-800 text-white text-center font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-primary hover:text-white transition-all shadow-lg"
+                  className="w-full py-4 bg-secondary text-white text-center font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-primary hover:text-secondary transition-all shadow-lg"
                 >
                   <UserIcon className="h-5 w-5" />
                   Sign In
@@ -2407,6 +2875,7 @@ export default function Header() {
               )}
             </div>
           </nav>
+        </div>
         </div>
       )}
 
