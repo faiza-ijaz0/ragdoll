@@ -1542,76 +1542,89 @@ export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Landing Section with Image Slider */}
-      <section className="relative w-full h-screen overflow-hidden">
-        <HeroImageSlider />
+     <section className="relative w-full h-screen overflow-hidden">
+  <HeroImageSlider />
 
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-0">
-          <div className="container-custom w-full">
-            <div className="text-center max-w-6xl mx-auto space-y-4">
-              <div className="space-y-2 sm:space-y-3">
-                <h2 className="text-primary font-bold tracking-[0.4em] uppercase text-xs sm:text-xs drop-shadow-md">
-                  {t("homepage.premiumRealEstate")}
-                </h2>
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white drop-shadow-2xl leading-tight">
-                  Find Your <span className="text-primary">Dream Home</span>
-                </h1>
-                <p className="text-xs sm:text-sm md:text-base text-white/90 max-w-3xl mx-auto leading-relaxed font-medium drop-shadow-lg px-4 sm:px-0">
-                  {t("homepage.discoverExclusiveProperties")}
-                </p>
-              </div>
+  <div className="absolute inset-0 flex flex-col items-center justify-center z-0 px-4 sm:px-6 lg:px-8">
+    <div className="container-custom w-full max-w-7xl mx-auto">
+      <div className="text-center max-w-4xl mx-auto space-y-3 sm:space-y-4 md:space-y-5">
+        
+        {/* Premium Real Estate Badge */}
+        <div className="space-y-1 sm:space-y-2">
+          <h2 className="text-primary font-bold tracking-[0.3em] sm:tracking-[0.4em] uppercase text-[10px] xs:text-xs sm:text-sm drop-shadow-md">
+            {t("homepage.premiumRealEstate")}
+          </h2>
+          
+          {/* Main Heading */}
+          <h1 className="text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black tracking-tight text-white drop-shadow-2xl leading-tight px-2 xs:px-0">
+            Find Your <span className="text-primary block xs:inline">Dream Home</span>
+          </h1>
+          
+          {/* Subheading */}
+          <p className="text-xs xs:text-sm sm:text-base md:text-lg text-white/90 max-w-2xl mx-auto leading-relaxed font-medium drop-shadow-lg px-3 xs:px-4 sm:px-0">
+            {t("homepage.discoverExclusiveProperties")}
+          </p>
+        </div>
 
-              <div className="max-w-4xl mx-auto animate-slide-up [animation-delay:200ms]">
-                <HeroSearch />
-              </div>
+        {/* Search Bar */}
+        <div className="w-full max-w-3xl mx-auto px-2 xs:px-4 sm:px-0 animate-slide-up [animation-delay:200ms]">
+          <HeroSearch />
+        </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 pt-4 sm:pt-6 max-w-3xl mx-auto animate-fade-in [animation-delay:400ms] px-4 sm:px-0">
-                <div className="text-center group">
-                  <div className="text-3xl sm:text-4xl font-black text-white mb-1 group-hover:text-primary transition-colors">
-                    {featuredProperties.length +
-                      rentalProperties.length +
-                      projectVideos.length}
-                    +
-                  </div>
-                  <div className="text-[8px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">
-                    {t("homepage.properties")}
-                  </div>
-                </div>
-                <div className="text-center group">
-                  <div className="text-3xl sm:text-4xl font-black text-white mb-1 group-hover:text-primary transition-colors">
-                    {testimonials.length * 100}+
-                  </div>
-                  <div className="text-[8px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">
-                    {t("homepage.happyClients")}
-                  </div>
-                </div>
-                <div className="text-center group">
-                  <div className="text-3xl sm:text-4xl font-black text-white mb-1 group-hover:text-primary transition-colors">
-                    {topAgents.length}+
-                  </div>
-                  <div className="text-[8px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">
-                    {t("homepage.expertAgents")}
-                  </div>
-                </div>
-                <div className="text-center group">
-                  <div className="text-3xl sm:text-4xl font-black text-white mb-1 group-hover:text-primary transition-colors">
-                    {Math.max(...topAgents.map((a) => a.experience_years || 0))}
-                    +
-                  </div>
-                  <div className="text-[8px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">
-                    {t("homepage.yearsExperience")}
-                  </div>
-                </div>
-              </div>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 xs:gap-3 sm:gap-4 md:gap-6 pt-4 xs:pt-5 sm:pt-6 md:pt-8 max-w-3xl mx-auto animate-fade-in [animation-delay:400ms] px-2 xs:px-4 sm:px-0">
+          
+          {/* Properties Count */}
+          <div className="text-center group bg-black/20 backdrop-blur-sm rounded-lg py-2 xs:py-3 sm:py-4 px-1 xs:px-2">
+            <div className="text-xl xs:text-2xl sm:text-3xl md:text-4xl font-black text-white mb-0.5 xs:mb-1 group-hover:text-primary transition-colors">
+              {featuredProperties.length + rentalProperties.length + projectVideos.length}+
+            </div>
+            <div className="text-[8px] xs:text-[9px] sm:text-[10px] md:text-xs font-bold uppercase tracking-[0.1em] xs:tracking-[0.15em] sm:tracking-[0.2em] text-white/70">
+              {t("homepage.properties")}
+            </div>
+          </div>
+          
+          {/* Happy Clients */}
+          <div className="text-center group bg-black/20 backdrop-blur-sm rounded-lg py-2 xs:py-3 sm:py-4 px-1 xs:px-2">
+            <div className="text-xl xs:text-2xl sm:text-3xl md:text-4xl font-black text-white mb-0.5 xs:mb-1 group-hover:text-primary transition-colors">
+              {testimonials.length * 100}+
+            </div>
+            <div className="text-[8px] xs:text-[9px] sm:text-[10px] md:text-xs font-bold uppercase tracking-[0.1em] xs:tracking-[0.15em] sm:tracking-[0.2em] text-white/70">
+              {t("homepage.happyClients")}
+            </div>
+          </div>
+          
+          {/* Expert Agents */}
+          <div className="text-center group bg-black/20 backdrop-blur-sm rounded-lg py-2 xs:py-3 sm:py-4 px-1 xs:px-2">
+            <div className="text-xl xs:text-2xl sm:text-3xl md:text-4xl font-black text-white mb-0.5 xs:mb-1 group-hover:text-primary transition-colors">
+              {topAgents.length}+
+            </div>
+            <div className="text-[8px] xs:text-[9px] sm:text-[10px] md:text-xs font-bold uppercase tracking-[0.1em] xs:tracking-[0.15em] sm:tracking-[0.2em] text-white/70">
+              {t("homepage.expertAgents")}
+            </div>
+          </div>
+          
+          {/* Years Experience */}
+          <div className="text-center group bg-black/20 backdrop-blur-sm rounded-lg py-2 xs:py-3 sm:py-4 px-1 xs:px-2">
+            <div className="text-xl xs:text-2xl sm:text-3xl md:text-4xl font-black text-white mb-0.5 xs:mb-1 group-hover:text-primary transition-colors">
+              {Math.max(...topAgents.map((a) => a.experience_years || 0))}+
+            </div>
+            <div className="text-[8px] xs:text-[9px] sm:text-[10px] md:text-xs font-bold uppercase tracking-[0.1em] xs:tracking-[0.15em] sm:tracking-[0.2em] text-white/70">
+              {t("homepage.yearsExperience")}
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
 
-        <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 z-20">
-          <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center">
-            <div className="w-1 h-2 bg-white/60 rounded-full mt-2 animate-bounce"></div>
-          </div>
-        </div>
-      </section>
+  {/* Scroll Indicator - Hidden on very small screens */}
+  <div className="absolute bottom-4 xs:bottom-6 sm:bottom-8 md:bottom-10 left-1/2 transform -translate-x-1/2 z-20 hidden xs:block">
+    <div className="w-5 xs:w-6 h-8 xs:h-10 border-2 border-white/30 rounded-full flex justify-center">
+      <div className="w-1 h-1.5 xs:h-2 bg-white/60 rounded-full mt-2 animate-bounce"></div>
+    </div>
+  </div>
+</section>
 
       {/* Video Showcase Section - MAX 5 */}
 

@@ -7,8 +7,8 @@
 // import { useAuth } from "@/contexts/AuthContext";
 // import { cn } from "@/lib/utils";
 // import ValuationModal, { ValuationData } from "../forms/ValuationModal";
-// import { addDoc, collection } from "firebase/firestore"; // NEW: Firebase imports
-// import { db } from "@/lib/firebase"; // NEW: Firebase db import
+// import { addDoc, collection } from "firebase/firestore";
+// import { db } from "@/lib/firebase";
 
 // import { useTranslation } from "react-i18next";
 // import {
@@ -55,7 +55,7 @@
 //   {
 //     name: "Dubai Creek Harbour",
 //     image:
-//       "https://images.unsplash.com/photo-1614605242014-c6419091c3fd?w=400&q=80",
+//       "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&q=80",
 //   },
 //   {
 //     name: "Emirates Hills",
@@ -80,7 +80,7 @@
 //   {
 //     name: "Dubai Silicon Oasis",
 //     image:
-//       "https://images.unsplash.com/ photo-1486406146926-c627a92ad1ab?w=400&q=80",
+//       "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&q=80",
 //   },
 //   {
 //     name: "Deira",
@@ -171,63 +171,58 @@
 //       href: "/projects",
 //     },
 
+//   {
+//   label: t("header.navigation.buy"),
+//   hasDropdown: true,
+//   items: [
 //     {
-//       label: t("header.navigation.buy"),
-//       hasDropdown: true,
-//       items: [
+//       label: "Property Types",
+//       href: "/sale",
+//       subItems: [
+//         { label: "All Properties", href: "/sale?action=buy" },
 //         {
-//           label: "Property Types",
-//           href: "/luxe",
-//           subItems: [
-//             { label: "All Properties", href: "/luxe" },
-//             {
-//               label: "Apartments",
-//               href: "/luxe?type=apartment",
-//             },
-
-//             { label: "Villas", href: "/luxe?type=villa" },
-
-//             {
-//               label: "Townhouses",
-//               href: "/luxe?type=townhouse",
-//             },
-
-//             { label: "plot", href: "/luxe?type=plot" },
-
-//             {
-//               label: "Studios",
-//               href: "/luxe?type=furnished-studio",
-//             },
-
-//             {
-//               label: "residential plot",
-//               href: "/luxe?type=residential-plot",
-//             },
-//             {
-//               label: " industrial plot",
-//               href: "/luxe?type=industrial-plot",
-//             },
-
-//             {
-//               label: "commercial",
-//               href: "/luxe?type=commercial",
-//             },
-//           ],
+//           label: "Apartments",
+//           href: "/sale?action=buy&type=apartment",
+//         },
+//         { label: "Villas", href: "/sale?action=buy&type=villa" },
+//         {
+//           label: "Townhouses",
+//           href: "/sale?action=buy&type=townhouse",
+//         },
+//         { label: "plot", href: "/sale?action=buy&type=plot" },
+//         {
+//           label: "Studios",
+//           href: "/sale?action=buy&type=furnished-studio",
 //         },
 //         {
-//           label: "Popular Areas",
-//           href: "/luxe",
-//           subItems: dubaiAreas.map((area) => ({
-//             label: area.name,
-//             href: `/luxe?area=${area.name
-//               .toLowerCase()
-//               .replace(/\s+/g, "-")}`,
-//           })),
+//           label: "residential plot",
+//           href: "/sale?action=buy&type=residential-plot",
+//         },
+//         {
+//           label: "industrial plot",
+//           href: "/sale?action=buy&type=industrial-plot",
+//         },
+//         {
+//           label: "commercial",
+//           href: "/sale?action=buy&type=commercial",
 //         },
 //       ],
 //     },
+//     {
+//       label: "Popular Areas",
+//       href: "/sale",
+//       subItems: dubaiAreas.map((area) => ({
+//         label: area.name,
+//         href: `/sale?action=buy&area=${area.name
+//           .toLowerCase()
+//           .replace(/\s+/g, "-")}`,
+//       })),
+//     },
+//   ],
+// },
 
-    
+
+
 
 //     {
 //       label: t("header.navigation.rent"),
@@ -237,175 +232,145 @@
 //           label: "Property Types",
 //           href: "/rent",
 //           subItems: [
-//             { label: "All Properties", href: "/rent" },
+//             { label: "All Properties", href: "/rent?action=rent" },
 //             {
 //               label: "Apartments",
-//               href: "/rent?type=apartment",
+//               href: "/rent?action=rent&type=apartment",
 //             },
-//             { label: "Villas", href: "/rent?type=villa" },
+//             { label: "Villas", href: "/rent?action=rent&type=villa" },
 //             {
 //               label: "Townhouses",
-//               href: "/rent?type=townhouse",
+//               href: "/rent?action=rent&type=townhouse",
 //             },
-//              {
+//             {
 //               label: "Plot",
-//               href: "/rent?type=plot",
+//               href: "/rent?action=rent&type=plot",
 //             },
-//              {
+//             {
 //               label: "commercial",
-//               href: "/rent?type=commercial",
+//               href: "/rent?action=rent&type=commercial",
 //             },
-//              {
+//             {
 //               label: "residential plot",
-//               href: "/rent?type=residential-plot",
+//               href: "/rent?action=rent&type=residential-plot",
 //             },
-//              {
+//             {
 //               label: "industrial plot",
-//               href: "/rent?type=industrial-plot",
+//               href: "/rent?action=rent&type=industrial-plot",
 //             },
 //             {
 //               label: "Studios",
-//               href: "/rent?type=furnished-studio",
+//               href: "/rent?action=rent&type=furnished-studio",
 //             },
 //           ],
 //         },
 //         {
-//   label: "Popular Areas",
-//   href: "/rent",
-//   subItems: dubaiAreas.map((area) => ({
-//     label: area.name,
-//     href: `/rent?action=rent&area=${area.name
-//       .toLowerCase()
-//       .replace(/\s+/g, "-")}`,
-//   })),
+//           label: "Popular Areas",
+//           href: "/rent",
+//           subItems: dubaiAreas.map((area) => ({
+//             label: area.name,
+//             href: `/rent?action=rent&area=${area.name
+//               .toLowerCase()
+//               .replace(/\s+/g, "-")}`,
+//           })),
+//         },
+//       ],
+//     },
+
+//     {
+//   label: "Luxe",
+//   hasDropdown: true,
+//   items: [
+//     {
+//       label: "All Properties",
+//       href: "/luxe",
+//       subItems: [
+//         { label: "All Properties", href: "/luxe" },
+//         { label: "For Rent", href: "/luxe?action=rent" },
+//         { label: "For Sale", href: "/luxe?action=buy" },
+//       ],
+//     },
+//     {
+//       label: "Property Types",
+//       href: "/luxe",
+//       subItems: [
+//         { label: "All Types", href: "/luxe" },
+//         { label: "Apartments", href: "/luxe?type=apartment" },
+//         { label: "Villas", href: "/luxe?type=villa" },
+//         { label: "Townhouses", href: "/luxe?type=townhouse" },
+//         { label: "Penthouses", href: "/luxe?type=penthouse" },
+//         { label: "Studios", href: "/luxe?type=studio" },
+//         { label: "Plots", href: "/luxe?type=plot" },
+//         { label: "Commercial", href: "/luxe?type=commercial" },
+//         { label: "Furnished Studios", href: "/luxe?type=furnished-studio" },
+//       ],
+//     },
+    
+//     {
+//       label: "Popular Areas",
+//       href: "/luxe",
+//       subItems: [
+//         { label: "Dubai Marina", href: "/luxe?area=dubai-marina" },
+//         { label: "Palm Jumeirah", href: "/luxe?area=palm-jumeirah" },
+//         { label: "Downtown Dubai", href: "/luxe?area=downtown-dubai" },
+//         { label: "Emirates Hills", href: "/luxe?area=emirates-hills" },
+//         { label: "Arabian Ranches", href: "/luxe?area=arabian-ranches" },
+//         { label: "Dubai Hills Estate", href: "/luxe?area=dubai-hills-estate" },
+//         { label: "Business Bay", href: "/luxe?area=business-bay" },
+//         { label: "Jumeirah", href: "/luxe?area=jumeirah" },
+//         { label: "Dubai Creek Harbour", href: "/luxe?area=dubai-creek-harbour" },
+//         { label: "Al Barsha", href: "/luxe?area=al-barsha" },
+//       ],
+//     },
+    
+//   ],
 // },
-//       ],
-//     },
-
+// {
+//   label: t("header.navigation.commercial"),
+//   hasDropdown: true,
+//   items: [
 //     {
-//       label: "Luxe",
-//       hasDropdown: true,
-//       items: [
-//         {
-//           label: "Luxury Collections",
-//           href: "/luxe",
-//           subItems: [
-//             { label: "All Luxury", href: "/luxe" },
-//             {
-//               label: "townhouse",
-//               href: "/luxe?category=luxe&feature=townhouse",
-//             },
-//              {
-//               label: "villa",
-//               href: "/luxe?category=luxe&feature=villas",
-//             },
-
-//               { label: "Apartments", href: "/luxe?category=luxe&feature=apartments" },
-//         { label: "Furnished studio", href: "/luxe?category=luxe&feature=studios" },
-//         { label: "Commercial", href: "/luxe?category=luxe&feature=commercial" },
-//           ],
-//         },
-//         {
-//           label: "Premium Areas",
-//           href: "/luxe",
-//           subItems: [
-//             {
-//               label: "Dubai Marina",
-//               href: "/properties?category=luxe&area=dubai-marina",
-//             },
-//             {
-//               label: "Palm Jumeirah",
-//               href: "/properties?category=luxe&area=palm-jumeirah",
-//             },
-//             {
-//               label: "Downtown Dubai",
-//               href: "/properties?category=luxe&area=downtown-dubai",
-//             },
-//             {
-//               label: "Emirates Hills",
-//               href: "/properties?category=luxe&area=emirates-hills",
-//             },
-//             {
-//               label: "Arabian Ranches",
-//               href: "/properties?category=luxe&area=arabian-ranches",
-//             },
-//             {
-//               label: "Dubai Hills Estate",
-//               href: "/properties?category=luxe&area=dubai-hills-estate",
-//             },
-//           ],
-//         },
+//       label: "All Commercial",
+//       href: "/commercial",
+//       subItems: [
+//         { label: "All Commercial Properties", href: "/commercial" },
+//         { label: "For Rent", href: "/commercial?action=rent" },
+//         { label: "For Sale", href: "/commercial?action=buy" },
 //       ],
 //     },
-
 //     {
-//       label: t("header.navigation.commercial"),
-//       hasDropdown: true,
-//       items: [
-//         {
-//           label: "Commercial Types",
-//           href: "/commercial",
-//           subItems: [
-//             {
-//               label: "All commercial",
-//               href: "/commercial",
-//             },
-          
-//   {
-//               label: "villa",
-//               href: "/commercial?action=buy&type=commercial&feature=villas",
-//             },
-
-//              {
-//               label: "townhouse",
-//               href: "/commercial?action=buy&type=commercial&feature=townhouse",
-//             },
-
-//              {
-//               label: "plots",
-//               href: "/commercial?action=buy&type=commercial&feature=plots",
-//             },
-
-//              {
-//               label: "studio",
-//               href: "/commercial?action=buy&type=commercial&feature=studios",
-//             },
-            
-//             {
-//               label: "commercial",
-//               href: "/commercial?action=buy&type=commercial&feature=commercial",
-//             },
-           
-//           ],
-//         },
-//         {
-//           label: "Business Districts",
-//           href: "/commercial",
-//           subItems: [
-//             {
-//               label: "Business Bay",
-//               href: "/properties?action=buy&type=commercial&area=business-bay",
-//             },
-//             {
-//               label: "DIFC",
-//               href: "/properties?action=buy&type=commercial&area=difc",
-//             },
-//             {
-//               label: "Dubai Silicon Oasis",
-//               href: "/properties?action=buy&type=commercial&area=dubai-silicon-oasis",
-//             },
-//             {
-//               label: "Deira",
-//               href: "/properties?action=buy&type=commercial&area=deira",
-//             },
-//             {
-//               label: "Dubai South",
-//               href: "/properties?action=buy&type=commercial&area=dubai-south",
-//             },
-//           ],
-//         },
+//       label: "Commercial Types",
+//       href: "/commercial",
+//       subItems: [
+//         { label: "All Types", href: "/commercial" },
+//         { label: "Offices", href: "/commercial?type=office" },
+//         { label: "Retail / Shops", href: "/commercial?type=shop" },
+//         { label: "Warehouses", href: "/commercial?type=warehouse" },
+//         { label: "Industrial", href: "/commercial?type=industrial" },
+//         { label: "Commercial Buildings", href: "/commercial?type=building" },
+//         { label: "Commercial Plots", href: "/commercial?type=plot" },
 //       ],
 //     },
+//     {
+//       label: "Business Districts",
+//       href: "/commercial",
+//       subItems: [
+//         { label: "Business Bay", href: "/commercial?area=business-bay" },
+//         { label: "DIFC", href: "/commercial?area=difc" },
+//         { label: "Dubai Silicon Oasis", href: "/commercial?area=dubai-silicon-oasis" },
+//         { label: "Deira", href: "/commercial?area=deira" },
+//         { label: "Dubai South", href: "/commercial?area=dubai-south" },
+//         { label: "Dubai Marina", href: "/commercial?area=dubai-marina" },
+//         { label: "Downtown Dubai", href: "/commercial?area=downtown-dubai" },
+//         { label: "Jumeirah", href: "/commercial?area=jumeirah" },
+//         { label: "Al Barsha", href: "/commercial?area=al-barsha" },
+//         { label: "Dubai Creek Harbour", href: "/commercial?area=dubai-creek-harbour" },
+//       ],
+//     },
+   
+   
+//   ],
+// },
 //     {
 //       label: "Sell",
 //       hasDropdown: false,
@@ -432,7 +397,6 @@
 //           label: "Market Insights",
 //           href: "/trends/market-insights",
 //           subItems: [
-            
 //             { label: "Investment Analysis", href: "/trends/investment-analysis" },
 //             { label: "Top Investment Areas", href: "/trends/top-investment-areas" },
 //             { label: "Dubai Projects Map", href: "/trends/dubai-projects-map" },
@@ -495,8 +459,8 @@
 //           label: "Company",
 //           href: "/company",
 //           subItems: [
-//             { label: t("partner"), href: "/partners" },
-//             { label: t("clients"), href: "/clients" },
+//             { label: "Partner", href: "/partners" },
+//             { label: "Clients", href: "/clients" },
 //             { label: t("header.navigation.about"), href: "/about" },
 //             { label: t("header.navigation.contact"), href: "/contact" },
 //           ],
@@ -567,6 +531,19 @@
 //         "bg-white/95 backdrop-blur-lg py-4"
 //       )}
 //     >
+
+
+
+
+
+
+
+
+
+
+
+
+      
 //       {/* Backdrop Overlay for Mega Menu */}
 //       {(isBuyOpen ||
 //         isRentOpen ||
@@ -842,7 +819,7 @@
 //                   <nav className="py-2">
 //                     <Link
 //                       href={
-//                         profile.role === 'admin'
+//                         profile.role == 'admin'
 //                           ? '/admin/dashboard'
 //                           : profile.role === 'agent'
 //                           ? '/agent/dashboard'
@@ -1367,14 +1344,14 @@
 //                     onClick={() => setIsMobileMenuOpen(false)}
 //                     className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
 //                   >
-//                     {t("partner")}
+//                     Partner
 //                   </Link>
 //                   <Link
 //                     href="/clients"
 //                     onClick={() => setIsMobileMenuOpen(false)}
 //                     className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
 //                   >
-//                     {t("clients")}
+//                     Clients
 //                   </Link>
 //                   <Link
 //                     href="/about"
@@ -1456,7 +1433,7 @@
 //   );
 // }
 
-// new
+// new code
 "use client";
 
 import Link from "next/link";
@@ -1679,9 +1656,6 @@ export default function Header() {
     },
   ],
 },
-
-
-
 
     {
       label: t("header.navigation.rent"),
@@ -2312,94 +2286,79 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu - FULLY RESPONSIVE */}
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 top-[88px] bg-white z-50 animate-slideDown overflow-y-auto">
-          <nav className="flex flex-col p-6 gap-8 max-h-full">
-            {/* Main Navigation Items */}
-            <div className="space-y-6">
-              {/* New Projects - Simple Link */}
+          <nav className="flex flex-col p-4 gap-4 max-h-full">
+            {/* Main Navigation Items - All Pages */}
+            <div className="space-y-3">
+              {/* New Projects */}
               <Link
                 href="/projects"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center justify-between py-4 px-4 rounded-2xl bg-slate-50 hover:bg-primary hover:text-white transition-all group"
+                className="block w-full py-3 px-4 rounded-xl bg-slate-50 hover:bg-primary hover:text-white transition-all font-semibold text-secondary"
               >
-                <span className="text-lg font-bold text-secondary group-hover:text-white">
-                  {t("header.navigation.newProjects")}
-                </span>
-                <ChevronDownIcon className="h-5 w-5 text-slate-400 group-hover:text-white -rotate-90" />
+                {t("header.navigation.newProjects")}
               </Link>
 
-              {/* Buy Section */}
-              <div className="space-y-4">
-                <div className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-4">
+              {/* Buy */}
+              <div className="space-y-2">
+                <div className="text-xs font-black text-slate-400 uppercase tracking-wider px-4 pt-2">
                   {t("header.navigation.buy")}
                 </div>
-                <div className="space-y-2">
-                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
-                    Property Types
-                  </div>
+                <div className="grid grid-cols-2 gap-2 px-2">
                   <Link
-                    href="/properties?action=buy"
+                    href="/sale?action=buy"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
                     All Properties
                   </Link>
                   <Link
-                    href="/properties?action=buy&type=apartment"
+                    href="/sale?action=buy&type=apartment"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
                     Apartments
                   </Link>
                   <Link
-                    href="/properties?action=buy&type=villa"
+                    href="/sale?action=buy&type=villa"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
                     Villas
                   </Link>
                   <Link
-                    href="/properties?action=buy&type=townhouse"
+                    href="/sale?action=buy&type=townhouse"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
                     Townhouses
                   </Link>
                   <Link
-                    href="/properties?action=buy&type=penthouse"
+                    href="/sale?action=buy&type=plot"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
-                    Penthouses
+                    Plots
                   </Link>
                   <Link
-                    href="/properties?action=buy&type=studio"
+                    href="/sale?action=buy&type=commercial"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
-                    Studios
+                    Commercial
                   </Link>
-                  <Link
-                    href="/properties?action=buy&feature=landmark"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    Landmarks
-                  </Link>
-
-                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
-                    Popular Areas
-                  </div>
-                  {dubaiAreas.slice(0, 8).map((area) => (
+                </div>
+                
+                <div className="text-xs font-bold text-slate-500 px-4 mt-2">Popular Areas</div>
+                <div className="grid grid-cols-2 gap-2 px-2">
+                  {dubaiAreas.slice(0, 6).map((area) => (
                     <Link
                       key={area.name}
-                      href={`/properties?action=buy&area=${area.name
-                        .toLowerCase()
-                        .replace(/\s+/g, "-")}`}
+                      href={`/sale?action=buy&area=${area.name.toLowerCase().replace(/\s+/g, "-")}`}
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                      className="block py-2 px-3 text-xs bg-white border border-slate-200 rounded-xl text-center text-secondary hover:bg-primary hover:text-white hover:border-primary transition-all"
                     >
                       {area.name}
                     </Link>
@@ -2407,424 +2366,239 @@ export default function Header() {
                 </div>
               </div>
 
-              {/* Rent Section */}
-              <div className="space-y-4">
-                <div className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-4">
+              {/* Rent */}
+              <div className="space-y-2 mt-4">
+                <div className="text-xs font-black text-slate-400 uppercase tracking-wider px-4">
                   {t("header.navigation.rent")}
                 </div>
-                <div className="space-y-2">
-                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
-                    Property Types
-                  </div>
+                <div className="grid grid-cols-2 gap-2 px-2">
                   <Link
-                    href="/properties?action=rent"
+                    href="/rent?action=rent"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
                     All Properties
                   </Link>
                   <Link
-                    href="/properties?action=rent&type=apartment"
+                    href="/rent?action=rent&type=apartment"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
                     Apartments
                   </Link>
                   <Link
-                    href="/properties?action=rent&type=villa"
+                    href="/rent?action=rent&type=villa"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
                     Villas
                   </Link>
                   <Link
-                    href="/properties?action=rent&type=townhouse"
+                    href="/rent?action=rent&type=townhouse"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
                     Townhouses
                   </Link>
-                  <Link
-                    href="/properties?action=rent&type=penthouse"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    Penthouses
-                  </Link>
-                  <Link
-                    href="/properties?action=rent&type=studio"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    Studios
-                  </Link>
-
-                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
-                    Popular Areas
-                  </div>
-                  {dubaiAreas.slice(0, 8).map((area) => (
-                    <Link
-                      key={area.name}
-                      href={`/properties?action=rent&area=${area.name
-                        .toLowerCase()
-                        .replace(/\s+/g, "-")}`}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                    >
-                      {area.name}
-                    </Link>
-                  ))}
                 </div>
               </div>
 
-              {/* Luxe Section */}
-              <div className="space-y-4">
-                <div className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-4">
+              {/* Luxe */}
+              <div className="space-y-2 mt-4">
+                <div className="text-xs font-black text-slate-400 uppercase tracking-wider px-4">
                   Luxe
                 </div>
-                <div className="space-y-2">
-                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
-                    Luxury Collections
-                  </div>
+                <div className="grid grid-cols-2 gap-2 px-2">
                   <Link
-                    href="/properties?category=luxe"
+                    href="/luxe"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
                     All Luxury
                   </Link>
                   <Link
-                    href="/properties?category=luxe&feature=beachfront"
+                    href="/luxe?type=apartment"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
-                    Beachfront
+                    Apartments
                   </Link>
                   <Link
-                    href="/properties?category=luxe&feature=pool"
+                    href="/luxe?type=villa"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
-                    Private Pools
+                    Villas
                   </Link>
                   <Link
-                    href="/properties?category=luxe&feature=smart-home"
+                    href="/luxe?type=penthouse"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
-                    Smart Homes
-                  </Link>
-                  <Link
-                    href="/properties?category=luxe&feature=golf"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    Golf Communities
-                  </Link>
-
-                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
-                    Premium Areas
-                  </div>
-                  <Link
-                    href="/properties?category=luxe&area=dubai-marina"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    Dubai Marina
-                  </Link>
-                  <Link
-                    href="/properties?category=luxe&area=palm-jumeirah"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    Palm Jumeirah
-                  </Link>
-                  <Link
-                    href="/properties?category=luxe&area=downtown-dubai"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    Downtown Dubai
-                  </Link>
-                  <Link
-                    href="/properties?category=luxe&area=emirates-hills"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    Emirates Hills
+                    Penthouses
                   </Link>
                 </div>
               </div>
 
-              {/* Commercial Section */}
-              <div className="space-y-4">
-                <div className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-4">
+              {/* Commercial */}
+              <div className="space-y-2 mt-4">
+                <div className="text-xs font-black text-slate-400 uppercase tracking-wider px-4">
                   {t("header.navigation.commercial")}
                 </div>
-                <div className="space-y-2">
-                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
-                    Commercial Types
-                  </div>
+                <div className="grid grid-cols-2 gap-2 px-2">
                   <Link
-                    href="/properties?action=buy&type=commercial"
+                    href="/commercial"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
                     All Commercial
                   </Link>
                   <Link
-                    href="/properties?action=buy&type=commercial&subtype=office"
+                    href="/commercial?type=office"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
-                    Office Spaces
+                    Offices
                   </Link>
                   <Link
-                    href="/properties?action=buy&type=commercial&subtype=retail"
+                    href="/commercial?type=shop"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
-                    Retail Shops
+                    Retail
                   </Link>
                   <Link
-                    href="/properties?action=buy&type=commercial&subtype=warehouse"
+                    href="/commercial?type=warehouse"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
                     Warehouses
                   </Link>
-                  <Link
-                    href="/properties?action=buy&type=commercial&subtype=coworking"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    Co-working
-                  </Link>
+                </div>
+              </div>
 
-                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
-                    Business Districts
-                  </div>
+              {/* Simple Links */}
+              <div className="grid grid-cols-3 gap-2 px-2 mt-4">
+                <Link
+                  href="/sell"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block py-3 px-2 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
+                >
+                  Sell
+                </Link>
+                <Link
+                  href="/agents"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block py-3 px-2 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
+                >
+                  Agents
+                </Link>
+                <Link
+                  href="/services"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block py-3 px-2 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
+                >
+                  Services
+                </Link>
+              </div>
+
+              {/* Trends */}
+              <div className="space-y-2 mt-4">
+                <div className="text-xs font-black text-slate-400 uppercase tracking-wider px-4">
+                  Trends
+                </div>
+                <div className="grid grid-cols-2 gap-2 px-2">
                   <Link
-                    href="/properties?action=buy&type=commercial&area=business-bay"
+                    href="/trends/market-insights"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
-                    Business Bay
+                    Market Insights
                   </Link>
                   <Link
-                    href="/properties?action=buy&type=commercial&area=difc"
+                    href="/trends/market-data"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
-                    DIFC
+                    Market Data
                   </Link>
                   <Link
-                    href="/properties?action=buy&type=commercial&area=dubai-silicon-oasis"
+                    href="/trends/calculator"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
-                    Dubai Silicon Oasis
+                    Calculator
                   </Link>
                   <Link
-                    href="/properties?action=buy&type=commercial&area=deira"
+                    href="/trends/projects"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
-                    Deira
+                    Projects
                   </Link>
                 </div>
               </div>
 
-              {/* Services Section */}
-              <div className="space-y-4">
-                <div className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-4">
-                  {t("header.navigation.services")}
-                </div>
-                <div className="space-y-2">
-                  <Link
-                    href="/services/property-management"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center justify-between py-3 px-4 rounded-xl hover:bg-slate-50 transition-all"
-                  >
-                    <span className="text-base font-bold text-secondary">
-                      {t("header.navigation.propertyManagement")}
-                    </span>
-                    <ChevronDownIcon className="h-4 w-4 text-slate-400 -rotate-90" />
-                  </Link>
-                  <Link
-                    href="/services/consultation"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center justify-between py-3 px-4 rounded-xl hover:bg-slate-50 transition-all"
-                  >
-                    <span className="text-base font-bold text-secondary">
-                      {t("header.navigation.consultation")}
-                    </span>
-                    <ChevronDownIcon className="h-4 w-4 text-slate-400 -rotate-90" />
-                  </Link>
-                  <Link
-                    href="/services/investment"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center justify-between py-3 px-4 rounded-xl hover:bg-slate-50 transition-all"
-                  >
-                    <span className="text-base font-bold text-secondary">
-                      {t("header.navigation.investment")}
-                    </span>
-                    <ChevronDownIcon className="h-4 w-4 text-slate-400 -rotate-90" />
-                  </Link>
-                </div>
-              </div>
-
-              {/* More Section */}
-              <div className="space-y-4">
-                <div className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-4">
+              {/* More */}
+              <div className="space-y-2 mt-4">
+                <div className="text-xs font-black text-slate-400 uppercase tracking-wider px-4">
                   {t("header.navigation.more")}
                 </div>
-                <div className="space-y-2">
-                  {/* Market Insights */}
-                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
-                    Market Insights
-                  </div>
-                  <Link
-                    href="/market/investments-map"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    Investments Map
-                  </Link>
-                  <Link
-                    href="/market/projects-sales"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    Projects Sales Transactions
-                  </Link>
-                  <Link
-                    href="/market/performance-2024"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    Market Performance 2024
-                  </Link>
-                  <Link
-                    href="/market/prices-2024"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    Dubai Properties Prices 2024
-                  </Link>
-                  <Link
-                    href="/market/property-supply"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    Dubai Property Supply
-                  </Link>
-                  <Link
-                    href="/market/prices-index"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    Properties Prices Index
-                  </Link>
-                  <Link
-                    href="/market/dubai-numbers"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    Dubai In Numbers
-                  </Link>
-                  <Link
-                    href="/market/best-investments"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    Best Property Investments In Dubai
-                  </Link>
-
-                  {/* Resources & Information */}
-                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
-                    Resources & Information
-                  </div>
+                <div className="grid grid-cols-2 gap-2 px-2">
                   <Link
                     href="/guides"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
-                    {t("header.navigation.guides")}
+                    Guides
                   </Link>
                   <Link
                     href="/news"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
-                    {t("header.navigation.news")}
+                    News
                   </Link>
                   <Link
-                    href="/why-invest-dubai"
+                    href="/about"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
-                    {t("header.navigation.whyInvestInDubai")}
+                    About
+                  </Link>
+                  <Link
+                    href="/contact"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
+                  >
+                    Contact
                   </Link>
                   <Link
                     href="/faqs"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
                     FAQs
                   </Link>
                   <Link
                     href="/blog"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
+                    className="block py-2.5 px-3 text-sm bg-slate-50 rounded-xl text-center text-secondary hover:bg-primary hover:text-white transition-all"
                   >
                     Blog
-                  </Link>
-
-                  {/* Company */}
-                  <div className="text-xs font-bold text-slate-600 px-4 mt-3">
-                    Company
-                  </div>
-                  <Link
-                    href="/partners"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    Partner
-                  </Link>
-                  <Link
-                    href="/clients"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    Clients
-                  </Link>
-                  <Link
-                    href="/about"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    {t("header.navigation.about")}
-                  </Link>
-                  <Link
-                    href="/contact"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 px-6 text-sm text-slate-600 hover:text-primary transition-colors rounded-lg hover:bg-slate-50"
-                  >
-                    {t("header.navigation.contact")}
                   </Link>
                 </div>
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-4 pt-6 border-t border-slate-100">
+            <div className="space-y-3 pt-4 mt-2 border-t border-slate-200">
               <button
                 onClick={() => {
                   setIsValuationModalOpen(true);
                   setIsMobileMenuOpen(false);
                 }}
-                className="w-full py-4 bg-primary text-white text-center font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-primary/90 transition-all shadow-lg"
+                className="w-full py-3.5 bg-primary text-white text-center font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-md"
               >
                 <CalculatorIcon className="h-5 w-5" />
                 {t("header.navigation.valuation")}
@@ -2841,14 +2615,14 @@ export default function Header() {
                         : '/customer/dashboard'
                     }
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-full py-4 bg-secondary text-white text-center font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-primary hover:text-secondary transition-all shadow-lg"
+                    className="w-full py-3.5 bg-secondary text-white text-center font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-primary transition-all shadow-md"
                   >
                     <UserIcon className="h-5 w-5" />
                     Dashboard
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className="w-full py-4 bg-red-600 text-white text-center font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-red-700 transition-all shadow-lg"
+                    className="w-full py-3.5 bg-red-600 text-white text-center font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-red-700 transition-all shadow-md"
                   >
                     <ArrowRightOnRectangleIcon className="h-5 w-5" />
                     Logout
@@ -2858,7 +2632,7 @@ export default function Header() {
                 <Link
                   href="/customer/login"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-full py-4 bg-secondary text-white text-center font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-primary hover:text-secondary transition-all shadow-lg"
+                  className="w-full py-3.5 bg-secondary text-white text-center font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-primary transition-all shadow-md"
                 >
                   <UserIcon className="h-5 w-5" />
                   Sign In
