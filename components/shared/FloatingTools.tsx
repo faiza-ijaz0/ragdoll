@@ -291,10 +291,10 @@ export default function FloatingTools() {
     // Apply currency filter to all property listings
     applyCurrencyFilter(savedCurrency)
     
-    // Apply area filter if not 'All Areas'
-    if (savedArea !== 'All Areas') {
-      applyAreaFilter(savedArea)
-    }
+   // ✅ After (fixed)
+if (savedArea && savedArea !== 'All Areas') {
+  applyAreaFilter(savedArea)  // savedArea is definitely string
+}
   }, [])
 
   // Apply currency filter to all price displays
