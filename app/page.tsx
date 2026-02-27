@@ -1266,20 +1266,7 @@ const AutoPlayProjectVideo = ({
         playsInline
         preload="auto"
         title={title}
-        onError={(e) => {
-          console.error(`Video load error for ${title}:`, url);
-          // Show poster image on error
-          const videoElement = e.currentTarget;
-          const parent = videoElement.parentElement;
-          if (parent) {
-            const img = document.createElement('img');
-            img.src = poster;
-            img.alt = title;
-            img.className = 'w-full h-full object-cover';
-            parent.appendChild(img);
-            videoElement.style.display = 'none';
-          }
-        }}
+       
       />
       
       {/* Play/Pause Overlay */}
@@ -2424,3 +2411,4 @@ export default function HomePage() {
     </div>
   );
 }
+
